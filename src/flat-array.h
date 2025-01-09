@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <cstddef>
 
 // This class provides a more efficient way to dynamically allocate
 // a variable size 2D array in a flattened 1D array format to avoid
@@ -12,7 +13,7 @@ class FlatArray
 {
 public:
 
-    FlatArray FlatArray(uint8_t input_width, uint8_t input_length);
+    FlatArray(uint8_t input_width, uint8_t input_length);
 
     ~FlatArray();
 
@@ -22,9 +23,17 @@ public:
     // You should not be copying or moving this data structure.
     FlatArray(const FlatArray & other) = delete;
 
+    // 2D -> 1D mapping for array access.
+    inline size_t idx(size_t x, size_t y) const;
+
+    element& operator[](size_t index);
+
+    const element& operator[](size_t index) const;
+
+
 
 private:
     uint8_t width_ = 0;
     uint8_t length_ = 0;
     element* array_;
-}
+};

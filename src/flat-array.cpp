@@ -1,11 +1,33 @@
-#pragma once
+#include "flat-array.h"
 
-FlatArray FlatArray::FlatArray(uint8_t input_width, uint8_t input_length);
+template <typename element>
+FlatArray<element>::FlatArray(uint8_t input_width, uint8_t input_length)
+:width_(input_width), length_(input_length), array_(new element[input_width * input_length]())
+{}
 
-~FlatArray::FlatArray();
+template <typename element>
+FlatArray<element>::~FlatArray()
+{
+    delete[] array_;
+}
 
-// You should not be copying or moving this data structure.
-FlatArray::FlatArray(FlatArray && other) = delete;
+template <typename element>
+inline size_t FlatArray<element>::idx(size_t x, size_t y) const
+{
+    return x + (width_ * y);
+}
 
-// You should not be copying or moving this data structure.
-FlatArray::FlatArray(const FlatArray & other) = delete;
+template <typename element>
+element& FlatArray<element>::operator[](size_t index)
+{
+    return array_[index];
+}
+
+template <typename element>
+const element& FlatArray<element>::operator[](size_t index) const
+{
+    return array_[index];
+}
+
+// Explicit template instantiation.
+template class FlatArray<int>;

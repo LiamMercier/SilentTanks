@@ -30,10 +30,14 @@ public:
 
     const element& operator[](size_t index) const;
 
-
-
 private:
-    uint8_t width_ = 0;
-    uint8_t length_ = 0;
+    uint8_t width_;
+    uint8_t length_;
     element* array_;
 };
+
+template <typename element>
+inline size_t FlatArray<element>::idx(size_t x, size_t y) const
+{
+    return x + (width_ * y);
+}

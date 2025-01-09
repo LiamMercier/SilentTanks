@@ -4,5 +4,5 @@
 
 enum class CellType : uint8_t
 {
-    Empty, Foliage, Terrain
+    Flat, Foliage, Terrain
 };

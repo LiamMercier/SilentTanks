@@ -10,6 +10,12 @@ class Environment
 public:
     Environment(uint8_t input_width, uint8_t input_length);
 
+    ~Environment();
+
+    Environment(Environment && other) = delete;
+
+    Environment(const Environment & other) = delete;
+
     // Pass through the 2D -> 1D mapping for flat-array.
     inline size_t idx(size_t x, size_t y) const;
 

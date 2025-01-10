@@ -1,8 +1,5 @@
 #include "flat-array.h"
 #include "grid-cell.h"
-#include <new>
-#include <cstring>
-#include <iostream>
 
 template <typename element>
 FlatArray<element>::FlatArray(uint8_t input_width, uint8_t input_length)
@@ -18,6 +15,21 @@ FlatArray<element>::FlatArray(uint8_t input_width, uint8_t input_length)
     // zero out the matrix
     std::memset(array_, 0, input_width * input_length * sizeof(element));
 
+}
+
+template <typename element>
+FlatArray<element>::FlatArray(uint8_t input_width, uint8_t input_length, uint16_t total_entries)
+:width_(input_width), length_(input_length), array_(new (std::nothrow) element[total_entries])
+{
+
+    // check that memory allocation succeeded
+    if (array_ == nullptr)
+    {
+        std::cerr << "flat-array: Memory allocation failed\n";
+        return;
+    }
+    // We now have a buffer of data (that hasn't been filled with zeros) which we
+    // can fill directly (i.e using a file) instead of doing it twice.
 }
 
 template <typename element>

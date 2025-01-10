@@ -2,6 +2,9 @@
 
 #include <cstdint>
 #include <cstddef>
+#include <new>
+#include <cstring>
+#include <iostream>
 
 // This class provides a more efficient way to dynamically allocate
 // a variable size 2D array in a flattened 1D array format to avoid
@@ -13,7 +16,14 @@ class FlatArray
 {
 public:
 
+    FlatArray() = delete;
+
+    // Create the width by length array and zero it out
     FlatArray(uint8_t input_width, uint8_t input_length);
+
+    // Create a flat 1D array WITHOUT zeroing.
+    // Use FlatArray(width, length) unless you have a reason to do this!
+    FlatArray(uint8_t input_width, uint8_t input_length, uint16_t total_entries);
 
     ~FlatArray();
 
@@ -30,6 +40,10 @@ public:
 
     const element& operator[](size_t index) const;
 
+    inline uint8_t get_width() const;
+    inline uint8_t get_length() const;
+    inline element* get_array();
+
 private:
     uint8_t width_;
     uint8_t length_;
@@ -40,4 +54,22 @@ template <typename element>
 inline size_t FlatArray<element>::idx(size_t x, size_t y) const
 {
     return x + (width_ * y);
+}
+
+template <typename element>
+inline uint8_t FlatArray<element>::get_width() const
+{
+    return width_;
+}
+
+template <typename element>
+inline uint8_t FlatArray<element>::get_length() const
+{
+    return length_;
+}
+
+template <typename element>
+inline element* FlatArray<element>::get_array()
+{
+    return array_;
 }

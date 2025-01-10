@@ -2,11 +2,6 @@
 
 #include <cstdint>
 
-enum class Direction : uint8_t
-{
-    North, NorthEast, East, SouthEast, South, SouthWest, West, NorthWest
-};
-
 struct vec2
 {
 public:
@@ -22,31 +17,58 @@ class Tank
 {
 public:
 
-    Tank(uint8_t x_start, uint8_t y_start, Direction start_dir);
+    Tank(uint8_t x_start, uint8_t y_start, uint8_t start_dir, uint8_t owner);
 
-    inline vec2 get_pos() const;
+    inline uint8_t get_owner () const;
 
-    inline Direction get_dir() const;
+    inline void turn_clockwise();
 
-    inline Direction get_barrel_dir() const;
+    inline void barrel_clockwise();
+
+    inline void turn_counter_clockwise();
+
+    inline void barrel_counter_clockwise();
+
+    vec2 pos_;
+
+    // Directions start at 0 (North) and end at 7 (North west)
+    //
+    // Compass with numbers:
+    //
+    //    7 0 1
+    //    6 X 2
+    //    5 4 3
+    //
+    uint8_t current_direction_;
+    uint8_t barrel_direction_;
 
 private:
-    vec2 current_position_;
-    Direction current_direction_;
-    Direction barrel_direction_;
+
+    // player who owns this tank
+    uint8_t owner_;
 };
 
-inline vec2 Tank::get_pos() const
+inline uint8_t Tank::get_owner () const
 {
-    return current_position_;
+    return owner_;
 }
 
-inline Direction Tank::get_dir() const
+inline void Tank::turn_clockwise()
 {
-    return current_direction_;
+    current_direction_ = (current_direction_ + 1) % 8;
 }
 
-inline Direction Tank::get_barrel_dir() const
+inline void Tank::barrel_clockwise()
 {
-    return barrel_direction_;
+    barrel_direction_ = (barrel_direction_ + 1) % 8;
+}
+
+inline void Tank::turn_counter_clockwise()
+{
+    current_direction_ = (current_direction_ - 1) % 8;
+}
+
+inline void Tank::barrel_counter_clockwise()
+{
+    barrel_direction_ = (barrel_direction_ - 1) % 8;
 }

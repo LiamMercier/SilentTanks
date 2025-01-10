@@ -16,7 +16,7 @@ GameInstance::GameInstance(uint8_t input_width, uint8_t input_height, const std:
     for (int i = 0; i < num_tanks; i++)
     {
         Tank curr_tank = tanks[i];
-        vec2 tank_pos = curr_tank.get_pos();
+        vec2 tank_pos = curr_tank.pos_;
         // for the index of the environment where the
         // tank is, set the occupant of the tile to the tank number.
         (game_env_[idx(tank_pos.x_, tank_pos.y_)]).occupant_ = i;
@@ -29,9 +29,12 @@ GameInstance::~GameInstance()
     delete[] tanks;
 }
 
+// Temporary array to hold colors for console print testing
+const static std::string colors_array[4] = {"\033[48;5;196m", "\033[48;5;21m", "\033[48;5;46m", "\033[48;5;226m"};
+
+// Print information to the console
 void GameInstance::print_instance_console()
 {
-    std::cout << "WIDTH: " << +game_env_.get_width() << " LEN: " << +game_env_.get_height() << "\n";
     for (int y = 0; y < game_env_.get_height(); y++)
     {
         for (int x = 0; x < game_env_.get_width(); x++)
@@ -44,12 +47,112 @@ void GameInstance::print_instance_console()
             }
             else
             {
-                std::cout << 'A' << " ";
+                Tank this_tank = tanks[curr.occupant_];
+                uint8_t tank_owner = this_tank.get_owner();
+                std::cout << colors_array[tank_owner] << (char)('A' + curr.occupant_) << "\033[0m ";
             }
         }
         std::cout << "\n";
     }
 
+}
+
+bool GameInstance::move_tank(uint8_t ID)
+{
+    Tank curr_tank = tanks[ID];
+    uint8_t dir = curr_tank.current_direction_;
+    vec2 prev = curr_tank.pos_;
+
+    // Since we are using uint8_t we know that
+    // all out of bounds checks will have the respective
+    // variable be larger than the max width/length
+    //
+    // 0 - 1 = 255 > bound_max
+    // bound_max + 1 > bound_max
+    //
+    // Only exception is if we allow the max bound to be reached by
+    // the environment and then increase, since we would get
+    //
+    // 255 + 1 = 0
+    //
+    // So, don't allow length/width to be 255. Shouldn't be that
+    // large anyways.
+
+    switch (dir)
+    {
+        case 0:
+            if (prev.y_ - 1 > game_env_.get_height())
+            {
+                return false;
+            }
+            curr_tank.pos_.y_ -= 1;
+            break;
+        case 1:
+            if ((prev.y_ - 1 > game_env_.get_height()) || (prev.x_ + 1 > game_env_.get_width()))
+            {
+                return false;
+            }
+            curr_tank.pos_.y_ -= 1;
+            curr_tank.pos_.x_ += 1;
+            break;
+        case 2:
+            if (prev.x_ + 1 > game_env_.get_height())
+            {
+                return false;
+            }
+            curr_tank.pos_.x_ += 1;
+            break;
+        case 3:
+            if ((prev.y_ + 1 > game_env_.get_height()) || (prev.x_ + 1 > game_env_.get_width()))
+            {
+                return false;
+            }
+            curr_tank.pos_.y_ += 1;
+            curr_tank.pos_.x_ += 1;
+            break;
+        case 4:
+            if (prev.y_ + 1 > game_env_.get_height())
+            {
+                return false;
+            }
+            curr_tank.pos_.y_ += 1;
+            break;
+        case 5:
+            if ((prev.y_ + 1 > game_env_.get_height()) || (prev.x_ - 1 > game_env_.get_width()))
+            {
+                return false;
+            }
+            curr_tank.pos_.y_ += 1;
+            curr_tank.pos_.x_ -= 1;
+            break;
+        case 6:
+            if (prev.x_ - 1 > game_env_.get_height())
+            {
+                return false;
+            }
+            curr_tank.pos_.x_ -= 1;
+            break;
+        case 7:
+            if ((prev.y_ - 1 > game_env_.get_height()) || (prev.x_ - 1 > game_env_.get_width()))
+            {
+                return false;
+            }
+            curr_tank.pos_.y_ -= 1;
+            curr_tank.pos_.x_ -= 1;
+            break;
+    }
+
+    // After this point, we know the move must be valid.
+    //
+    // Proceed with updates.
+
+    GridCell prev_cell = game_env_[idx(prev.x_,prev.y_)];
+    prev_cell.occupant_ = UINT8_MAX;
+
+    GridCell curr_cell = game_env_[idx(curr_tank.pos_.x_,curr_tank.pos_.y_)];
+    curr_cell.occupant_ = ID;
+
+    return true;
 }
 
 void GameInstance::read_env_by_name(const std::string& filename, uint16_t total)

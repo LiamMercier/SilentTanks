@@ -1,30 +1,55 @@
 #include "game-instance.h"
 
-GameInstance::GameInstance(uint8_t input_width, uint8_t input_length)
-:game_env_(input_width, input_length)
+// Not useful for now
+GameInstance::GameInstance(uint8_t input_width, uint8_t input_height, Tank* starting_locations)
+:game_env_(input_width, input_height), tanks(starting_locations)
 {
+    return;
 }
 
-GameInstance::GameInstance(uint8_t input_width, uint8_t input_length, const std::string& filename)
-:game_env_(input_width, input_length, input_width*input_length)
+GameInstance::GameInstance(uint8_t input_width, uint8_t input_height, const std::string& filename, Tank* starting_locations, uint8_t num_tanks)
+:game_env_(input_width, input_height, input_width*input_height), tanks(starting_locations)
 {
-    read_env_by_name(filename, input_width*input_length);
+    read_env_by_name(filename, input_width*input_height);
+
+    // set tank positions
+    for (int i = 0; i < num_tanks; i++)
+    {
+        Tank curr_tank = tanks[i];
+        vec2 tank_pos = curr_tank.get_pos();
+        // for the index of the environment where the
+        // tank is, set the occupant of the tile to the tank number.
+        (game_env_[idx(tank_pos.x_, tank_pos.y_)]).occupant_ = i;
+    }
+
 }
 
 GameInstance::~GameInstance()
 {
+    delete[] tanks;
 }
 
 void GameInstance::print_instance_console()
 {
-    for (int x = 0; x < game_env_.get_width(); x++)
+    std::cout << "WIDTH: " << +game_env_.get_width() << " LEN: " << +game_env_.get_height() << "\n";
+    for (int y = 0; y < game_env_.get_height(); y++)
     {
-        for (int y = 0; y < game_env_.get_length(); y++)
+        for (int x = 0; x < game_env_.get_width(); x++)
         {
-            std::cout << game_env_[idx(x,y)] << " ";
+            GridCell curr = game_env_[idx(x,y)];
+
+            if (curr.occupant_ == UINT8_MAX)
+            {
+                std::cout << curr << " ";
+            }
+            else
+            {
+                std::cout << 'A' << " ";
+            }
         }
         std::cout << "\n";
     }
+
 }
 
 void GameInstance::read_env_by_name(const std::string& filename, uint16_t total)
@@ -59,7 +84,8 @@ void GameInstance::read_env_by_name(const std::string& filename, uint16_t total)
         // CellType is an enum derived from uint8_t, hence the two casts.
         //
         // Normally you shouldn't do this, but we're reading a chunk of data.
-        (game_env_[i]).type_ = static_cast<CellType>(static_cast<uint8_t>(buffer[i] - '0'));
+        game_env_[i].type_ = static_cast<CellType>(static_cast<uint8_t>(buffer[i] - '0'));
+        game_env_[i].occupant_ = UINT8_MAX;
     }
 
 }

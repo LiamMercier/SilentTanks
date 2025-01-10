@@ -1,9 +1,11 @@
 #pragma once
 
-#include "environment.h"
 #include <iostream>
 #include <fstream>
 #include <string>
+
+#include "environment.h"
+#include "tank-entity.h"
 
 // The game instance class contains all
 // relevant state data for a given game.
@@ -13,10 +15,10 @@ public:
     GameInstance() = delete;
 
     // Create empty environment
-    GameInstance(uint8_t input_width, uint8_t input_length);
+    GameInstance(uint8_t input_width, uint8_t input_height, Tank* starting_locations);
 
     // Create a predefined environment from filename
-    GameInstance(uint8_t input_width, uint8_t input_length, const std::string& filename);
+    GameInstance(uint8_t input_width, uint8_t input_height, const std::string& filename, Tank* starting_locations, uint8_t num_tanks);
 
     ~GameInstance();
 
@@ -35,6 +37,7 @@ private:
 
 private:
     Environment game_env_;
+    Tank* tanks;
 };
 
 inline size_t GameInstance::idx(size_t x, size_t y) const

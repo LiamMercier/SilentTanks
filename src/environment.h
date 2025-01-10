@@ -10,10 +10,10 @@ class Environment
 public:
     Environment() = delete;
 
-    Environment(uint8_t input_width, uint8_t input_length);
+    Environment(uint8_t input_width, uint8_t input_height);
 
     // For directly reading file to the new buffer
-    Environment(uint8_t input_width, uint8_t input_length, uint16_t total_entries);
+    Environment(uint8_t input_width, uint8_t input_height, uint16_t total_entries);
 
     ~Environment();
 
@@ -30,7 +30,7 @@ public:
     const GridCell& operator[](size_t index) const;
 
     inline uint8_t get_width() const;
-    inline uint8_t get_length() const;
+    inline uint8_t get_height() const;
     inline GridCell* get_array();
 
 private:
@@ -47,9 +47,9 @@ inline uint8_t Environment::get_width() const
     return environment_layout_.get_width();
 }
 
-inline uint8_t Environment::get_length() const
+inline uint8_t Environment::get_height() const
 {
-    return environment_layout_.get_length();
+    return environment_layout_.get_height();
 }
 
 inline GridCell* Environment::get_array()

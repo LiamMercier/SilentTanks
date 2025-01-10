@@ -6,7 +6,7 @@ Environment::Environment(uint8_t input_width, uint8_t input_length)
 }
 
 Environment::Environment(uint8_t input_width, uint8_t input_length, uint16_t total_entries)
-:environment_layout_(input_width, input_length, input_width*input_length)
+:environment_layout_(input_width, input_length, total_entries)
 {
 }
 

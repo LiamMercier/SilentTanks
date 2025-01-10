@@ -25,6 +25,8 @@ public:
     // Print the current instance state to the console
     void print_instance_console();
 
+    bool move_tank(uint8_t ID);
+
 private:
 
     // Pass through the 2D -> 1D mapping for private use.

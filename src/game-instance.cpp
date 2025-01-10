@@ -77,6 +77,8 @@ bool GameInstance::move_tank(uint8_t ID)
     //
     // So, don't allow length/width to be 255. Shouldn't be that
     // large anyways.
+    //
+    // Otherwise, we make sure the tank doesn't move into terrain or another player
 
     switch (dir)
     {
@@ -86,6 +88,7 @@ bool GameInstance::move_tank(uint8_t ID)
                 return false;
             }
             curr_tank.pos_.y_ -= 1;
+            // CHECK IF TERRAIN/OCCUPIED, IF SO, REVERT
             break;
         case 1:
             if ((prev.y_ - 1 > game_env_.get_height()) || (prev.x_ + 1 > game_env_.get_width()))
@@ -146,11 +149,11 @@ bool GameInstance::move_tank(uint8_t ID)
     //
     // Proceed with updates.
 
-    GridCell prev_cell = game_env_[idx(prev.x_,prev.y_)];
-    prev_cell.occupant_ = UINT8_MAX;
+    // Make old cell unoccupied
+    game_env_[idx(prev.x_,prev.y_)].occupant_ = UINT8_MAX;
 
-    GridCell curr_cell = game_env_[idx(curr_tank.pos_.x_,curr_tank.pos_.y_)];
-    curr_cell.occupant_ = ID;
+    // Make new cell occupied with our tank ID
+    game_env_[idx(curr_tank.pos_.x_,curr_tank.pos_.y_)].occupant_ = ID;
 
     return true;
 }

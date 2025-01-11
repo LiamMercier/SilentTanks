@@ -5,6 +5,10 @@
 struct vec2
 {
 public:
+    vec2()
+    :x_(0), y_(0)
+    {}
+
     vec2(uint8_t x, uint8_t y)
     :x_(x), y_(y)
     {}
@@ -16,6 +20,7 @@ public:
 class Tank
 {
 public:
+    Tank();
 
     Tank(uint8_t x_start, uint8_t y_start, uint8_t start_dir, uint8_t owner);
 

@@ -2,20 +2,20 @@
 
 // Not useful for now
 GameInstance::GameInstance(uint8_t input_width, uint8_t input_height, Tank* starting_locations)
-:game_env_(input_width, input_height), tanks(starting_locations)
+:game_env_(input_width, input_height), tanks_(starting_locations)
 {
     return;
 }
 
-GameInstance::GameInstance(uint8_t input_width, uint8_t input_height, const std::string& filename, Tank* starting_locations, uint8_t num_tanks)
-:game_env_(input_width, input_height, input_width*input_height), tanks(starting_locations)
+GameInstance::GameInstance(uint8_t input_width, uint8_t input_height, const std::string& filename, Tank* starting_locations, uint8_t num_tanks, Player* players, uint8_t num_players)
+:game_env_(input_width, input_height, input_width*input_height), tanks_(starting_locations), players_(players)
 {
     read_env_by_name(filename, input_width*input_height);
 
     // set tank positions
     for (int i = 0; i < num_tanks; i++)
     {
-        Tank curr_tank = tanks[i];
+        Tank curr_tank = tanks_[i];
         vec2 tank_pos = curr_tank.pos_;
         // for the index of the environment where the
         // tank is, set the occupant of the tile to the tank number.
@@ -26,7 +26,7 @@ GameInstance::GameInstance(uint8_t input_width, uint8_t input_height, const std:
 
 GameInstance::~GameInstance()
 {
-    delete[] tanks;
+    delete[] tanks_;
 }
 
 // Temporary array to hold colors for console print testing
@@ -47,7 +47,7 @@ void GameInstance::print_instance_console()
             }
             else
             {
-                Tank this_tank = tanks[curr.occupant_];
+                Tank this_tank = tanks_[curr.occupant_];
                 uint8_t tank_owner = this_tank.get_owner();
                 std::cout << colors_array[tank_owner] << (char)('A' + curr.occupant_) << "\033[0m ";
             }
@@ -59,7 +59,7 @@ void GameInstance::print_instance_console()
 
 bool GameInstance::move_tank(uint8_t ID)
 {
-    Tank curr_tank = tanks[ID];
+    Tank& curr_tank = tanks_[ID];
     uint8_t dir = curr_tank.current_direction_;
     vec2 prev = curr_tank.pos_;
 

@@ -13,9 +13,28 @@ public:
     :x_(x), y_(y)
     {}
 
+    inline vec2& operator+=(vec2 const & rhs);
+
+    inline friend vec2 operator+(vec2 lhs, vec2 const & rhs);
+
     uint8_t x_;
     uint8_t y_;
 };
+
+inline vec2& vec2::operator+=(vec2 const & rhs)
+{
+        x_ += rhs.x_;
+        y_ += rhs.y_;
+        return *this;
+}
+
+inline vec2 operator+(vec2 lhs, vec2 const & rhs)
+{
+    lhs += rhs;
+    return lhs;
+}
+
+vec2 dir_to_vec(uint8_t dir);
 
 class Tank
 {
@@ -34,6 +53,11 @@ public:
 
     inline void barrel_counter_clockwise();
 
+    void deal_damage(uint8_t damage);
+
+    void print_tank_state(uint8_t ID) const;
+
+public:
     vec2 pos_;
 
     // Directions start at 0 (North) and end at 7 (North west)
@@ -46,6 +70,9 @@ public:
     //
     uint8_t current_direction_;
     uint8_t barrel_direction_;
+
+    // information statistics for this tank entity
+    uint8_t health_;
 
 private:
 
@@ -70,10 +97,11 @@ inline void Tank::barrel_clockwise()
 
 inline void Tank::turn_counter_clockwise()
 {
-    current_direction_ = (current_direction_ - 1) % 8;
+    // -1 = 7 mod 8
+    current_direction_ = (current_direction_ + 7) % 8;
 }
 
 inline void Tank::barrel_counter_clockwise()
 {
-    barrel_direction_ = (barrel_direction_ - 1) % 8;
+    barrel_direction_ = (barrel_direction_ + 7) % 8;
 }

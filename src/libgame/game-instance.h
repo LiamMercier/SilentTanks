@@ -3,6 +3,7 @@
 #include <iostream>
 #include <fstream>
 #include <string>
+#include <cmath>
 
 #include "environment.h"
 #include "player.h"
@@ -32,6 +33,10 @@ public:
     bool move_tank(uint8_t ID);
 
     bool fire_tank(uint8_t ID);
+
+    Environment compute_view(uint8_t player_ID) const;
+
+    void cast_ray(Environment & view, vec2 start, vec2 slope, float size, float max_range ,uint8_t dir) const;
 
 private:
 

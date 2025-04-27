@@ -27,8 +27,9 @@ public:
 
     ~FlatArray();
 
-    // You should not be copying or moving this data structure.
-    FlatArray(FlatArray && other) = delete;
+    FlatArray(FlatArray && other) noexcept;
+
+    FlatArray& operator=(FlatArray && other) noexcept;
 
     // You should not be copying or moving this data structure.
     FlatArray(const FlatArray & other) = delete;

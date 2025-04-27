@@ -39,6 +39,38 @@ FlatArray<element>::~FlatArray()
 }
 
 template <typename element>
+FlatArray<element>::FlatArray(FlatArray && other) noexcept
+:width_(other.width_), height_(other.height_), array_(other.array_)
+{
+    other.array_ = nullptr;
+    other.width_ = 0;
+    other.height_ = 0;
+}
+
+template <typename element>
+FlatArray<element>& FlatArray<element>::operator=(FlatArray && other) noexcept
+{
+    // stop self assignment
+    if (this != &other)
+    {
+        // delete old array
+        delete[] array_;
+
+        // swap
+        width_ = other.width_;
+        height_ = other.height_;
+        array_ = other.array_;
+
+        other.array_ = nullptr;
+        other.width_ = 0;
+        other.height_ = 0;
+
+    }
+
+    return *this;
+}
+
+template <typename element>
 element& FlatArray<element>::operator[](size_t index)
 {
     return array_[index];

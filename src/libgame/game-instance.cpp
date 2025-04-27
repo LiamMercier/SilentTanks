@@ -1,5 +1,91 @@
 #include "game-instance.h"
 
+// east directions
+static const float hori_slopes[7]{1.0f, 0.5f, 1.0f/3.0f, 0.0f,
+                                -1.0f/3.0f, -0.5f, -1.0f};
+
+static const int hori_ray_dists[7]{2, 2, 3, 4, 3, 2, 2};
+
+// slopes for south-east direction
+static const vec2 diag_slopes[9]{vec2(0,1), vec2(1,3), vec2(1,2), vec2(2,3),
+    vec2(1,1), vec2(3, 2),  vec2(2, 1), vec2(3,1), vec2(1, 0)};
+
+static const float diag_vec_size[9]{1.0f, 3.16227766f, 2.2360679f, 3.6055513f, 1.4142136f,
+    3.6055513f, 2.2360679f, 3.16227766f, 1.0f};
+
+static const float diag_ray_dists[9]{2.0f, 1.0f,1.0f,1.0f,3.0f,1.0f,1.0f,1.0f,2.0f};
+
+void GameInstance::cast_ray(Environment & view, vec2 start, vec2 slope, float size, float max_range, uint8_t dir) const
+{
+    int x_sign = 1;
+    int y_sign = 1;
+
+    // north east
+    if (dir % 8 == 1)
+    {
+        y_sign = -1;
+    }
+    // south west
+    else if (dir % 8 == 5)
+    {
+        x_sign = -1;
+    }
+    // north west
+    else if (dir % 8 == 7)
+    {
+        x_sign = -1;
+        y_sign = -1;
+    }
+
+    // make step size based on the vector size
+    float dt = 0.5f / size;
+    int x_0 = start.x_;
+    int y_0 = start.y_;
+
+    // step through the ray
+    for (float t = dt; t <= max_range; t += dt)
+    {
+        float x_t = x_0 + t * (x_sign * slope.x_);
+        float y_t = y_0 + t * (y_sign * slope.y_);
+
+        // coordinates for x, y
+        int cx_t = std::floor(x_t);
+        int cy_t = std::floor(y_t);
+
+        float frac_x = x_t - cx_t;
+        float frac_y = y_t - cy_t;
+
+
+        if (frac_x > 0.5f)
+        {
+            cx_t = cx_t + 1;
+        }
+        if (frac_y > 0.5f)
+        {
+            cy_t = cy_t + 1;
+        }
+
+        // check if this is inside the game environemnt
+        if (cx_t > game_env_.get_width() - 1 || cy_t > game_env_.get_height() - 1)
+        {
+            break;
+        }
+        // check if this is terrain
+        GridCell curr_cell = game_env_[idx(cx_t, cy_t)];
+        if (curr_cell.type_ == CellType::Terrain)
+        {
+            break;
+        }
+        // otherwise, mark the cell as visible
+        view[idx(cx_t, cy_t)].visible_ = true;
+        view[idx(cx_t, cy_t)].occupant_ = game_env_[idx(cx_t, cy_t)].occupant_;
+
+        continue;
+    }
+
+    return;
+}
+
 // Not useful for now
 GameInstance::GameInstance(uint8_t input_width, uint8_t input_height, Tank* starting_locations)
 :game_env_(input_width, input_height), tanks_(starting_locations)
@@ -323,7 +409,7 @@ bool GameInstance::move_tank(uint8_t ID)
             break;
         case 6:
         {
-            if (prev.x_ - 1 > game_env_.get_height() - 1)
+            if (prev.x_ - 1 > game_env_.get_width() - 1)
             {
                 return false;
             }
@@ -451,7 +537,261 @@ bool GameInstance::fire_tank(uint8_t ID)
     return false;
 }
 
-// This should really be replaced in the future with a more reasonable solution.
+// Below is probably the worst function in the entire code base.
+//
+// Should really be re-worked one day.
+
+// Compute the view for this player
+//
+// We want to iterate over every tank owned by the
+// player, check that the tank is still in play, then
+// compute the vision that this tank generates
+//
+// We start with the current game environment and set all cells
+// to having no vision
+Environment GameInstance::compute_view(uint8_t player_ID) const
+{
+    uint8_t width = game_env_.get_width();
+    uint8_t height = game_env_.get_height();
+    uint16_t total = width * height;
+
+    // make a new environemnt
+    Environment player_view(width, height);
+
+    // copy the cell types
+    //
+    // visibility was already set to zero during initialization
+    for (int i = 0; i < total; i++)
+    {
+        player_view[i].type_ = game_env_[i].type_;
+        player_view[i].occupant_ = UINT8_MAX;
+    }
+
+    // now, go through every tank and compute visible tiles
+    //
+    // the visibility depends on the aim_state_ of the tank
+
+    Player& this_player = players_[player_ID];
+    int* player_tank_IDs = this_player.get_tanks_list();
+
+    uint8_t n_owned_tanks = num_tanks_ / num_players_;
+
+    for (size_t i = 0; i < n_owned_tanks; i++)
+    {
+        uint8_t curr_tank_ID = player_tank_IDs[i];
+        Tank& curr_tank = tanks_[curr_tank_ID];
+
+        // Check that the tank is still alive
+        if (curr_tank.health_ == 0)
+        {
+            continue;
+        }
+
+        // Add the current tank to the visibility map
+        vec2 tank_pos = curr_tank.pos_;
+        player_view[idx(tank_pos)].occupant_ = curr_tank_ID;
+        player_view[idx(tank_pos)].visible_ = true;
+
+        // Use the aim state to determine what vision to compute
+        //
+        // When aim_state_ is false, we are not focusing the tank, use a spread out
+        // cone. Example (with tank X):
+
+        //   East Aim             South East Aim
+        //
+        // ? ? ? ? ? ? ?          ? ? ? ? ? ? ?
+        // ? ? ? _ ? ? ?          ? X _ _ ? ? ?
+        // ? ? _ _ _ ? ?          ? _ _ _ _ ? ?
+        // ? X _ _ _ _ ?          ? _ _ _ _ ? ?
+        // ? ? _ _ _ ? ?          ? ? _ _ _ ? ?
+        // ? ? ? _ ? ? ?          ? ? ? ? ? ? ?
+        // ? ? ? ? ? ? ?          ? ? ? ? ? ? ?
+
+        // We can compute horizontal/vertical options by using 7 rays.
+        if (curr_tank.aim_focused_ == false)
+        {
+            // We can compute horizontal/vertical options by using 7 rays.
+            if (curr_tank.barrel_direction_ % 2 == 0)
+            {
+                // for each ray
+                for (int r = 0; r < 7; r++)
+                {
+                    float m = hori_slopes[r];
+                    int max_range = hori_ray_dists[r];
+
+                    int primary_var = tank_pos.x_;
+                    int secondary_var = tank_pos.y_;
+
+                    bool primary_var_y = false;
+                    int p_early_bound = game_env_.get_width() - 1;
+                    int s_early_bound = game_env_.get_height() - 1;
+                    int sign = 1;
+
+                    // west
+                    if (curr_tank.barrel_direction_ == 6)
+                    {
+                        sign = -1;
+                    }
+                    // north
+                    if (curr_tank.barrel_direction_ == 0)
+                    {
+                        sign = -1;
+                        // set y as the primary variable, swap items
+                        primary_var_y = true;
+
+                        primary_var = tank_pos.y_;
+                        secondary_var = tank_pos.x_;
+
+                        p_early_bound = game_env_.get_height() - 1;
+                        s_early_bound = game_env_.get_width() - 1;
+
+                        if (r != 3)
+                        {
+                            m = -1*m;
+                        }
+                    }
+                    if (curr_tank.barrel_direction_ == 4)
+                    {
+                        sign = 1;
+                        // set y as the primary variable, swap items
+                        primary_var_y = true;
+
+                        primary_var = tank_pos.y_;
+                        secondary_var = tank_pos.x_;
+
+                        p_early_bound = game_env_.get_height() - 1;
+                        s_early_bound = game_env_.get_width() - 1;
+
+                        if (r != 3)
+                        {
+                            m = -1*m;
+                        }
+                    }
+
+                    // Do raycast steps
+                    for (int dx = 1; dx <= max_range; dx++)
+                    {
+                        // this step x value
+                        int p = primary_var + (sign * dx);
+
+                        // early skip for anything outside of x bounds
+                        if (p > p_early_bound)
+                        {
+                            break;
+                        }
+
+                        // this step y value
+                        float sec = secondary_var + m * dx;
+
+                        int sec_int = std::floor(sec);
+                        float frac_sec = sec - sec_int;
+
+                        // we want to be permissive with our ray casting
+                        // so we will treat 0.5 as not touching a mountain.
+
+                        // check upper square for terrain, if it exists
+                        if (frac_sec > 0.5f + 0.001f)
+                        {
+                            sec_int = sec_int + 1;
+
+                            // if out of bounds, break
+                            if ((sec_int > s_early_bound))
+                            {
+                                break;
+                            }
+                            // if location is a mountain, break
+                            GridCell curr_cell;
+                            if (primary_var_y == true)
+                            {
+                                curr_cell = game_env_[idx(sec_int, p)];
+                            }
+                            else
+                            {
+                                curr_cell = game_env_[idx(p, sec_int)];
+                            }
+
+                            if (curr_cell.type_ == CellType::Terrain)
+                            {
+                                break;
+                            }
+                        }
+                        // check lower square for terrain
+                        else if (frac_sec < 0.5f - 0.001f)
+                        {
+                            // if out of bounds, break
+                            if (sec_int > s_early_bound)
+                            {
+                                break;
+                            }
+                            // if location is a mountain, break
+                            GridCell curr_cell;
+                            if (primary_var_y == true)
+                            {
+                                curr_cell = game_env_[idx(sec_int, p)];
+                            }
+                            else {
+                                curr_cell = game_env_[idx(p, sec_int)];
+                            }
+
+                            if (curr_cell.type_ == CellType::Terrain)
+                            {
+                                break;
+                            }
+                        }
+                        // if the value is ~0.5 then continue, don't check either side as being a mountain.
+                        else
+                        {
+                            continue;
+                        }
+
+                        // Otherwise, add this to the view if valid and continue on
+                        if (std::fabs(frac_sec) < 0.001f)
+                        {
+                            if (primary_var_y == true)
+                            {
+                                player_view[idx(sec_int, p)].visible_ = true;
+                                player_view[idx(sec_int, p)].occupant_ = game_env_[idx(sec_int, p)].occupant_;
+                            }
+                            else {
+                                player_view[idx(p, sec_int)].visible_ = true;
+                                player_view[idx(p, sec_int)].occupant_ = game_env_[idx(p, sec_int)].occupant_;
+                            }
+                        }
+
+                        continue;
+                    }
+
+                }
+            }
+
+            // Otherwise we need to deal with diagonal rays
+            //
+            // This can be done with 9 rays total
+            if (curr_tank.barrel_direction_ % 2 == 1)
+            {
+                // Since we need to move in both y and x directions, we should
+                // use a parametric ray cast.
+                //
+                // Actually, this probably would have been better before as well.
+
+                for (int r = 0; r < 9; r++)
+                {
+                    vec2 m = diag_slopes[r];
+                    float size = diag_vec_size[r];
+                    float max_range = diag_ray_dists[r];
+
+                    cast_ray(player_view, curr_tank.pos_, m, size, max_range, curr_tank.barrel_direction_);
+
+                }
+
+
+            }
+        }
+    }
+    return player_view;
+}
+
+// This should really be replaced in the futce with a more reasonable solution.
 void GameInstance::read_env_by_name(const std::string& filename, uint16_t total)
 {
     /*
@@ -487,6 +827,7 @@ void GameInstance::read_env_by_name(const std::string& filename, uint16_t total)
         game_env_[i].type_ = static_cast<CellType>(static_cast<uint8_t>(buffer[i] - '0'));
 
         game_env_[i].occupant_ = UINT8_MAX;
+        game_env_[i].visible_ = true;
     }
 
 }

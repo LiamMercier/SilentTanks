@@ -73,6 +73,7 @@ public:
 
     // information statistics for this tank entity
     uint8_t health_;
+    bool aim_focused_;
 
 private:
 

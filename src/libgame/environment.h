@@ -18,9 +18,9 @@ public:
 
     ~Environment();
 
-    Environment(Environment && other) = delete;
+    Environment(Environment &&) noexcept = default;
 
-    Environment(const Environment & other) = delete;
+    Environment& operator=(Environment &&) noexcept = default;
 
     // Pass through the 2D -> 1D mapping for flat-array.
     inline size_t idx(size_t x, size_t y) const;
@@ -31,6 +31,8 @@ public:
     GridCell& operator[](size_t index);
 
     const GridCell& operator[](size_t index) const;
+
+    void print_view(Tank* tanks_list) const;
 
     inline uint8_t get_width() const;
     inline uint8_t get_height() const;

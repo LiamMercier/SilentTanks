@@ -16,7 +16,7 @@ class FlatArray
 {
 public:
 
-    FlatArray() = delete;
+    FlatArray() noexcept;
 
     // Create the width by height array and zero it out
     FlatArray(uint8_t input_width, uint8_t input_height);
@@ -31,8 +31,10 @@ public:
 
     FlatArray& operator=(FlatArray && other) noexcept;
 
-    // You should not be copying or moving this data structure.
-    FlatArray(const FlatArray & other) = delete;
+    // copy/move ctor
+    FlatArray<element>& operator=(const FlatArray& other);
+
+    FlatArray(const FlatArray& other);
 
     // 2D -> 1D mapping for array access.
     inline size_t idx(size_t x, size_t y) const;

@@ -2,9 +2,15 @@
 #include "grid-cell.h"
 
 template <typename element>
+FlatArray<element>::FlatArray() noexcept
+: width_(0), height_(0), array_(nullptr)
+{}
+
+template <typename element>
 FlatArray<element>::FlatArray(uint8_t input_width, uint8_t input_height)
 :width_(input_width), height_(input_height), array_(new (std::nothrow) element[input_width * input_height])
 {
+
     // check that memory allocation succeeded
     if (array_ == nullptr)
     {
@@ -36,6 +42,33 @@ template <typename element>
 FlatArray<element>::~FlatArray()
 {
     delete[] array_;
+}
+
+// copy constructor and copy assignment constructor
+template <typename element>
+FlatArray<element>::FlatArray(const FlatArray& other)
+: width_(other.width_), height_(other.height_)
+{
+    size_t total = width_ * height_;
+    array_ = new element[total];
+    std::copy(other.array_, other.array_ + total, array_);
+}
+
+template <typename element>
+FlatArray<element>& FlatArray<element>::operator=(const FlatArray& other)
+{
+    if (this != &other)
+    {
+        delete[] array_;
+
+        width_ = other.width_;
+        height_ = other.height_;
+        size_t total = width_ * height_;
+        array_ = new element[total];
+        std::copy(other.array_, other.array_ + total, array_);
+    }
+
+    return *this;
 }
 
 template <typename element>

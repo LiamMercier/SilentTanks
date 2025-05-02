@@ -2,41 +2,14 @@
 #include <iostream>
 #include <string>
 
-vec2 dir_to_vec(uint8_t dir)
-{
-    switch (dir)
-    {
-        case 0:
-            return vec2(0, -1);
-        case 1:
-            return vec2(1, -1);
-        case 2:
-            return vec2(1, 0);
-        case 3:
-            return vec2(1, 1);
-        case 4:
-            return vec2(0, 1);
-        case 5:
-            return vec2(-1, 1);
-        case 6:
-            return vec2(-1, 0);
-        case 7:
-            return vec2(-1, -1);
-    }
-    // should never happen
-    return vec2(0, 0);
-
-}
-
-const uint8_t INITIAL_HEALTH = 3;
-
 Tank::Tank()
+:current_direction_(0), barrel_direction_(0),health_(0),aim_focused_(false), loaded_(false), owner_(NO_OWNER)
 {
 
 }
 
 Tank::Tank(uint8_t x_start, uint8_t y_start, uint8_t start_dir, uint8_t owner)
-:pos_(x_start, y_start), current_direction_(start_dir), barrel_direction_(start_dir), health_(INITIAL_HEALTH), aim_focused_(false), owner_(owner)
+:pos_(x_start, y_start), current_direction_(start_dir), barrel_direction_(start_dir), health_(INITIAL_HEALTH), aim_focused_(false), loaded_(true), owner_(owner)
 {}
 
 void Tank::deal_damage(uint8_t damage)

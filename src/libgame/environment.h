@@ -16,7 +16,7 @@ public:
     // For directly reading file to the new buffer
     Environment(uint8_t input_width, uint8_t input_height, uint16_t total_entries);
 
-    ~Environment();
+    ~Environment() = default;
 
     Environment(Environment &&) noexcept = default;
 

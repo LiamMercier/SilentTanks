@@ -1,113 +1,27 @@
 #include "game-instance.h"
+#include "constants.h"
 
-// east directions
-static const float hori_slopes[7]{1.0f, 0.5f, 1.0f/3.0f, 0.0f,
-                                -1.0f/3.0f, -0.5f, -1.0f};
-
-static const int hori_ray_dists[7]{2, 2, 3, 4, 3, 2, 2};
-
-// slopes for south-east direction
-static const vec2 diag_slopes[9]{vec2(0,1), vec2(1,3), vec2(1,2), vec2(2,3),
-    vec2(1,1), vec2(3, 2),  vec2(2, 1), vec2(3,1), vec2(1, 0)};
-
-static const float diag_vec_size[9]{1.0f, 3.16227766f, 2.2360679f, 3.6055513f, 1.4142136f,
-    3.6055513f, 2.2360679f, 3.16227766f, 1.0f};
-
-static const float diag_ray_dists[9]{2.0f, 1.0f,1.0f,1.0f,3.0f,1.0f,1.0f,1.0f,2.0f};
-
-void GameInstance::cast_ray(Environment & view, vec2 start, vec2 slope, float size, float max_range, uint8_t dir) const
+GameInstance::GameInstance(const GameMap & map, uint8_t num_players)
+:num_players_(num_players), num_tanks_(map.num_tanks), game_env_(map.width, map.height, map.width*map.height), tanks_(new (std::nothrow) Tank[map.num_tanks * num_players]{})
 {
-    int x_sign = 1;
-    int y_sign = 1;
-
-    // north east
-    if (dir % 8 == 1)
+    // check that allocation didn't fail
+    if (tanks_ == nullptr)
     {
-        y_sign = -1;
-    }
-    // south west
-    else if (dir % 8 == 5)
-    {
-        x_sign = -1;
-    }
-    // north west
-    else if (dir % 8 == 7)
-    {
-        x_sign = -1;
-        y_sign = -1;
+        std::cerr << "game-instance: Memory allocation failed\n";
+        return;
     }
 
-    // make step size based on the vector size
-    float dt = 0.5f / size;
-    int x_0 = start.x_;
-    int y_0 = start.y_;
+    // Allocate players_ vector
+    players_.reserve(num_players_);
 
-    // step through the ray
-    for (float t = dt; t <= max_range; t += dt)
+    // Create each tank in place
+    for (uint8_t i = 0; i < num_players_; ++i)
     {
-        float x_t = x_0 + t * (x_sign * slope.x_);
-        float y_t = y_0 + t * (y_sign * slope.y_);
-
-        // coordinates for x, y
-        int cx_t = std::floor(x_t);
-        int cy_t = std::floor(y_t);
-
-        float frac_x = x_t - cx_t;
-        float frac_y = y_t - cy_t;
-
-
-        if (frac_x > 0.5f)
-        {
-            cx_t = cx_t + 1;
-        }
-        if (frac_y > 0.5f)
-        {
-            cy_t = cy_t + 1;
-        }
-
-        // check if this is inside the game environemnt
-        if (cx_t > game_env_.get_width() - 1 || cy_t > game_env_.get_height() - 1)
-        {
-            break;
-        }
-        // check if this is terrain
-        GridCell curr_cell = game_env_[idx(cx_t, cy_t)];
-        if (curr_cell.type_ == CellType::Terrain)
-        {
-            break;
-        }
-        // otherwise, mark the cell as visible
-        view[idx(cx_t, cy_t)].visible_ = true;
-        view[idx(cx_t, cy_t)].occupant_ = game_env_[idx(cx_t, cy_t)].occupant_;
-
-        continue;
+        players_.emplace_back(num_tanks_, i);
     }
 
-    return;
-}
-
-// Not useful for now
-GameInstance::GameInstance(uint8_t input_width, uint8_t input_height, Tank* starting_locations)
-:game_env_(input_width, input_height), tanks_(starting_locations)
-{
-    return;
-}
-
-GameInstance::GameInstance(uint8_t input_width, uint8_t input_height, const std::string& filename, Tank* starting_locations, uint8_t num_tanks, Player* players, uint8_t num_players)
-:num_players_(num_players), num_tanks_(num_tanks), game_env_(input_width, input_height, input_width*input_height), tanks_(starting_locations), players_(players)
-{
-    read_env_by_name(filename, input_width*input_height);
-
-    // set tank positions
-    for (int i = 0; i < num_tanks; i++)
-    {
-        Tank curr_tank = tanks_[i];
-        vec2 tank_pos = curr_tank.pos_;
-        // for the index of the environment where the
-        // tank is, set the occupant of the tile to the tank number.
-        (game_env_[idx(tank_pos.x_, tank_pos.y_)]).occupant_ = i;
-    }
-
+    // Get map from file
+    read_env_by_name(map.filename, map.width*map.height);
 }
 
 GameInstance::~GameInstance()
@@ -122,7 +36,7 @@ const static std::string colors_array[4] = {"\033[48;5;196m", "\033[48;5;21m", "
 void GameInstance::print_instance_console() const
 {
 
-    for (int tank_idx = 0; tank_idx < num_tanks_; tank_idx++)
+    for (int tank_idx = 0; tank_idx < num_tanks_ * num_players_; tank_idx++)
     {
         Tank this_tank = tanks_[tank_idx];
         if (this_tank.health_ > 0)
@@ -137,7 +51,7 @@ void GameInstance::print_instance_console() const
         {
             GridCell curr = game_env_[idx(x,y)];
 
-            if (curr.occupant_ == UINT8_MAX)
+            if (curr.occupant_ == NO_OCCUPANT)
             {
                 std::cout << curr << " ";
             }
@@ -184,10 +98,16 @@ void GameInstance::rotate_tank_barrel(uint8_t ID, uint8_t dir)
 // Given the ID of a tank, attempt to move it in its current direction.
 //
 // Return True if the move was successful, or false if there was terrain or other objects.
-bool GameInstance::move_tank(uint8_t ID)
+bool GameInstance::move_tank(uint8_t ID, bool reverse))
 {
     Tank& curr_tank = tanks_[ID];
     uint8_t dir = curr_tank.current_direction_;
+
+    if (reverse == true)
+    {
+        dir = (dir + 4) % 8;
+    }
+
     vec2 prev = curr_tank.pos_;
 
     // Since we are using uint8_t we know that
@@ -211,7 +131,7 @@ bool GameInstance::move_tank(uint8_t ID)
     {
         case 0:
         {
-            if (prev.y_ - 1 > game_env_.get_height() - 1)
+            if (uint8_t(prev.y_ - 1) > game_env_.get_height() - 1)
             {
                 return false;
             }
@@ -219,7 +139,7 @@ bool GameInstance::move_tank(uint8_t ID)
 
             // CHECK IF TERRAIN/OCCUPIED, IF SO, REVERT
             GridCell moved_cell = game_env_[idx(curr_tank.pos_.x_, curr_tank.pos_.y_)];
-            if (moved_cell.occupant_ != UINT8_MAX)
+            if (moved_cell.occupant_ != NO_OCCUPANT)
             {
                 curr_tank.pos_.y_ = prev.y_;
                 return false;
@@ -233,7 +153,7 @@ bool GameInstance::move_tank(uint8_t ID)
             break;
         case 1:
         {
-            if ((prev.y_ - 1 > game_env_.get_height() - 1) || (prev.x_ + 1 > game_env_.get_width() - 1))
+            if ((uint8_t(prev.y_ - 1) > game_env_.get_height() - 1) || (uint8_t(prev.x_ + 1) > game_env_.get_width() - 1))
             {
                 return false;
             }
@@ -242,7 +162,7 @@ bool GameInstance::move_tank(uint8_t ID)
 
             // CHECK IF TERRAIN/OCCUPIED, IF SO, REVERT
             GridCell moved_cell = game_env_[idx(curr_tank.pos_.x_, curr_tank.pos_.y_)];
-            if (moved_cell.occupant_ != UINT8_MAX)
+            if (moved_cell.occupant_ != NO_OCCUPANT)
             {
                 curr_tank.pos_.y_ = prev.y_;
                 curr_tank.pos_.x_ = prev.x_;
@@ -277,7 +197,7 @@ bool GameInstance::move_tank(uint8_t ID)
             break;
         case 2:
         {
-            if (prev.x_ + 1 > game_env_.get_width() - 1)
+            if (uint8_t(prev.x_ + 1) > game_env_.get_width() - 1)
             {
                 return false;
             }
@@ -285,7 +205,7 @@ bool GameInstance::move_tank(uint8_t ID)
 
             // CHECK IF TERRAIN/OCCUPIED, IF SO, REVERT
             GridCell moved_cell = game_env_[idx(curr_tank.pos_.x_, curr_tank.pos_.y_)];
-            if (moved_cell.occupant_ != UINT8_MAX)
+            if (moved_cell.occupant_ != NO_OCCUPANT)
             {
                 curr_tank.pos_.x_ = prev.x_;
                 return false;
@@ -299,7 +219,7 @@ bool GameInstance::move_tank(uint8_t ID)
             break;
         case 3:
         {
-            if ((prev.y_ + 1 > game_env_.get_height() - 1) || (prev.x_ + 1 > game_env_.get_width() - 1))
+            if ((uint8_t(prev.y_ + 1) > game_env_.get_height() - 1) || (uint8_t(prev.x_ + 1) > game_env_.get_width() - 1))
             {
                 return false;
             }
@@ -308,7 +228,7 @@ bool GameInstance::move_tank(uint8_t ID)
 
             // CHECK IF TERRAIN/OCCUPIED, IF SO, REVERT
             GridCell moved_cell = game_env_[idx(curr_tank.pos_.x_, curr_tank.pos_.y_)];
-            if (moved_cell.occupant_ != UINT8_MAX)
+            if (moved_cell.occupant_ != NO_OCCUPANT)
             {
                 curr_tank.pos_.y_ = prev.y_;
                 curr_tank.pos_.x_ = prev.x_;
@@ -343,7 +263,7 @@ bool GameInstance::move_tank(uint8_t ID)
             break;
         case 4:
         {
-            if (prev.y_ + 1 > game_env_.get_height() - 1)
+            if (uint8_t(prev.y_ + 1) > game_env_.get_height() - 1)
             {
                 return false;
             }
@@ -351,7 +271,7 @@ bool GameInstance::move_tank(uint8_t ID)
 
             // CHECK IF TERRAIN/OCCUPIED, IF SO, REVERT
             GridCell moved_cell = game_env_[idx(curr_tank.pos_.x_, curr_tank.pos_.y_)];
-            if (moved_cell.occupant_ != UINT8_MAX)
+            if (moved_cell.occupant_ != NO_OCCUPANT)
             {
                 curr_tank.pos_.y_ = prev.y_;
                 return false;
@@ -365,7 +285,7 @@ bool GameInstance::move_tank(uint8_t ID)
             break;
         case 5:
         {
-            if ((prev.y_ + 1 > game_env_.get_height() - 1) || (prev.x_ - 1 > game_env_.get_width() - 1))
+            if ((uint8_t(prev.y_ + 1) > game_env_.get_height() - 1) || (uint8_t(prev.x_ - 1) > game_env_.get_width() - 1))
             {
                 return false;
             }
@@ -374,7 +294,7 @@ bool GameInstance::move_tank(uint8_t ID)
 
             // CHECK IF TERRAIN/OCCUPIED, IF SO, REVERT
             GridCell moved_cell = game_env_[idx(curr_tank.pos_.x_, curr_tank.pos_.y_)];
-            if (moved_cell.occupant_ != UINT8_MAX)
+            if (moved_cell.occupant_ != NO_OCCUPANT)
             {
                 curr_tank.pos_.y_ = prev.y_;
                 curr_tank.pos_.x_ = prev.x_;
@@ -409,14 +329,14 @@ bool GameInstance::move_tank(uint8_t ID)
             break;
         case 6:
         {
-            if (prev.x_ - 1 > game_env_.get_width() - 1)
+            if (uint8_t(prev.x_ - 1) > game_env_.get_width() - 1)
             {
                 return false;
             }
             curr_tank.pos_.x_ -= 1;
             // CHECK IF TERRAIN/OCCUPIED, IF SO, REVERT
             GridCell moved_cell = game_env_[idx(curr_tank.pos_.x_, curr_tank.pos_.y_)];
-            if (moved_cell.occupant_ != UINT8_MAX)
+            if (moved_cell.occupant_ != NO_OCCUPANT)
             {
                 curr_tank.pos_.x_ = prev.x_;
                 return false;
@@ -430,7 +350,7 @@ bool GameInstance::move_tank(uint8_t ID)
             break;
         case 7:
         {
-            if ((prev.y_ - 1 > game_env_.get_height() - 1) || (prev.x_ - 1 > game_env_.get_width() - 1))
+            if ((uint8_t(prev.y_ - 1) > game_env_.get_height() - 1) || (uint8_t(prev.x_ - 1) > game_env_.get_width() - 1))
             {
                 return false;
             }
@@ -439,7 +359,7 @@ bool GameInstance::move_tank(uint8_t ID)
 
             // CHECK IF TERRAIN/OCCUPIED, IF SO, REVERT
             GridCell moved_cell = game_env_[idx(curr_tank.pos_.x_, curr_tank.pos_.y_)];
-            if (moved_cell.occupant_ != UINT8_MAX)
+            if (moved_cell.occupant_ != NO_OCCUPANT)
             {
                 curr_tank.pos_.y_ = prev.y_;
                 curr_tank.pos_.x_ = prev.x_;
@@ -479,7 +399,7 @@ bool GameInstance::move_tank(uint8_t ID)
     // Proceed with updates.
 
     // Make old cell unoccupied
-    game_env_[idx(prev.x_, prev.y_)].occupant_ = UINT8_MAX;
+    game_env_[idx(prev.x_, prev.y_)].occupant_ = NO_OCCUPANT;
 
     // Make new cell occupied with our tank ID
     game_env_[idx(curr_tank.pos_.x_, curr_tank.pos_.y_)].occupant_ = ID;
@@ -491,18 +411,18 @@ bool GameInstance::fire_tank(uint8_t ID)
 {
     Tank& curr_tank = tanks_[ID];
 
-    vec2 shell_dir = dir_to_vec(curr_tank.barrel_direction_);
+    vec2 shell_dir = dir_to_vec[curr_tank.barrel_direction_];
     vec2 curr_loc = curr_tank.pos_;
 
-    uint8_t firing_dist = 3;
-    uint8_t damage = 1;
+    // Expend the shell
+    curr_tank.loaded_ = false;
 
-    for (int i = 1; i <= firing_dist; i++)
+    for (int i = 1; i <= FIRING_DIST; i++)
     {
-        // take a step
+        // Take a step
         curr_loc = curr_loc + shell_dir;
 
-        // test if this tile is out of bounds
+        // Test if this tile is out of bounds
         if ((curr_loc.x_ > game_env_.get_height() - 1)
             || (curr_loc.y_ > game_env_.get_width() - 1))
         {
@@ -518,16 +438,16 @@ bool GameInstance::fire_tank(uint8_t ID)
         }
 
         // test if the tile has a tank
-        if (curr_cell.occupant_ != UINT8_MAX)
+        if (curr_cell.occupant_ != NO_OCCUPANT)
         {
             Tank& hit_tank = tanks_[curr_cell.occupant_];
-            hit_tank.deal_damage(damage);
+            hit_tank.deal_damage(SHELL_DAMAGE);
 
             // if the health of the tank is zero, remove it from play
             if (hit_tank.health_ == 0)
             {
                 vec2 hit_pos = hit_tank.pos_;
-                game_env_[idx(hit_pos)].occupant_ = UINT8_MAX;
+                game_env_[idx(hit_pos)].occupant_ = NO_OCCUPANT;
             }
 
             return true;
@@ -549,8 +469,9 @@ bool GameInstance::fire_tank(uint8_t ID)
 //
 // We start with the current game environment and set all cells
 // to having no vision
-Environment GameInstance::compute_view(uint8_t player_ID) const
+Environment GameInstance::compute_view(uint8_t player_ID, uint8_t & live_tanks)
 {
+
     uint8_t width = game_env_.get_width();
     uint8_t height = game_env_.get_height();
     uint16_t total = width * height;
@@ -564,21 +485,25 @@ Environment GameInstance::compute_view(uint8_t player_ID) const
     for (int i = 0; i < total; i++)
     {
         player_view[i].type_ = game_env_[i].type_;
-        player_view[i].occupant_ = UINT8_MAX;
+        player_view[i].occupant_ = NO_OCCUPANT;
     }
 
     // now, go through every tank and compute visible tiles
     //
     // the visibility depends on the aim_state_ of the tank
 
-    Player& this_player = players_[player_ID];
-    int* player_tank_IDs = this_player.get_tanks_list();
+    const Player& this_player =  get_player(player_ID);
+    const int* player_tank_IDs = this_player.get_tanks_list();
 
-    uint8_t n_owned_tanks = num_tanks_ / num_players_;
-
-    for (size_t i = 0; i < n_owned_tanks; i++)
+    for (size_t i = 0; i < num_tanks_; i++)
     {
         uint8_t curr_tank_ID = player_tank_IDs[i];
+
+        if (curr_tank_ID == NO_TANK)
+        {
+            continue;
+        }
+
         Tank& curr_tank = tanks_[curr_tank_ID];
 
         // Check that the tank is still alive
@@ -586,6 +511,9 @@ Environment GameInstance::compute_view(uint8_t player_ID) const
         {
             continue;
         }
+
+        // otherwise increment the number of alive tanks
+        live_tanks += 1;
 
         // Add the current tank to the visibility map
         vec2 tank_pos = curr_tank.pos_;
@@ -608,6 +536,8 @@ Environment GameInstance::compute_view(uint8_t player_ID) const
         // ? ? ? ? ? ? ?          ? ? ? ? ? ? ?
 
         // We can compute horizontal/vertical options by using 7 rays.
+        //
+        // TODO: Convert this mess into a compatible cast_ray version
         if (curr_tank.aim_focused_ == false)
         {
             // We can compute horizontal/vertical options by using 7 rays.
@@ -616,15 +546,15 @@ Environment GameInstance::compute_view(uint8_t player_ID) const
                 // for each ray
                 for (int r = 0; r < 7; r++)
                 {
-                    float m = hori_slopes[r];
-                    int max_range = hori_ray_dists[r];
+                    float m = orthogonal_slopes[r];
+                    int max_range = orthogonal_ray_dists[r];
 
-                    int primary_var = tank_pos.x_;
-                    int secondary_var = tank_pos.y_;
+                    unsigned int primary_var = tank_pos.x_;
+                    unsigned int secondary_var = tank_pos.y_;
 
                     bool primary_var_y = false;
-                    int p_early_bound = game_env_.get_width() - 1;
-                    int s_early_bound = game_env_.get_height() - 1;
+                    unsigned int p_early_bound = game_env_.get_width() - 1;
+                    unsigned int s_early_bound = game_env_.get_height() - 1;
                     int sign = 1;
 
                     // west
@@ -672,7 +602,7 @@ Environment GameInstance::compute_view(uint8_t player_ID) const
                     for (int dx = 1; dx <= max_range; dx++)
                     {
                         // this step x value
-                        int p = primary_var + (sign * dx);
+                        unsigned int p = primary_var + (sign * dx);
 
                         // early skip for anything outside of x bounds
                         if (p > p_early_bound)
@@ -683,10 +613,10 @@ Environment GameInstance::compute_view(uint8_t player_ID) const
                         // this step y value
                         float sec = secondary_var + m * dx;
 
-                        int sec_int = std::floor(sec);
+                        unsigned int sec_int = std::floor(sec);
                         float frac_sec = sec - sec_int;
 
-                        // we want to be permissive with our ray casting
+                        // we want to be permissive with our ray casting (design choice)
                         // so we will treat 0.5 as not touching a mountain.
 
                         // check upper square for terrain, if it exists
@@ -771,17 +701,14 @@ Environment GameInstance::compute_view(uint8_t player_ID) const
             {
                 // Since we need to move in both y and x directions, we should
                 // use a parametric ray cast.
-                //
-                // Actually, this probably would have been better before as well.
 
                 for (int r = 0; r < 9; r++)
                 {
-                    vec2 m = diag_slopes[r];
-                    float size = diag_vec_size[r];
-                    float max_range = diag_ray_dists[r];
+                    vec2 m = diagonal_slopes[r];
+                    float size = diagonal_vec_size[r];
+                    float max_range = diagonal_ray_dists[r];
 
                     cast_ray(player_view, curr_tank.pos_, m, size, max_range, curr_tank.barrel_direction_);
-
                 }
 
 
@@ -791,7 +718,127 @@ Environment GameInstance::compute_view(uint8_t player_ID) const
     return player_view;
 }
 
-// This should really be replaced in the futce with a more reasonable solution.
+// Given <x_0, y_0> and a slope vector <x_s, y_x> we
+// compute the visibility along:
+//
+// r(t) = <x_0, y_0> + t * <x_s, y_s>
+//
+// within a certain distance bound.
+void GameInstance::cast_ray(Environment & view, vec2 start, vec2 slope, float size, float max_range, uint8_t dir) const
+{
+    // by default the slopes are setup for south east
+    // since moving up in the game world is equivalent
+    // to moving down on the y axis
+    int x_sign = 1;
+    int y_sign = 1;
+
+    // prepare slopes for north east
+    if (dir % 8 == 1)
+    {
+        y_sign = -1;
+    }
+    // prepare slopes for south west
+    else if (dir % 8 == 5)
+    {
+        x_sign = -1;
+    }
+    // prepare slopes for north west
+    else if (dir % 8 == 7)
+    {
+        x_sign = -1;
+        y_sign = -1;
+    }
+
+    // make step size based on the vector size
+    float dt = 0.5f / size;
+    unsigned int x_0 = start.x_;
+    unsigned int y_0 = start.y_;
+
+    // step through the ray
+    for (float t = dt; t <= max_range; t += dt)
+    {
+        float x_t = x_0 + t * (x_sign * slope.x_);
+        float y_t = y_0 + t * (y_sign * slope.y_);
+
+        // coordinates for x, y
+        unsigned int cx_t = std::floor(x_t);
+        unsigned int cy_t = std::floor(y_t);
+
+        float frac_x = x_t - cx_t;
+        float frac_y = y_t - cy_t;
+
+
+        // Find the closest cell to the ray
+        if (frac_x > 0.5f)
+        {
+            cx_t = cx_t + 1;
+        }
+        if (frac_y > 0.5f)
+        {
+            cy_t = cy_t + 1;
+        }
+
+        // check if this is inside the game environemnt
+        if (cx_t > uint8_t(game_env_.get_width() - 1) || cy_t > uint8_t(game_env_.get_height() - 1))
+        {
+            break;
+        }
+        // check if this is terrain
+        GridCell curr_cell = game_env_[idx(cx_t, cy_t)];
+        if (curr_cell.type_ == CellType::Terrain)
+        {
+            break;
+        }
+        // otherwise, mark the cell as visible
+        view[idx(cx_t, cy_t)].visible_ = true;
+        view[idx(cx_t, cy_t)].occupant_ = game_env_[idx(cx_t, cy_t)].occupant_;
+
+        continue;
+    }
+
+    return;
+}
+
+void GameInstance::place_tank(vec2 pos, uint8_t player_ID)
+{
+
+    GridCell & this_cell = game_env_[idx(pos)];
+    Player & this_player = players_[player_ID];
+
+    uint8_t tank_ID = this_player.tanks_placed_ + (player_ID * num_tanks_);
+
+    // place a tank in the array
+    Tank & this_tank = tanks_[tank_ID];
+    this_tank.pos_ = pos;
+    this_tank.owner_ = player_ID;
+    this_tank.health_ = 3;
+    this_tank.loaded_ = true;
+
+    // set occupant
+    this_cell.occupant_ = tank_ID;
+
+    // update the tank list for the player
+    int * tank_list = this_player.get_tanks_list();
+    tank_list[this_player.tanks_placed_] = tank_ID;
+    this_player.tanks_placed_ += 1;
+
+    // destroy tank if placed on terrain
+    if (this_cell.type_ == CellType::Terrain)
+    {
+        this_tank.health_ = 0;
+    }
+
+    return;
+
+}
+
+void GameInstance::load_tank(uint8_t ID)
+{
+    tanks_[ID].loaded_ = true;
+    return;
+}
+
+// This should really be replaced in the future with a more reasonable solution.
 void GameInstance::read_env_by_name(const std::string& filename, uint16_t total)
 {
     /*
@@ -826,7 +873,7 @@ void GameInstance::read_env_by_name(const std::string& filename, uint16_t total)
         // Normally you shouldn't do this, but we're reading a chunk of data.
         game_env_[i].type_ = static_cast<CellType>(static_cast<uint8_t>(buffer[i] - '0'));
 
-        game_env_[i].occupant_ = UINT8_MAX;
+        game_env_[i].occupant_ = NO_OCCUPANT;
         game_env_[i].visible_ = true;
     }
 

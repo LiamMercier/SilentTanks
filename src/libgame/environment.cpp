@@ -11,11 +11,6 @@ Environment::Environment(uint8_t input_width, uint8_t input_height, uint16_t tot
 }
 
 
-Environment::~Environment()
-{
-}
-
-
 GridCell& Environment::operator[](size_t index)
 {
     return environment_layout_[index];

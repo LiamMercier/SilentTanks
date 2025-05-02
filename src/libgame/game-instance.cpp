@@ -98,7 +98,7 @@ void GameInstance::rotate_tank_barrel(uint8_t ID, uint8_t dir)
 // Given the ID of a tank, attempt to move it in its current direction.
 //
 // Return True if the move was successful, or false if there was terrain or other objects.
-bool GameInstance::move_tank(uint8_t ID, bool reverse))
+bool GameInstance::move_tank(uint8_t ID, bool reverse)
 {
     Tank& curr_tank = tanks_[ID];
     uint8_t dir = curr_tank.current_direction_;

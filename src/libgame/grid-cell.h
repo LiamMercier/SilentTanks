@@ -9,8 +9,11 @@ struct GridCell
 
     // Which tank is on this Grid.
     //
-    // UINT8_MAX if not occupied.
+    // NO_OCCUPANT (UINT8_MAX) if not occupied.
     uint8_t occupant_;
+
+    // used when computing views
+    bool visible_;
 };
 
 std::ostream& operator<<(std::ostream& os, const GridCell& cell);

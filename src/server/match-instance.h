@@ -61,7 +61,9 @@ public:
 
     MatchInstance() = delete;
 
-    MatchInstance(const GameMap & map, std::vector<PlayerInfo> player_list, uint8_t num_players, uint64_t initial_time_ms, uint64_t increment_ms);
+    MatchInstance(const MatchSettings & settings,
+                  std::vector<PlayerInfo> player_list,
+                  uint8_t num_players);
 
     // function to be called by networking layer to enqueue commands
     void receive_command(const Command& cmd);

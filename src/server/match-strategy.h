@@ -7,11 +7,13 @@
 
 #include "session.h"
 #include "message.h"
+#include "maps.h"
 
 class IMatchStrategy
 {
 public:
-    using MakeMatchCallback = std::function<void(Session::ptr, Session::ptr)>;
+    using MakeMatchCallback = std::function<void(std::vector<Session::ptr>,
+                                                 MatchSettings settings)>;
 
     virtual ~IMatchStrategy() = default;
 
@@ -30,21 +32,27 @@ class CasualTwoPlayerStrategy : public IMatchStrategy
 {
 public:
 
-    CasualTwoPlayerStrategy(asio::io_context & cntx, MakeMatchCallback on_match_ready);
+    CasualTwoPlayerStrategy(asio::io_context & cntx,
+                            MakeMatchCallback on_match_ready,
+                            const MapRepository & map_repo);
 
     void enqueue(Session::ptr p) override;
 
     void cancel(Session::ptr p) override;
 
     // do nothing, casual uses a deque to automatically match
-    //
-    // strategies must use their strand if necessary
     void tick() override
     {
 
     }
 private:
     void try_form_match();
+
+public:
+    // 20 minute clock
+    static constexpr uint64_t initial_time_ms = 1200000;
+    // 1 second increment
+    static constexpr uint64_t increment_ms = 1000;
 
 private:
     // strand for this game mode to manage async queue/cancel attempts
@@ -58,4 +66,6 @@ private:
     // lookup to see if player is queued
     std::unordered_set<Session::ptr> lookup_;
 
+    // map repository
+    const MapRepository & map_repo_;
 };

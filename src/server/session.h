@@ -45,6 +45,9 @@ private:
 
     void close_session();
 
+    // TODO: handle invalid headers
+    //       mitigate spam/syn flood style attacks
+
 public:
 
 private:

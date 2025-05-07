@@ -1,19 +1,21 @@
 #include "match-maker.h"
 
 MatchMaker::MatchMaker(asio::io_context & cntx)
-:global_strand_(cntx.get_executor())
+:global_strand_(cntx.get_executor()),
+ all_maps_(std::vector<GameMap>
+        {
+        GameMap(std::string("envs/test2.txt"), 12, 8, 2)
+        })
 {
-    auto call_back = [this](Session::ptr p1, Session::ptr p2)
+    auto match_call_back = [this](std::vector<Session::ptr> players, MatchSettings settings)
     {
-        make_match_on_strand(std::move(p1), std::move(p2));
+        make_match_on_strand(std::move(players), settings);
     };
 
-    matching_queues_[static_cast<size_t>(GameMode::ClassicTwoPlayer)] = std::make_unique<CasualTwoPlayerStrategy>(cntx, call_back);
+    matching_queues_[static_cast<size_t>(GameMode::ClassicTwoPlayer)] = std::make_unique<CasualTwoPlayerStrategy>(cntx, match_call_back, all_maps_);
+
     // other matchmaking options go here
 
-    // load maps into available_maps_
-    available_maps_.emplace_back(GameMap(std::string("envs/test2.txt"),
-                                         12, 8, 2));
 }
 
 void MatchMaker::enqueue(const ptr & p, GameMode queued_mode)
@@ -62,16 +64,32 @@ void MatchMaker::route_to_match(const ptr & p, const Message & msg)
 }
 
 // TODO: coherent instance creation
-void MatchMaker::make_match_on_strand(Session::ptr p1, Session::ptr p2)
+void MatchMaker::make_match_on_strand(std::vector<Session::ptr> players,
+                                      MatchSettings settings)
 {
-    asio::post(global_strand_, [this, p1, p2]{
+    asio::post(global_strand_, [this, players, settings]{
+
+        // setup PlayerInfo structs
+        std::vector<PlayerInfo> player_list;
+        player_list.reserve(players.size());
+
+        for (uint8_t id = 0; id < players.size(); id++)
+        {
+            player_list.emplace_back(PlayerInfo(id));
+        }
 
         // setup instance
-        // auto new_inst = std::make_shared<MatchInstance>(// ARGS NEEDED);
+        auto new_inst = std::make_shared<MatchInstance>(settings,
+                                                        player_list,
+                                                        player_list.size());
 
-        //session_to_match_[p1] = new_inst;
-        //session_to_match_[p2] = new_inst;
-        //live_matches_.push_back(new_inst);
+        // Add players to session_to_match_
+        for (uint8_t i = 0; i < player_list.size(); i++)
+        {
+            session_to_match_[players[i]] = new_inst;
+        }
+
+        live_matches_.push_back(new_inst);
 
         // start the instance
         // new_inst->start
@@ -99,6 +117,7 @@ void MatchMaker::forfeit_impl(const Session::ptr & p)
 {
     // tell the match instance that we are forfeiting
     auto inst = session_to_match_[p];
+
     // TODO: make a forfeit function for MatchInstance
     //inst->forfeit(p);
 

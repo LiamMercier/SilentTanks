@@ -7,29 +7,27 @@ PlayerInfo::PlayerInfo(uint8_t id)
 }
 
 // Only valid constructor, refuse any other construction attempts.
-MatchInstance::MatchInstance(const GameMap & map,
+MatchInstance::MatchInstance(const MatchSettings & settings,
                              std::vector<PlayerInfo> player_list,
-                             uint8_t num_players,
-                             uint64_t initial_time_ms,
-                             uint64_t increment_ms)
+                             uint8_t num_players)
     : // initializer list
     current_player(0),
     remaining_players(num_players),
     current_fuel(TURN_PLAYER_FUEL),
-    game_instance_(map, num_players),
+    game_instance_(settings.map, num_players),
     players_(player_list),
     n_players_(num_players),
-    increment_(std::chrono::milliseconds(increment_ms)),
+    increment_(std::chrono::milliseconds(settings.increment_ms)),
     current_state(GameState::Setup),
     command_queues_(num_players), queue_mutex_(num_players),
     queue_cvs_(num_players),
-    time_left_(num_players, std::chrono::milliseconds(initial_time_ms))
+    time_left_(num_players, std::chrono::milliseconds(settings.initial_time_ms))
 {
     // reserve and emplace_back into player_views_
     player_views_.reserve(num_players);
     for (int i = 0; i < num_players; i++)
     {
-        player_views_.emplace_back(map.width, map.height);
+        player_views_.emplace_back(settings.map.width, settings.map.height);
     }
 }
 

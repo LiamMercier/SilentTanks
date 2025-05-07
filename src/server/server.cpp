@@ -59,6 +59,7 @@ void Server::remove_session(const ptr & session)
 }
 
 // TODO: Error handling
+// TODO: message validation
 // TODO: network to host bytes
 void Server::on_message(const ptr & session, const Message & msg)
 {
@@ -72,14 +73,28 @@ void Server::on_message(const ptr & session, const Message & msg)
             break;
         case HeaderType::QueueMatch:
         {
+            if (!msg.valid_matching_command())
+            {
+                std::cout << "Invalid game mode detected\n";
+                break;
+            }
             GameMode queued_mode = GameMode(msg.payload[0]);
             std::cout << "Trying to queue for game mode " << +uint8_t(queued_mode) << "\n";
             matcher_.enqueue(session, queued_mode);
             break;
         }
         case HeaderType::CancelMatch:
-            //matcher_.cancel(session);
+        {
+            if (!msg.valid_matching_command())
+            {
+                std::cout << "Invalid game mode detected\n";
+                break;
+            }
+            GameMode queued_mode = GameMode(msg.payload[0]);
+            std::cout << "Trying to cancel queue for game mode " << +uint8_t(queued_mode) << "\n";
+            matcher_.cancel(session, queued_mode);
             break;
+        }
         case HeaderType::SendCommand:
             matcher_.route_to_match(session, msg);
             break;

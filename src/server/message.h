@@ -22,6 +22,16 @@ struct QueueMatchRequest
     GameMode mode;
 };
 
+struct CancelMatchRequest
+{
+    CancelMatchRequest(GameMode input_mode)
+    :mode(input_mode)
+    {
+    }
+
+    GameMode mode;
+};
+
 // TODO: login request format when feature is to be added
 struct LoginRequest
 {
@@ -33,6 +43,8 @@ struct Message
 public:
     template <typename mType>
     std::vector<uint8_t> create_serialized(const mType & req);
+
+    bool valid_matching_command() const;
 
 public:
     Header header;

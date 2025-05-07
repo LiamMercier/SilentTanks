@@ -3,6 +3,11 @@
 template<class>
 struct always_false : std::false_type {};
 
+bool Message::valid_matching_command() const
+{
+    return (payload[0] < uint8_t(GameMode::NO_MODE));
+}
+
 template std::vector<uint8_t> Message::create_serialized<QueueMatchRequest>(QueueMatchRequest const&);
 
 // TODO: more implementations
@@ -20,9 +25,13 @@ std::vector<uint8_t> Message::create_serialized(const mType & req)
     {
         // just push into the buffer, no network specific differences.
         payload_buffer.push_back(static_cast<uint8_t>(req.mode));
-
-        // set header type
         header.type_ = HeaderType::QueueMatch;
+    }
+    // for CancelMatchRequest we already have uint8_t
+    else if constexpr (std::is_same_v<mType, CancelMatchRequest>)
+    {
+        payload_buffer.push_back(static_cast<uint8_t>(req.mode));
+        header.type_ = HeaderType::CancelMatch;
     }
     else
     {

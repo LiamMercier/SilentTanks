@@ -16,7 +16,7 @@ public:
 private:
     void remove_session(const ptr & session);
 
-    void on_message(const ptr & session, const Message & msg);
+    void on_message(const ptr & session, Message msg);
 
 private:
     // strand to prevent race conditions on session removal and addition.

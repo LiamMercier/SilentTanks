@@ -8,13 +8,12 @@ bool Message::valid_matching_command() const
     return (payload[0] < uint8_t(GameMode::NO_MODE));
 }
 
-template std::vector<uint8_t> Message::create_serialized<QueueMatchRequest>(QueueMatchRequest const&);
+template void Message::create_serialized<QueueMatchRequest>(QueueMatchRequest const&);
 
 // TODO: more implementations
-// TODO: revise scope
 // Function to create a network serialized message for a message type.
 template <typename mType>
-std::vector<uint8_t> Message::create_serialized(const mType & req)
+void Message::create_serialized(const mType & req)
 {
     std::vector<uint8_t> payload_buffer;
 
@@ -41,15 +40,11 @@ std::vector<uint8_t> Message::create_serialized(const mType & req)
 
     // calculate payload length
     header.payload_len = static_cast<uint32_t>(payload_buffer.size());
-    Header net_header  = header.to_network();
 
-    // create new buffer to return
-    std::vector<uint8_t> buffer;
+    header = header.to_network();
 
-    // create a "header pointer" and fill the buffer with our network data.
-    auto hptr = reinterpret_cast<const uint8_t*>(&net_header);
-    buffer.insert(buffer.end(), hptr, hptr + sizeof(net_header));
-    buffer.insert(buffer.end(), payload_buffer.begin(), payload_buffer.end());
+    // add payload to the message, which is in network format
+    payload = std::move(payload_buffer);
 
-    return buffer;
+    return;
 }

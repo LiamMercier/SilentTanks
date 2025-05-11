@@ -18,12 +18,12 @@ void Session::start()
     do_read_header();
 }
 
-void Session::deliver(const Message & msg)
+void Session::deliver(Message msg)
 {
-    asio::post(strand_, [self = shared_from_this(), msg]{
+    asio::post(strand_, [self = shared_from_this(), m = std::move(msg)]{
         // if the write queue is currently not empty
         bool write_in_progress = !self->write_queue_.empty();
-        self->write_queue_.push_back(msg);
+        self->write_queue_.push_back(std::move(m));
         if (!write_in_progress)
         {
             self->do_write();
@@ -143,8 +143,8 @@ void Session::handle_message()
     if (on_message_relay_)
     {
         asio::post(strand_,
-                   [self = shared_from_this(), msg = std::move(msg)]
-                   {self->on_message_relay_(self, msg);});
+                   [self = shared_from_this(), m = std::move(msg)]
+                   {self->on_message_relay_(self, m);});
     }
     // no callback set
     else

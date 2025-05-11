@@ -17,7 +17,7 @@ public:
     using tcp = asio::ip::tcp;
 
     // callback function to relay messages through
-    using MessageHandler = std::function<void(const ptr& session, const Message& msg)>;
+    using MessageHandler = std::function<void(const ptr& session, Message msg)>;
     using DisconnectHandler = std::function<void(const ptr& session)>;
 
     Session(asio::io_context & cntx);
@@ -26,7 +26,11 @@ public:
 
     void start();
 
-    void deliver(const Message & msg);
+    // Send a message to the client
+    //
+    // If the message does not need to be preserved, one can
+    // use deliver(std::move(msg)) to avoid copies.
+    void deliver(Message msg);
 
     inline tcp::socket& socket();
 

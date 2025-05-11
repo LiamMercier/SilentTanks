@@ -34,7 +34,7 @@ void Server::do_accept()
                 // set callback to on_message
                 session->set_message_handler
                 (
-                    [this](const ptr & s, const Message& m){ on_message(s, m); },
+                    [this](const ptr & s, Message m){ on_message(s, m); },
                     [this](const ptr & s){ remove_session(s); }
                 );
 
@@ -61,7 +61,7 @@ void Server::remove_session(const ptr & session)
 // TODO: Error handling
 // TODO: message validation
 // TODO: network to host bytes
-void Server::on_message(const ptr & session, const Message & msg)
+void Server::on_message(const ptr & session, Message msg)
 {
     std::cout << "Header Type: " << +uint8_t(msg.header.type_) << "\n";
     std::cout << "Payload Size: " << +uint8_t(msg.header.payload_len) << "\n";

@@ -16,13 +16,13 @@ public:
 
     void tick_all();
 
-    void route_to_match(const ptr & p, const Message & msg);
+    void route_to_match(const ptr & p, Message msg);
 
 private:
     void make_match_on_strand(std::vector<Session::ptr> players,
                               MatchSettings settings);
 
-    void route_impl(const Session::ptr & p, const Message & msg);
+    void route_impl(const Session::ptr & p, Message msg);
 
     void forfeit_impl(const Session::ptr & p);
 
@@ -34,7 +34,14 @@ private:
     std::array<std::unique_ptr<IMatchStrategy>, static_cast<size_t>(GameMode::NO_MODE)> matching_queues_;
 
     std::unordered_map<ptr, std::shared_ptr<MatchInstance>> session_to_match_;
+
+    // TODO: find a better data structure for this, matches will end at different
+    // times and thus fragment the memory.
     std::vector<std::shared_ptr<MatchInstance>> live_matches_;
 
     MapRepository all_maps_;
+
+    // Necessary to create match instances with a different strand
+    // to prevent having to use global_strand_ for all calls.
+    asio::io_context & io_cntx;
 };

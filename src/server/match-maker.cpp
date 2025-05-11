@@ -5,7 +5,8 @@ MatchMaker::MatchMaker(asio::io_context & cntx)
  all_maps_(std::vector<GameMap>
         {
         GameMap(std::string("envs/test2.txt"), 12, 8, 2)
-        })
+        }),
+ io_cntx(cntx)
 {
     auto match_call_back = [this](std::vector<Session::ptr> players, MatchSettings settings)
     {
@@ -55,11 +56,11 @@ void MatchMaker::tick_all()
 }
 
 // Public facing function to keep strand logic and routing logic separate
-void MatchMaker::route_to_match(const ptr & p, const Message & msg)
+void MatchMaker::route_to_match(const ptr & p, Message msg)
 {
-    asio::post(global_strand_, [this, p, msg]
+    asio::post(global_strand_, [this, p, m = std::move(msg)]
     {
-       route_impl(p, msg);
+       route_impl(p, m);
     });
 }
 
@@ -79,7 +80,8 @@ void MatchMaker::make_match_on_strand(std::vector<Session::ptr> players,
         }
 
         // setup instance
-        auto new_inst = std::make_shared<MatchInstance>(settings,
+        auto new_inst = std::make_shared<MatchInstance>(io_cntx,
+                                                        settings,
                                                         player_list,
                                                         player_list.size());
 
@@ -92,12 +94,13 @@ void MatchMaker::make_match_on_strand(std::vector<Session::ptr> players,
         live_matches_.push_back(new_inst);
 
         // start the instance
-        // new_inst->start
+        new_inst->start();
     });
 
 }
 
-void MatchMaker::route_impl(const Session::ptr & p, const Message & msg)
+// Decode into a command and send to the server
+void MatchMaker::route_impl(const Session::ptr & p, Message msg)
 {
     auto it = session_to_match_.find(p);
 

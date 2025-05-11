@@ -9,6 +9,7 @@
 
 int main()
 {
+
     // basic test code
     asio::io_context server_io_context;
 
@@ -33,9 +34,18 @@ int main()
     std::cout << "client connecting to server\n";
 
     Message msg;
-    std::vector<uint8_t> bmsg = msg.create_serialized(QueueMatchRequest(GameMode::ClassicTwoPlayer));
+    msg.create_serialized(QueueMatchRequest(GameMode::ClassicTwoPlayer));
 
-    asio::write(client_sock, asio::buffer(bmsg.data(), bmsg.size()));
+    std::array<asio::const_buffer, 2> bufs
+    {
+        // Buffer over the Header struct and payload
+        {
+            asio::buffer(&msg.header, sizeof(Header)),
+            asio::buffer(msg.payload)
+        }
+    };
+
+    asio::write(client_sock, bufs);
 
     std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 

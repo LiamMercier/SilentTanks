@@ -42,7 +42,7 @@ struct Message
 {
 public:
     template <typename mType>
-    std::vector<uint8_t> create_serialized(const mType & req);
+    void create_serialized(const mType & req);
 
     bool valid_matching_command() const;
 

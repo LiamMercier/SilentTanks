@@ -69,13 +69,14 @@ PlayerView Message::to_player_view(bool & op_status)
     // We need 3 bytes for the previous data, plus width*height bytes
     // for the environment, plus 8*num_tanks to hold the tank data
     size_t view_size = 3
-                     + (size_t(width) * size_t(height))
+                     + (size_t(width) * size_t(height) * 3)
                      + size_t(n_tanks) * 8;
 
     // If we have malformed data, simply return false
     if (payload.size() != view_size)
     {
         std::cout << "wrong size in message to player view \n";
+        std::cout << "Payload " << payload.size() << "vs " << view_size << "\n";
         op_status = false;
         return PlayerView{};
     }
@@ -182,19 +183,7 @@ void Message::create_serialized(const mType & req)
 
         // Then all of the environment data
         for (int y = 0; y < map_view.get_height(); y++)
-        {for (int y = 0; y < map_view.get_height(); y++)
         {
-            for (int x = 0; x < map_view.get_width(); x++)
-            {
-                GridCell curr = map_view[map_view.idx(x,y)];
-
-                // For each cell, append the grid cell members
-                payload_buffer.push_back(static_cast<uint8_t>(curr.type_));
-                payload_buffer.push_back(curr.occupant_);
-                payload_buffer.push_back(curr.visible_);
-
-            }
-        }
             for (int x = 0; x < map_view.get_width(); x++)
             {
                 GridCell curr = map_view[map_view.idx(x,y)];

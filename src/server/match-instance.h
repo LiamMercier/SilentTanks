@@ -10,15 +10,17 @@
 #include "game-instance.h"
 #include "maps.h"
 #include "constants.h"
+#include "message.h"
 
 // Player information struct for usage by MatchInstance
 struct PlayerInfo
 {
 public:
-    PlayerInfo(uint8_t id);
+    PlayerInfo(uint8_t id, uint64_t s_id);
 
 public:
     uint8_t PlayerID;
+    uint64_t session_id;
     bool alive;
 };
 
@@ -27,30 +29,6 @@ enum class GameState : uint8_t
     Setup,
     Play,
     Concluded
-};
-
-enum class CommandType : uint8_t
-{
-    Move,
-    RotateTank,
-    RotateBarrel,
-    Fire,
-    Place,
-    Load
-};
-
-// Command structure
-struct Command
-{
-    uint8_t sender;
-    CommandType type;
-    uint8_t tank_id;
-    // optional field for direction of rotation or tank pos x
-    uint8_t payload;
-    // optional field for pos y
-    uint8_t payload_optional;
-
-    uint32_t sequence_number;
 };
 
 struct ApplyResult {
@@ -62,6 +40,8 @@ class MatchInstance : public std::enable_shared_from_this<MatchInstance>
 {
 using steady_timer = asio::steady_timer;
 using steady_clock = std::chrono::steady_clock;
+using SendCallback = std::function<void(uint64_t s_id, Message msg)>;
+
 public:
     MatchInstance() = delete;
 
@@ -69,10 +49,11 @@ public:
     MatchInstance(asio::io_context & cntx,
                   const MatchSettings & settings,
                   std::vector<PlayerInfo> player_list,
-                  uint8_t num_players);
+                  uint8_t num_players,
+                  SendCallback send_callback);
 
     // Called by the networking layer to enqueue commands.
-    void receive_command(Command& cmd);
+    void receive_command(uint64_t session_id, Command cmd);
 
     // Initialization function to start a match.
     void start();
@@ -156,5 +137,8 @@ private:
 
     // Per player views of the game.
     std::vector<Environment> player_views_;
+
+    // Callback function to send message to a player's session
+    SendCallback send_callback_;
 
 };

@@ -13,8 +13,11 @@ enum class HeaderType : uint8_t
     Login,
     QueueMatch,
     CancelMatch,
+    ForfeitMatch,
     SendCommand,
     Text,
+    NoMatchFound,
+    FailedMove,
     MAX_TYPE
 };
 

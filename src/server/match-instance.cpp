@@ -1,7 +1,7 @@
 #include "match-instance.h"
 
-PlayerInfo::PlayerInfo(uint8_t id)
-:PlayerID(id), alive(true)
+PlayerInfo::PlayerInfo(uint8_t p_id, uint64_t s_id)
+:PlayerID(p_id), session_id(s_id), alive(true)
 {
 
 }
@@ -10,7 +10,8 @@ PlayerInfo::PlayerInfo(uint8_t id)
 MatchInstance::MatchInstance(asio::io_context & cntx,
                              const MatchSettings & settings,
                              std::vector<PlayerInfo> player_list,
-                             uint8_t num_players)
+                             uint8_t num_players,
+                             SendCallback send_callback)
     : // initializer list
     current_player(0),
     remaining_players(num_players),
@@ -25,7 +26,8 @@ MatchInstance::MatchInstance(asio::io_context & cntx,
     increment_(std::chrono::milliseconds(settings.increment_ms)),
     current_state(GameState::Setup),
     command_queues_(num_players),
-    time_left_(num_players, std::chrono::milliseconds(settings.initial_time_ms))
+    time_left_(num_players, std::chrono::milliseconds(settings.initial_time_ms)),
+    send_callback_(send_callback)
 {
     // reserve and emplace_back into player_views_
     player_views_.reserve(num_players);
@@ -36,12 +38,13 @@ MatchInstance::MatchInstance(asio::io_context & cntx,
 }
 
 // Function to add a command to the queue (routed by the server)
-void MatchInstance::receive_command(Command & cmd)
+void MatchInstance::receive_command(uint64_t session_id, Command cmd)
 {
     asio::post(strand_,
         [self = shared_from_this(),
-         cmd = std::move(cmd),
-         t_id = turn_ID_]{
+         m_cmd = std::move(cmd),
+         t_id = turn_ID_,
+         s_id = session_id]() mutable {
 
             // stale move due to strand ordering, cancel
             if (t_id != self->turn_ID_)
@@ -49,11 +52,36 @@ void MatchInstance::receive_command(Command & cmd)
                 return;
             }
 
-            // otherwise, valid move, add it to the queue
-            self->command_queues_[cmd.sender].push(std::move(cmd));
+            // Otherwise, valid move, lets find the correct
+            // player ID and then add this to the queue.
+            //
+            // We do this by scanning the vector to search for the ID.
+            //
+            // This should be fine since the vector is of minimal elements.
+            uint8_t correct_id = UINT8_MAX;
+            for (uint8_t p_id = 0; p_id < self->n_players_; p_id++)
+            {
+                if (self->players_[p_id].session_id == s_id)
+                {
+                    correct_id = p_id;
+                    break;
+                }
+            }
+
+            // If we couldn't find the player, return
+            if (correct_id == UINT8_MAX)
+            {
+                return;
+            }
+
+            // Override the sender field
+            m_cmd.sender = correct_id;
+
+            // Enqueue the command
+            self->command_queues_[m_cmd.sender].push(std::move(m_cmd));
 
             // notify if necessary
-            if (cmd.sender == self->current_player)
+            if (m_cmd.sender == self->current_player)
             {
                 self->on_player_move_arrived(t_id);
             }
@@ -319,7 +347,7 @@ ApplyResult MatchInstance::apply_command(const Command & cmd)
                 res.valid_move = false;
                 break;
             }
-            res.op_status = game_instance_.move_tank(cmd.tank_id, cmd.payload);
+            res.op_status = game_instance_.move_tank(cmd.tank_id, cmd.payload_first);
             break;
         }
         case CommandType::RotateTank:
@@ -330,7 +358,7 @@ ApplyResult MatchInstance::apply_command(const Command & cmd)
                 res.valid_move = false;
                 break;
             }
-            game_instance_.rotate_tank(cmd.tank_id, cmd.payload);
+            game_instance_.rotate_tank(cmd.tank_id, cmd.payload_first);
             res.op_status = true;
             break;
         }
@@ -342,7 +370,7 @@ ApplyResult MatchInstance::apply_command(const Command & cmd)
                 res.valid_move = false;
                 break;
             }
-            game_instance_.rotate_tank_barrel(cmd.tank_id, cmd.payload);
+            game_instance_.rotate_tank_barrel(cmd.tank_id, cmd.payload_first);
             res.op_status = true;
             break;
         }
@@ -387,7 +415,7 @@ ApplyResult MatchInstance::apply_command(const Command & cmd)
                 res.valid_move = false;
                 break;
             }
-            vec2 pos(cmd.payload, cmd.payload_optional);
+            vec2 pos(cmd.payload_first, cmd.payload_second);
 
             if (pos.x_ > game_instance_.get_width() - 1 || pos.y_ > game_instance_.get_height() - 1)
             {
@@ -396,6 +424,11 @@ ApplyResult MatchInstance::apply_command(const Command & cmd)
             }
 
             game_instance_.place_tank(pos, cmd.sender);
+            break;
+        }
+        default:
+        {
+            res.valid_move = false;
             break;
         }
     }

@@ -20,7 +20,7 @@ public:
     using MessageHandler = std::function<void(const ptr& session, Message msg)>;
     using DisconnectHandler = std::function<void(const ptr& session)>;
 
-    Session(asio::io_context & cntx);
+    Session(asio::io_context & cntx, uint64_t session_id);
 
     void set_message_handler(MessageHandler handler, DisconnectHandler d_handler);
 
@@ -33,6 +33,8 @@ public:
     void deliver(Message msg);
 
     inline tcp::socket& socket();
+
+    inline uint64_t id() const;
 
 private:
     void do_read_header();
@@ -57,11 +59,16 @@ public:
 private:
     tcp::socket socket_;
     asio::strand<asio::io_context::executor_type> strand_;
+    // Unique ID for this session. Session IDs are used internally
+    // so we can simply use uint64_t for our implementation.
+    uint64_t session_id_;
+
+    // Data related members.
     Header incoming_header_;
     std::vector<uint8_t> incoming_body_;
     std::deque<Message> write_queue_;
 
-    // callbacks
+    // Callbacks.
     MessageHandler on_message_relay_;
     DisconnectHandler on_disconnect_relay_;
 };
@@ -69,4 +76,9 @@ private:
 inline asio::ip::tcp::socket& Session::socket()
 {
     return socket_;
+}
+
+inline uint64_t Session::id() const
+{
+    return session_id_;
 }

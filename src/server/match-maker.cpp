@@ -1,12 +1,13 @@
 #include "match-maker.h"
 
-MatchMaker::MatchMaker(asio::io_context & cntx)
+MatchMaker::MatchMaker(asio::io_context & cntx, SendCallback send_callback)
 :global_strand_(cntx.get_executor()),
  all_maps_(std::vector<GameMap>
         {
         GameMap(std::string("envs/test2.txt"), 12, 8, 2)
         }),
- io_cntx(cntx)
+ io_cntx_(cntx),
+ send_callback_(std::move(send_callback))
 {
     auto match_call_back = [this](std::vector<Session::ptr> players, MatchSettings settings)
     {
@@ -64,7 +65,6 @@ void MatchMaker::route_to_match(const ptr & p, Message msg)
     });
 }
 
-// TODO: coherent instance creation
 void MatchMaker::make_match_on_strand(std::vector<Session::ptr> players,
                                       MatchSettings settings)
 {
@@ -74,16 +74,17 @@ void MatchMaker::make_match_on_strand(std::vector<Session::ptr> players,
         std::vector<PlayerInfo> player_list;
         player_list.reserve(players.size());
 
-        for (uint8_t id = 0; id < players.size(); id++)
+        for (uint8_t p_id = 0; p_id < players.size(); p_id++)
         {
-            player_list.emplace_back(PlayerInfo(id));
+            player_list.emplace_back(PlayerInfo(p_id, players[p_id]->id()));
         }
 
         // setup instance
-        auto new_inst = std::make_shared<MatchInstance>(io_cntx,
+        auto new_inst = std::make_shared<MatchInstance>(io_cntx_,
                                                         settings,
                                                         player_list,
-                                                        player_list.size());
+                                                        player_list.size(),
+                                                        send_callback_);
 
         // Add players to session_to_match_
         for (uint8_t i = 0; i < player_list.size(); i++)
@@ -102,17 +103,22 @@ void MatchMaker::make_match_on_strand(std::vector<Session::ptr> players,
 // Decode into a command and send to the server
 void MatchMaker::route_impl(const Session::ptr & p, Message msg)
 {
-    auto it = session_to_match_.find(p);
+    auto match = session_to_match_.find(p);
 
-    if (it != session_to_match_.end())
+    if (match != session_to_match_.end())
     {
-        // TODO: link this to the MatchInstance queue command
-        //it->second->enqueue_command(p, msg);
+        // Convert message to command
+        Command cmd_to_send = msg.to_command();
+
+        // Route to found match instance
+        match->second->receive_command(p->id(), std::move(cmd_to_send));
     }
     else
     {
-        // cant find match
-        // TODO: cannot find match callback to session
+        // Cant find match to cancel, notify user
+        Message no_match_msg;
+        no_match_msg.create_serialized(HeaderType::NoMatchFound);
+        p->deliver(std::move(no_match_msg));
     }
 }
 
@@ -126,6 +132,4 @@ void MatchMaker::forfeit_impl(const Session::ptr & p)
 
     // remove from map
     session_to_match_.erase(p);
-
-    // TODO: notify player's session and possibly opponent
 }

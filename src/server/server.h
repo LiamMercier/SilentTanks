@@ -19,10 +19,12 @@ private:
     void on_message(const ptr & session, Message msg);
 
 private:
-    // strand to prevent race conditions on session removal and addition.
+    // Strand to prevent race conditions on session removal and addition.
     asio::strand<asio::io_context::executor_type> server_strand_;
 
+    // Acceptor bound to an endpoint.
     tcp::acceptor acceptor_;
+
     // Rare case where we don't want an array style structure.
     //
     // If many sessions are opened, it becomes hard to find sessions and
@@ -33,9 +35,22 @@ private:
     // get worse cache locality of course.
     //
     // This trade off is perfectly reasonable for a server however.
-    std::unordered_set<ptr> sessions_;
+    std::unordered_map<uint64_t, ptr> sessions_;
 
-    // class to handle matching players who want to play against one another
+    // TODO: session_to_user_ taking session ID -> user ID.
+    // TODO: implement users and user IDs.
+    //
+    //       We want the Server to be responsible for mapping sockets
+    //       to more durable objects like users.
+
+    // Class to handle matching players who want to play against one another
     MatchMaker matcher_;
+
+    // TODO: login manager class
+    //       We would prefer to hand off login requests to a login manager
+    //       just like we did with match making requests.
+
+    // Increasing counter for the next session ID.
+    uint64_t next_session_id_{1};
 
 };

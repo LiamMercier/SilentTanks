@@ -3,8 +3,19 @@
 Server::Server(asio::io_context & cntx, tcp::endpoint endpoint)
 :server_strand_(cntx.get_executor()),
 acceptor_(cntx, endpoint),
-matcher_(cntx)
+matcher_(cntx,
+         // Callback function to send messages to sessions
+         [this](uint64_t s_id, Message msg)
+            {
+            auto target_session = sessions_.find(s_id);
+            if (target_session != sessions_.end())
+            {
+                target_session->second->deliver(std::move(msg));
+            }
+            // Otherwise, session no longer exists!
+            })
 {
+    // Accept connections in a loop.
     do_accept();
 }
 
@@ -20,30 +31,35 @@ void Server::do_accept()
             // logic (for example, IP bans).
             if (!ec)
             {
+
+                // Increment and store the next session ID.
+                uint64_t s_id = next_session_id_++;
+
                 // Construct new session for the client
                 //
-                // We need to cast to io_context which is fine because we only accept
-                // io_context as the construction argument.
+                // We need to cast to io_context which is fine because we
+                // only accept io_context as the construction argument.
                 auto session = std::make_shared<Session>(
                     static_cast<asio::io_context&>(
-                        acceptor_.get_executor().context()));
+                        acceptor_.get_executor().context()),
+                        s_id);
 
                 // Move socket into session.
                 session->socket() = std::move(socket);
 
-                // set callback to on_message
+                // Set callback to on_message.
                 session->set_message_handler
                 (
                     [this](const ptr & s, Message m){ on_message(s, m); },
                     [this](const ptr & s){ remove_session(s); }
                 );
 
-                // add to map of sessions and start the session
-                sessions_.insert(session);
+                // Add to map of sessions and start the session.
+                sessions_.emplace(s_id, session);
                 session->start();
             }
 
-            // recursively accept in our handler
+            // Recursively accept in our handler.
             do_accept();
         }));
 }
@@ -53,7 +69,7 @@ void Server::remove_session(const ptr & session)
     // run removal of session on the server's strand
     asio::post(server_strand_, [this, session]{
 
-        sessions_.erase(session);
+        sessions_.erase(session->id());
 
     });
 }
@@ -61,6 +77,7 @@ void Server::remove_session(const ptr & session)
 // TODO: Error handling
 // TODO: message validation
 // TODO: network to host bytes
+// This function is used in session's strand.
 void Server::on_message(const ptr & session, Message msg)
 {
     std::cout << "Header Type: " << +uint8_t(msg.header.type_) << "\n";
@@ -78,6 +95,7 @@ void Server::on_message(const ptr & session, Message msg)
                 std::cout << "Invalid game mode detected\n";
                 break;
             }
+            // Quickly grab the game mode so we can drop the message data.
             GameMode queued_mode = GameMode(msg.payload[0]);
             std::cout << "Trying to queue for game mode " << +uint8_t(queued_mode) << "\n";
             matcher_.enqueue(session, queued_mode);
@@ -90,6 +108,7 @@ void Server::on_message(const ptr & session, Message msg)
                 std::cout << "Invalid game mode detected\n";
                 break;
             }
+            // Quickly grab the game mode so we can drop the message data.
             GameMode queued_mode = GameMode(msg.payload[0]);
             std::cout << "Trying to cancel queue for game mode " << +uint8_t(queued_mode) << "\n";
             matcher_.cancel(session, queued_mode);

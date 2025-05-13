@@ -242,7 +242,13 @@ void MatchInstance::on_player_move_arrived(uint16_t t_id)
     // try again (restart the turn)
     if (res.valid_move == false)
     {
-        // TODO: callback failed move to player
+        // Callback failed move to player
+        Message failed_move_msg;
+        failed_move_msg.create_serialized(HeaderType::FailedMove);
+
+        send_callback_(players_[current_player].session_id,
+                       std::move(failed_move_msg));
+
         start_turn_strand();
         return;
     }
@@ -461,7 +467,14 @@ void MatchInstance::compute_all_views()
             players_[i].alive = false;
         }
 
-        player_views_[i].print_view(game_instance_.tanks_);
+        // Send view to the player
+        Message view_message;
+        view_message.create_serialized(player_views_[i]);
+        send_callback_(players_[i].session_id,
+                       std::move(view_message));
+
+
+        player_views_[i].map_view.print_view(game_instance_.tanks_);
 
     }
 

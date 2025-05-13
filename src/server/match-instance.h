@@ -136,7 +136,7 @@ private:
     std::vector<std::chrono::milliseconds> time_left_;
 
     // Per player views of the game.
-    std::vector<Environment> player_views_;
+    std::vector<PlayerView> player_views_;
 
     // Callback function to send message to a player's session
     SendCallback send_callback_;

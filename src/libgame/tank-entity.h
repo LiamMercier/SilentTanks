@@ -23,6 +23,9 @@ public:
 
     void print_tank_state(uint8_t ID) const;
 
+    // Tank data members
+    //
+    // If this is modified, message.cpp must be modified as well.
 public:
     vec2 pos_;
 

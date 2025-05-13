@@ -15,6 +15,7 @@ enum class HeaderType : uint8_t
     CancelMatch,
     ForfeitMatch,
     SendCommand,
+    PlayerView,
     Text,
     NoMatchFound,
     FailedMove,

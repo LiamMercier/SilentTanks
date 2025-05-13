@@ -1,6 +1,8 @@
 #pragma once
 
 #include "header.h"
+#include "environment.h"
+#include "player-view.h"
 
 #include <type_traits>
 #include <vector>
@@ -63,22 +65,20 @@ struct LoginRequest
     uint64_t temp;
 };
 
-struct NoPayload
-{
-
-};
-
 struct Message
 {
 public:
+    Command to_command();
+
+    // Modify view with success return type.
+    PlayerView to_player_view(bool & op_status);
+
+    bool valid_matching_command() const;
+
     template <typename mType>
     void create_serialized(const mType & req);
 
     void create_serialized(HeaderType h_type);
-
-    Command to_command();
-
-    bool valid_matching_command() const;
 
 public:
     Header header;

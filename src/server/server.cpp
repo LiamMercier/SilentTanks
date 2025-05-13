@@ -120,6 +120,9 @@ void Server::on_message(const ptr & session, Message msg)
         case HeaderType::Text:
             // not implemented for now
             break;
+        case HeaderType::ForfeitMatch:
+            //matcher_.
+            break;
         default:
             // do nothing, should never happen
             break;

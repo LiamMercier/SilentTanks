@@ -35,8 +35,22 @@ public:
     void print_view(Tank* tanks_list) const;
 
     inline uint8_t get_width() const;
+
     inline uint8_t get_height() const;
+
     inline GridCell* get_array();
+
+    inline void set_width(uint8_t width);
+
+    inline void set_height(uint8_t height);
+
+    // "Default" constructor call
+    inline static Environment make_empty();
+private:
+    // Explicit default constructor
+    struct ForceDefault{};
+
+    explicit Environment(ForceDefault);
 
 private:
     FlatArray<GridCell> environment_layout_;
@@ -65,4 +79,19 @@ inline uint8_t Environment::get_height() const
 inline GridCell* Environment::get_array()
 {
     return environment_layout_.get_array();
+}
+
+inline Environment Environment::make_empty()
+{
+    return Environment(ForceDefault{});
+}
+
+inline void Environment::set_width(uint8_t width)
+{
+    environment_layout_.set_width(width);
+}
+
+inline void Environment::set_height(uint8_t height)
+{
+    environment_layout_.set_height(height);
 }

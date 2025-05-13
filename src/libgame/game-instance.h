@@ -9,6 +9,7 @@
 #include "environment.h"
 #include "player.h"
 #include "maps.h"
+#include "player-view.h"
 
 // The game instance class contains all
 // relevant state data for a given game.
@@ -33,9 +34,9 @@ public:
 
     bool fire_tank(uint8_t ID);
 
-    Environment compute_view(uint8_t player_ID, uint8_t & live_tanks);
+    PlayerView compute_view(uint8_t player_ID, uint8_t & live_tanks);
 
-    void cast_ray(Environment & view, vec2 start, vec2 slope, float size, float max_range ,uint8_t dir) const;
+    void cast_ray(PlayerView & player_view, vec2 start, vec2 slope, float size, float max_range ,uint8_t dir) const;
 
     void place_tank(vec2 pos, uint8_t player_ID);
 

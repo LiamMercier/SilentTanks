@@ -469,15 +469,15 @@ bool GameInstance::fire_tank(uint8_t ID)
 //
 // We start with the current game environment and set all cells
 // to having no vision
-Environment GameInstance::compute_view(uint8_t player_ID, uint8_t & live_tanks)
+PlayerView GameInstance::compute_view(uint8_t player_ID, uint8_t & live_tanks)
 {
-
     uint8_t width = game_env_.get_width();
     uint8_t height = game_env_.get_height();
     uint16_t total = width * height;
 
-    // make a new environemnt
-    Environment player_view(width, height);
+    PlayerView view(width, height);
+
+    Environment & player_view = view.map_view;
 
     // copy the cell types
     //
@@ -505,6 +505,8 @@ Environment GameInstance::compute_view(uint8_t player_ID, uint8_t & live_tanks)
         }
 
         Tank& curr_tank = tanks_[curr_tank_ID];
+
+        view.visible_tanks.push_back(curr_tank);
 
         // Check that the tank is still alive
         if (curr_tank.health_ == 0)
@@ -680,11 +682,30 @@ Environment GameInstance::compute_view(uint8_t player_ID, uint8_t & live_tanks)
                             if (primary_var_y == true)
                             {
                                 player_view[idx(sec_int, p)].visible_ = true;
-                                player_view[idx(sec_int, p)].occupant_ = game_env_[idx(sec_int, p)].occupant_;
+
+                                uint8_t occ = game_env_[idx(sec_int, p)].occupant_;
+                                player_view[idx(sec_int, p)].occupant_ = occ;
+
+                                // Add occupant to list of tanks.
+                                if (occ != NO_OCCUPANT)
+                                {
+                                    Tank & this_tank = tanks_[occ];
+                                    view.visible_tanks.push_back(this_tank);
+                                }
+
                             }
                             else {
                                 player_view[idx(p, sec_int)].visible_ = true;
-                                player_view[idx(p, sec_int)].occupant_ = game_env_[idx(p, sec_int)].occupant_;
+
+                                uint8_t occ = game_env_[idx(p, sec_int)].occupant_;
+                                player_view[idx(p, sec_int)].occupant_ = occ;
+
+                                // Add occupant to list of tanks.
+                                if (occ != NO_OCCUPANT)
+                                {
+                                    Tank & this_tank = tanks_[occ];
+                                    view.visible_tanks.push_back(this_tank);
+                                }
                             }
                         }
 
@@ -708,14 +729,15 @@ Environment GameInstance::compute_view(uint8_t player_ID, uint8_t & live_tanks)
                     float size = diagonal_vec_size[r];
                     float max_range = diagonal_ray_dists[r];
 
-                    cast_ray(player_view, curr_tank.pos_, m, size, max_range, curr_tank.barrel_direction_);
+                    cast_ray(view, curr_tank.pos_, m, size, max_range, curr_tank.barrel_direction_);
                 }
 
 
             }
         }
     }
-    return player_view;
+
+    return view;
 }
 
 // Given <x_0, y_0> and a slope vector <x_s, y_x> we
@@ -724,13 +746,15 @@ Environment GameInstance::compute_view(uint8_t player_ID, uint8_t & live_tanks)
 // r(t) = <x_0, y_0> + t * <x_s, y_s>
 //
 // within a certain distance bound.
-void GameInstance::cast_ray(Environment & view, vec2 start, vec2 slope, float size, float max_range, uint8_t dir) const
+void GameInstance::cast_ray(PlayerView & player_view, vec2 start, vec2 slope, float size, float max_range, uint8_t dir) const
 {
     // by default the slopes are setup for south east
     // since moving up in the game world is equivalent
     // to moving down on the y axis
     int x_sign = 1;
     int y_sign = 1;
+
+    Environment & view = player_view.map_view;
 
     // prepare slopes for north east
     if (dir % 8 == 1)
@@ -791,7 +815,16 @@ void GameInstance::cast_ray(Environment & view, vec2 start, vec2 slope, float si
         }
         // otherwise, mark the cell as visible
         view[idx(cx_t, cy_t)].visible_ = true;
-        view[idx(cx_t, cy_t)].occupant_ = game_env_[idx(cx_t, cy_t)].occupant_;
+
+        uint8_t occ = game_env_[idx(cx_t, cy_t)].occupant_;
+        view[idx(cx_t, cy_t)].occupant_ = occ;
+
+        // Add occupant to list of tanks.
+        if (occ != NO_OCCUPANT)
+        {
+            Tank & this_tank = tanks_[occ];
+            player_view.visible_tanks.push_back(this_tank);
+        }
 
         continue;
     }

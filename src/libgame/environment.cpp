@@ -1,5 +1,10 @@
 #include "environment.h"
 
+Environment::Environment(ForceDefault)
+:environment_layout_()
+{
+}
+
 Environment::Environment(uint8_t input_width, uint8_t input_height)
 :environment_layout_(input_width, input_height)
 {

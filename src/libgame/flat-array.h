@@ -44,8 +44,14 @@ public:
     const element& operator[](size_t index) const;
 
     inline uint8_t get_width() const;
+
     inline uint8_t get_height() const;
+
     inline element* get_array();
+
+    inline void set_width(uint8_t width);
+
+    inline void set_height(uint8_t height);
 
 private:
     uint8_t width_;
@@ -75,4 +81,16 @@ template <typename element>
 inline element* FlatArray<element>::get_array()
 {
     return array_;
+}
+
+template <typename element>
+inline void FlatArray<element>::set_width(uint8_t width)
+{
+    width_ = width;
+}
+
+template <typename element>
+inline void FlatArray<element>::set_height(uint8_t height)
+{
+    height_ = height;
 }

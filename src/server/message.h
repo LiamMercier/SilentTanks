@@ -35,6 +35,11 @@ struct CancelMatchRequest
     GameMode mode;
 };
 
+struct MatchStartNotification
+{
+    uint8_t player_id;
+};
+
 enum class CommandType : uint8_t
 {
     Move,
@@ -56,7 +61,11 @@ struct Command
     uint8_t payload_first;
     // Mostly used to give a second x coordinate for placement.
     uint8_t payload_second;
-    uint32_t sequence_number;
+    // Necessary since the client is asynchronous.
+    uint16_t sequence_number;
+
+    static constexpr std::size_t COMMAND_SIZE = 5 * sizeof(uint8_t)
+                                                + sizeof(uint16_t);
 };
 
 // TODO: login request format when feature is to be added

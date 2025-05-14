@@ -49,6 +49,11 @@ void MatchInstance::receive_command(uint64_t session_id, Command cmd)
             // stale move due to strand ordering, cancel
             if (t_id != self->turn_ID_)
             {
+                Message failed_move_msg;
+                failed_move_msg.create_serialized(HeaderType::StaleMove);
+
+                self->send_callback_(s_id, std::move(failed_move_msg));
+
                 return;
             }
 
@@ -91,6 +96,17 @@ void MatchInstance::receive_command(uint64_t session_id, Command cmd)
 
 void MatchInstance::start()
 {
+    // Send an initial view of the environment to each player
+    // and then start the game asynchronously
+
+    for (int i = 0; i < n_players_; i++)
+    {
+        Message view_message;
+        view_message.create_serialized(player_views_[i]);
+        send_callback_(players_[i].session_id,
+                       std::move(view_message));
+    }
+
     start_turn_strand();
 }
 
@@ -104,9 +120,9 @@ void MatchInstance::start_turn()
     if (current_state == GameState::Setup &&
         tanks_placed >= remaining_players * game_instance_.num_tanks_)
     {
-         current_state = GameState::Play;
-         current_player = 0;
-         current_fuel = TURN_PLAYER_FUEL;
+        current_state = GameState::Play;
+        current_player = 0;
+        current_fuel = TURN_PLAYER_FUEL;
     }
 
     // game end condition
@@ -338,6 +354,7 @@ void MatchInstance::handle_timeout()
     start_turn_strand();
 }
 
+// TODO: Ensure moves are valid
 ApplyResult MatchInstance::apply_command(const Command & cmd)
 {
     ApplyResult res;
@@ -430,6 +447,12 @@ ApplyResult MatchInstance::apply_command(const Command & cmd)
             }
 
             game_instance_.place_tank(pos, cmd.sender);
+
+            if (res.valid_move == true)
+            {
+                tanks_placed += 1;
+            }
+
             break;
         }
         default:
@@ -445,8 +468,6 @@ void MatchInstance::compute_all_views()
 {
     for (int i = 0; i < n_players_; i++)
     {
-        std::cout << "View : " << i << "\n";
-
         // avoid unnecessary computation
         if (players_[i].alive == false)
         {
@@ -474,7 +495,7 @@ void MatchInstance::compute_all_views()
                        std::move(view_message));
 
 
-        player_views_[i].map_view.print_view(game_instance_.tanks_);
+        // player_views_[i].map_view.print_view(game_instance_.tanks_);
 
     }
 
@@ -495,7 +516,7 @@ void MatchInstance::conclude_game()
         }
     }
 
-    std::cout << winner << "\n";
+    std::cout << "Winner: " << +winner << "\n";
 
     // TODO: callbacks at end of game
 

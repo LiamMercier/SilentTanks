@@ -12,7 +12,11 @@ template void Message::create_serialized<QueueMatchRequest>(QueueMatchRequest co
 
 template void Message::create_serialized<CancelMatchRequest>(CancelMatchRequest const&);
 
+template void Message::create_serialized<MatchStartNotification>(MatchStartNotification const&);
+
 template void Message::create_serialized<PlayerView>(PlayerView const&);
+
+template void Message::create_serialized<Command>(Command const&);
 
 // Convert the current message to a command to be used in a game instance.
 Command Message::to_command()
@@ -20,7 +24,7 @@ Command Message::to_command()
     Command cmd;
 
     // Check that command is of valid size
-    if (payload.size() < sizeof(Command))
+    if (payload.size() < Command::COMMAND_SIZE)
     {
         // Set to invalid and allow caller to handle this.
         cmd.type = CommandType::NO_OP;
@@ -38,12 +42,12 @@ Command Message::to_command()
     cmd.payload_second = payload[4];
 
     // Handle network ordering of the sequence number.
-    // This would be bytes payload[5] ... payload[8]
-    uint32_t net_sequence;
+    // This would be bytes payload[5], payload[6]
+    uint16_t net_sequence;
     std::memcpy(&net_sequence, payload.data() + 5, sizeof(net_sequence));
 
-    // Which we then convert with network to host long.
-    cmd.sequence_number = ntohl(net_sequence);
+    // Which we then convert with network to host short.
+    cmd.sequence_number = ntohs(net_sequence);
 
     return cmd;
 
@@ -61,16 +65,17 @@ PlayerView Message::to_player_view(bool & op_status)
     }
 
     uint8_t n_tanks = payload[0];
-    uint8_t width = payload[1];
-    uint8_t height = payload[2];
+    uint8_t current_player = payload[1];
+    uint8_t width = payload[2];
+    uint8_t height = payload[3];
 
     // Grab the view dimensions and check that we have valid data
     //
-    // We need 3 bytes for the previous data, plus width*height bytes
+    // We need 4 bytes for the previous data, plus width*height bytes
     // for the environment, plus 8*num_tanks to hold the tank data
-    size_t view_size = 3
+    size_t view_size = 4
                      + (size_t(width) * size_t(height) * 3)
-                     + size_t(n_tanks) * 8;
+                     + size_t(n_tanks) * 9;
 
     // If we have malformed data, simply return false
     if (payload.size() != view_size)
@@ -83,14 +88,16 @@ PlayerView Message::to_player_view(bool & op_status)
 
     PlayerView view(width, height);
 
+    view.current_player = current_player;
+
     // Otherwise, create the player view from the message data
     Environment & map_view = view.map_view;
 
     map_view.set_width(width);
     map_view.set_height(height);
 
-    // Start at payload[3] since we already read the first 3 bytes
-    size_t idx = 3;
+    // Start at payload[4] since we already read the first 4 bytes
+    size_t idx = 4;
 
     for (int y = 0; y < height; y++)
     {
@@ -119,6 +126,7 @@ PlayerView Message::to_player_view(bool & op_status)
         this_tank.pos_.y_ = payload[idx++];
         this_tank.current_direction_ = payload[idx++];
         this_tank.barrel_direction_ = payload[idx++];
+        this_tank.id_ = payload[idx++];
         this_tank.health_ = payload[idx++];
         this_tank.aim_focused_ = static_cast<bool>(payload[idx++]);
         this_tank.loaded_ = static_cast<bool>(payload[idx++]);
@@ -127,16 +135,13 @@ PlayerView Message::to_player_view(bool & op_status)
         view.visible_tanks.push_back(this_tank);
     }
 
+    op_status = true;
+
     // Return our result
     return view;
 }
 
 // TODO: more implementations
-//
-// NOTE: remember to force command to message implementation to
-//       send data for all members even if payload_second is useless.
-//
-//       otherwise it will be rejected.
 //
 // Function to create a network serialized message for a message type.
 template <typename mType>
@@ -146,18 +151,22 @@ void Message::create_serialized(const mType & req)
 
     // pack the payload based on the message type
 
-    // For QueueMatchRequest we already have uint8_t.
     if constexpr (std::is_same_v<mType, QueueMatchRequest>)
     {
-        // just push into the buffer, no network specific differences.
-        payload_buffer.push_back(static_cast<uint8_t>(req.mode));
         header.type_ = HeaderType::QueueMatch;
+        payload_buffer.push_back(static_cast<uint8_t>(req.mode));
     }
-    // For CancelMatchRequest we already have uint8_t.
     else if constexpr (std::is_same_v<mType, CancelMatchRequest>)
     {
-        payload_buffer.push_back(static_cast<uint8_t>(req.mode));
         header.type_ = HeaderType::CancelMatch;
+        payload_buffer.push_back(static_cast<uint8_t>(req.mode));
+    }
+    // Create a message to notify the player of their
+    // player ID and match status.
+    else if constexpr (std::is_same_v<mType, MatchStartNotification>)
+    {
+        header.type_ = HeaderType::MatchStarting;
+        payload_buffer.push_back(static_cast<uint8_t>(req.player_id));
     }
     // For views, we need to put the FlatArray of grid cells into the buffer.
     //
@@ -176,6 +185,9 @@ void Message::create_serialized(const mType & req)
         // Next add the number of visible tanks
         uint8_t n_tanks = static_cast<uint8_t>(req.visible_tanks.size());
         payload_buffer.push_back(n_tanks);
+
+        // And the current turn
+        payload_buffer.push_back(req.current_player);
 
         // Now serialize the environment data, starting with dimensions.
         payload_buffer.push_back(map_view.get_width());
@@ -205,11 +217,40 @@ void Message::create_serialized(const mType & req)
             payload_buffer.push_back(curr_tank.pos_.y_);
             payload_buffer.push_back(curr_tank.current_direction_);
             payload_buffer.push_back(curr_tank.barrel_direction_);
+            payload_buffer.push_back(curr_tank.id_);
             payload_buffer.push_back(curr_tank.health_);
             payload_buffer.push_back(static_cast<uint8_t>(curr_tank.aim_focused_));
             payload_buffer.push_back(static_cast<uint8_t>(curr_tank.loaded_));
             payload_buffer.push_back(curr_tank.owner_);
         }
+
+    }
+    else if constexpr (std::is_same_v<mType, Command>)
+    {
+        header.type_ = HeaderType::SendCommand;
+
+        payload_buffer.reserve(Command::COMMAND_SIZE);
+
+        // Copy all the command data into the payload.
+        //
+        // Start with the single byte data members.
+        payload_buffer.push_back(req.sender);
+        payload_buffer.push_back(static_cast<uint8_t>(req.type));
+        payload_buffer.push_back(req.tank_id);
+        payload_buffer.push_back(req.payload_first);
+        payload_buffer.push_back(req.payload_second);
+
+        // Now load in the sequence number.
+        uint16_t net_sequence = htons(req.sequence_number);
+
+        // Copy into the vector, 8 bytes at a time.
+        //
+        // If net_sequence = 0xABCD then we push back:
+        //
+        // 0xABCD >> 8 which is 0x00AB and thus is cast to 0xAB
+        // 0xABCD & 0xFF which is 0x00CD and thus is cast to 0xCD
+        payload_buffer.push_back(static_cast<uint8_t>(net_sequence >> 8));
+        payload_buffer.push_back(static_cast<uint8_t>(net_sequence & 0xFF));
 
     }
     else

@@ -115,6 +115,7 @@ void Server::on_message(const ptr & session, Message msg)
             break;
         }
         case HeaderType::SendCommand:
+            // Route to match deals with message validation.
             matcher_.route_to_match(session, msg);
             break;
         case HeaderType::Text:

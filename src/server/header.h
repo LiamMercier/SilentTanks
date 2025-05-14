@@ -17,8 +17,10 @@ enum class HeaderType : uint8_t
     SendCommand,
     PlayerView,
     Text,
+    MatchStarting,
     NoMatchFound,
     FailedMove,
+    StaleMove,
     MAX_TYPE
 };
 
@@ -39,7 +41,7 @@ inline bool Header::valid()
         return false;
     }
     // TODO: make this more defined/reasonable
-    if (payload_len > 1000)
+    if (payload_len > 3000)
     {
         return false;
     }

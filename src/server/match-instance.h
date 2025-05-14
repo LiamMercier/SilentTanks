@@ -78,6 +78,10 @@ private:
     // Compute the view of the game for every player.
     void compute_all_views();
 
+    // TODO: forfeit implementation.
+    //
+    // Calling forfeit should eliminate the player on their next turn.
+
     // Determines the winner and sends this information back to the server
     //
     // TODO: tear down the instance
@@ -130,6 +134,14 @@ private:
     //
     // This allows us to attempt to faithfully execute commands by each user in
     // the order they specified them.
+    //
+    // The commands must be sorted because we might send out all three
+    // fuel consumption moves in a row, which could be ordered incorrectly
+    // on an async client. It is possible still that the moves
+    // are sent incorrectly, but sorting will minimize this.
+    //
+    // Having the client wait for a "good move" callback would further
+    // ensure the correct turn order is processed.
     std::vector<std::priority_queue<Command, std::vector<Command>, seq_comp>> command_queues_;
 
     // Per player counts of remaining time.

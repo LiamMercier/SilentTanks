@@ -41,6 +41,7 @@ public:
     uint8_t barrel_direction_;
 
     // information statistics for this tank entity
+    uint8_t id_;
     uint8_t health_;
     bool aim_focused_;
     bool loaded_;

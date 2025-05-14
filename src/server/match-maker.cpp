@@ -70,6 +70,9 @@ void MatchMaker::make_match_on_strand(std::vector<Session::ptr> players,
 {
     asio::post(global_strand_, [this, players, settings]{
 
+        std::cout << "Creating match with session IDs: "
+        << players[0]->id() << " " << players[1]->id() << "\n";
+
         // setup PlayerInfo structs
         std::vector<PlayerInfo> player_list;
         player_list.reserve(players.size());
@@ -77,6 +80,15 @@ void MatchMaker::make_match_on_strand(std::vector<Session::ptr> players,
         for (uint8_t p_id = 0; p_id < players.size(); p_id++)
         {
             player_list.emplace_back(PlayerInfo(p_id, players[p_id]->id()));
+
+            Message notify_match;
+            MatchStartNotification notification;
+            notification.player_id = p_id;
+
+            notify_match.create_serialized(notification);
+
+            // also tell the player that the game is starting
+            send_callback_(players[p_id]->id(), notify_match);
         }
 
         // setup instance

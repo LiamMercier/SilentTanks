@@ -31,13 +31,13 @@ private:
     // we can experience memory fragmentation if many sessions are opened
     // and closed between server reboots.
     //
-    // By using an unordered set we end up preventing this, though, we
+    // By using an unordered map we end up preventing this, though, we
     // get worse cache locality of course.
     //
     // This trade off is perfectly reasonable for a server however.
     std::unordered_map<uint64_t, ptr> sessions_;
 
-    // TODO: session_to_user_ taking session ID -> user ID.
+    // TODO: session_to_user_ taking session ID -> user ID. (need NO_USER on init)
     // TODO: implement users and user IDs.
     //
     //       We want the Server to be responsible for mapping sockets

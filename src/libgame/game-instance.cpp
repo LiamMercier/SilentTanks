@@ -846,6 +846,7 @@ void GameInstance::place_tank(vec2 pos, uint8_t player_ID)
     this_tank.owner_ = player_ID;
     this_tank.health_ = 3;
     this_tank.loaded_ = true;
+    this_tank.id_ = tank_ID;
 
     // set occupant
     this_cell.occupant_ = tank_ID;

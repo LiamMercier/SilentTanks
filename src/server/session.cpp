@@ -201,6 +201,14 @@ void Session::handle_write_error(boost::system::error_code ec)
 
 void Session::close_session()
 {
+    asio::post(strand_, [self = shared_from_this()]
+    {
+        self->force_close_session();
+    };
+}
+
+void Session::force_close_session()
+{
     asio::dispatch(strand_, [self = shared_from_this()]
     {
         boost::system::error_code ignored;
@@ -221,7 +229,7 @@ void Session::close_session()
 }
 
 // To be called when we see a login from the user manager.
-void set_login_true()
+void Session::set_login_true()
 {
     asio::post(strand_, [self = shared_from_this()=]
     {

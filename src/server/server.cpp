@@ -97,15 +97,47 @@ void Server::on_message(const ptr & session, Message msg)
 {
     std::cout << "Header Type: " << +uint8_t(msg.header.type_) << "\n";
     std::cout << "Payload Size: " << +uint8_t(msg.header.payload_len) << "\n";
+
     // handle different types of messages
     switch(msg.header.type_)
     {
-        // TODO: check if logged in
         case HeaderType::LoginRequest:
-            db_.authenticate(msg);
+        {
+            // Prevent login attempts when already logged in.
+            if (session.is_authenticated())
+            {
+                break;
+            }
+
+            db_.authenticate(msg, session);
             break;
+        }
+        case HeaderType::RegistrationRequest:
+        {
+            // Prevent registration attempts when already logged in.
+            if (session.is_authenticated())
+            {
+                Message bad_reg;
+                bad_reg.create_serialized(HeaderType::BadRegistration);
+                session->deliver(bad_reg);
+                break;
+            }
+
+            // TODO: Registration
+            break;
+        }
         case HeaderType::QueueMatch:
         {
+
+            // Prevent actions before login.
+            if (!session.is_authenticated())
+            {
+                Message not_authorized;
+                not_authorized.create_serialized(HeaderType::Unauthorized);
+                session->deliver(not_authorized);
+                break;
+            }
+
             // TODO: needs to be sent through UserManager first
             if (!msg.valid_matching_command())
             {
@@ -120,6 +152,16 @@ void Server::on_message(const ptr & session, Message msg)
         }
         case HeaderType::CancelMatch:
         {
+
+            // Prevent actions before login.
+            if (!session.is_authenticated())
+            {
+                Message not_authorized;
+                not_authorized.create_serialized(HeaderType::Unauthorized);
+                session->deliver(not_authorized);
+                break;
+            }
+
             if (!msg.valid_matching_command())
             {
                 std::cout << "Invalid game mode detected\n";
@@ -132,13 +174,43 @@ void Server::on_message(const ptr & session, Message msg)
             break;
         }
         case HeaderType::SendCommand:
+
+            // Prevent actions before login.
+            if (!session.is_authenticated())
+            {
+                Message not_authorized;
+                not_authorized.create_serialized(HeaderType::Unauthorized);
+                session->deliver(not_authorized);
+                break;
+            }
+
             // Route to match deals with message validation.
             matcher_.route_to_match(session, msg);
             break;
         case HeaderType::Text:
+
+            // Prevent actions before login.
+            if (!session.is_authenticated())
+            {
+                Message not_authorized;
+                not_authorized.create_serialized(HeaderType::Unauthorized);
+                session->deliver(not_authorized);
+                break;
+            }
+
             // not implemented for now
             break;
         case HeaderType::ForfeitMatch:
+
+            // Prevent actions before login.
+            if (!session.is_authenticated())
+            {
+                Message not_authorized;
+                not_authorized.create_serialized(HeaderType::Unauthorized);
+                session->deliver(not_authorized);
+                break;
+            }
+
             //matcher_.
             break;
         default:
@@ -164,7 +236,7 @@ void Server::on_auth(UserData data, std::shared_ptr<Session> session)
 
         // Otherwise, we authenticated correctly, lets add this user
         // to the user manager.
-        user_manager_.on_login(user_data, s);
+        user_manager_.on_login(std::move(user_data), s);
 
         // Notify session of good auth
         Message good_auth_msg;

@@ -11,6 +11,10 @@
 enum class HeaderType : uint8_t
 {
     LoginRequest,
+    RegistrationRequest,
+    Unauthorized,
+    GoodRegistration,
+    BadRegistration,
     BadAuth,
     GoodAuth,
     QueueMatch,

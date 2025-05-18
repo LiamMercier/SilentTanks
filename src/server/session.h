@@ -37,6 +37,8 @@ public:
 
     inline uint64_t id() const;
 
+    inline bool is_authenticated() const;
+
 private:
     void do_read_header();
 
@@ -49,6 +51,8 @@ private:
     void handle_read_error(boost::system::error_code ec);
 
     void handle_write_error(boost::system::error_code ec);
+
+    void force_close_session()
 
     void close_session();
 
@@ -70,8 +74,8 @@ private:
     // object is destroyed.
     //
     // We want to use this to prevent calls to our database
-    // when we already are logged in.
-    bool logged_in_;
+    // when we already are authenticated.
+    bool authenticated_;
 
     // Data related members.
     Header incoming_header_;
@@ -91,4 +95,9 @@ inline asio::ip::tcp::socket& Session::socket()
 inline uint64_t Session::id() const
 {
     return session_id_;
+}
+
+inline bool Session::is_authenticated() const
+{
+    return authenticated_;
 }

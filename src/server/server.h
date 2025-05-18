@@ -1,6 +1,9 @@
 #pragma once
 
 #include "match-maker.h"
+#include "match-result-recorder.h"
+#include "user-manager.h"
+#include "database.h"
 
 class Server
 {
@@ -17,6 +20,8 @@ private:
     void remove_session(const ptr & session);
 
     void on_message(const ptr & session, Message msg);
+
+    void on_auth(UserData data, std::shared_ptr<Session> session);
 
 private:
     // Strand to prevent race conditions on session removal and addition.
@@ -35,20 +40,20 @@ private:
     // get worse cache locality of course.
     //
     // This trade off is perfectly reasonable for a server however.
-    std::unordered_map<uint64_t, ptr> sessions_;
-
-    // TODO: session_to_user_ taking session ID -> user ID. (need NO_USER on init)
-    // TODO: implement users and user IDs.
     //
-    //       We want the Server to be responsible for mapping sockets
-    //       to more durable objects like users.
+    // We map each session ID to a session with this structure.
+    std::unordered_map<uint64_t, ptr> sessions_;
 
     // Class to handle matching players who want to play against one another
     MatchMaker matcher_;
 
-    // TODO: login manager class
-    //       We would prefer to hand off login requests to a login manager
-    //       just like we did with match making requests.
+    MatchResultRecorder result_recorder_;
+
+    // We would prefer to hand off login requests to a login manager
+    // just like we did with match making requests.
+    std::shared_ptr<UserManager> user_manager_;
+
+    Database db_;
 
     // Increasing counter for the next session ID.
     uint64_t next_session_id_{1};

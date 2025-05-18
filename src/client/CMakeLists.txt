@@ -1,4 +1,4 @@
  
 add_executable(SilentTanks main-client.cpp)
 
-target_link_libraries(SilentTanks PRIVATE libgame asio::asio)
+target_link_libraries(SilentTanks PRIVATE libgame Boost::system)

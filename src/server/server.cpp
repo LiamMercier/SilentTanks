@@ -13,7 +13,12 @@ matcher_(cntx,
                 target_session->second->deliver(std::move(msg));
             }
             // Otherwise, session no longer exists!
-            })
+            },
+         [this](MatchResult result)
+            {
+                result_recorder_.deliver_results(result);
+            }
+         )
 {
     // Accept connections in a loop.
     do_accept();
@@ -23,7 +28,7 @@ void Server::do_accept()
 {
     acceptor_.async_accept(
         asio::bind_executor(server_strand_,
-        [this](asio::error_code ec, tcp::socket socket)
+        [this](boost::system::error_code ec, tcp::socket socket)
         {
             // start lambda
             //
@@ -66,10 +71,16 @@ void Server::do_accept()
 
 void Server::remove_session(const ptr & session)
 {
-    // run removal of session on the server's strand
+    // Run removal of session on the server's strand.
     asio::post(server_strand_, [this, session]{
 
+        // Remove this session by s_ID.
         sessions_.erase(session->id());
+
+        // Call for the user manager to handle removal.
+        //
+        // If there is no game for the user, we drop the user struct from memory.
+        user_manager_.disconnect(session);
 
     });
 }
@@ -77,7 +88,11 @@ void Server::remove_session(const ptr & session)
 // TODO: Error handling
 // TODO: message validation
 // TODO: network to host bytes
-// This function is used in session's strand.
+// TODO: any filtering of excessive packets
+//
+// This function is used in session's strand. As such, it must not
+// modify any members outside of the session instance. All actions
+// should only post to the strand of the object being utilized.
 void Server::on_message(const ptr & session, Message msg)
 {
     std::cout << "Header Type: " << +uint8_t(msg.header.type_) << "\n";
@@ -85,11 +100,13 @@ void Server::on_message(const ptr & session, Message msg)
     // handle different types of messages
     switch(msg.header.type_)
     {
-        case HeaderType::Login:
-            // not implemented for now
+        // TODO: check if logged in
+        case HeaderType::LoginRequest:
+            db_.authenticate(msg);
             break;
         case HeaderType::QueueMatch:
         {
+            // TODO: needs to be sent through UserManager first
             if (!msg.valid_matching_command())
             {
                 std::cout << "Invalid game mode detected\n";
@@ -130,4 +147,30 @@ void Server::on_message(const ptr & session, Message msg)
     }
 }
 
+void Server::on_auth(UserData data, std::shared_ptr<Session> session)
+{
+    std::post(strand_, [this, user_data = std::move(data), s = std::move(session)]{
+
+        // First, check if the uuid is nil, if so then auth failed
+        // and we should tell the client to try again.
+        if (user_data.uuid == boost::uuids::nil())
+        {
+            // Notify session with BadAuth
+            Message bad_auth_msg;
+            bad_auth_msg.create_serialized(HeaderType::BadAuth);
+            s->deliver(bad_auth_msg);
+            return;
+        }
+
+        // Otherwise, we authenticated correctly, lets add this user
+        // to the user manager.
+        user_manager_.on_login(user_data, s);
+
+        // Notify session of good auth
+        Message good_auth_msg;
+        good_auth_msg.create_serialized(HeaderType::GoodAuth);
+        s->deliver(good_auth_msg);
+
+    });
+}
 

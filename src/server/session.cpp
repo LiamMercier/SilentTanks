@@ -40,7 +40,7 @@ void Session::do_read_header()
     asio::async_read(socket_,
         asio::buffer(&incoming_header_, sizeof(Header)),
         asio::bind_executor(strand_,
-            [self](asio::error_code ec, std::size_t)
+            [self](boost::system::error_code ec, std::size_t)
             {
                 // If no error, turn header into host bytes
                 if (!ec)
@@ -80,7 +80,7 @@ void Session::do_read_body()
     asio::async_read(socket_,
         asio::buffer(incoming_body_),
         asio::bind_executor(strand_,
-            [self](asio::error_code ec, std::size_t)
+            [self](boost::system::error_code ec, std::size_t)
             {
                 if(!ec)
                 {
@@ -116,7 +116,7 @@ void Session::do_write()
     asio::async_write(socket_,
                       bufs,
                       asio::bind_executor(strand_,
-                        [self](asio::error_code ec, std::size_t)
+                        [self](boost::system::error_code ec, std::size_t)
                         {
                             if (!ec)
                             {
@@ -155,7 +155,7 @@ void Session::handle_message()
     }
 }
 
-void Session::handle_read_error(asio::error_code ec)
+void Session::handle_read_error(boost::system::error_code ec)
 {
     switch (ec.value())
     {
@@ -177,7 +177,7 @@ void Session::handle_read_error(asio::error_code ec)
     }
 }
 
-void Session::handle_write_error(asio::error_code ec)
+void Session::handle_write_error(boost::system::error_code ec)
 {
     switch (ec.value())
     {
@@ -203,7 +203,7 @@ void Session::close_session()
 {
     asio::dispatch(strand_, [self = shared_from_this()]
     {
-        asio::error_code ignored;
+        boost::system::error_code ignored;
 
         self->socket_.shutdown(asio::ip::tcp::socket::shutdown_both, ignored);
         self->socket_.close(ignored);
@@ -218,4 +218,13 @@ void Session::close_session()
         }
 
     });
+}
+
+// To be called when we see a login from the user manager.
+void set_login_true()
+{
+    asio::post(strand_, [self = shared_from_this()=]
+    {
+        self->logged_in_ = true;
+    };
 }

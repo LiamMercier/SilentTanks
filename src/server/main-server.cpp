@@ -3,12 +3,13 @@
 #include <thread>
 
 #include "server.h"
-#include <asio.hpp>
-#include <asio/ip/tcp.hpp>
-#include <asio/local/stream_protocol.hpp>
+#include <boost/asio.hpp>
+#include <boost/asio/ip/tcp.hpp>
+#include <boost/asio/local/stream_protocol.hpp>
 
 int main()
 {
+    namespace asio = boost::asio;
 
     // basic test code
     asio::io_context server_io_context;
@@ -587,7 +588,7 @@ int main()
 
     }
 
-    catch(const asio::system_error& e)
+    catch(const boost::system::system_error& e)
     {
         std::cerr << "Client error: " << e.what() << std::endl;
     }

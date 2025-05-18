@@ -18,6 +18,38 @@ template void Message::create_serialized<PlayerView>(PlayerView const&);
 
 template void Message::create_serialized<Command>(Command const&);
 
+LoginRequest Message::to_login_request()
+{
+    LoginRequest request;
+
+    request.hash.fill(0);
+    request.username.clear();
+
+    size_t idx = 0;
+
+    // If there isn't at least HASH_LENGTH bytes for the password
+    // plus one for the username then we have an invalid attempt.
+    if (payload.size() < HASH_LENGTH + 1)
+    {
+        return request;
+    }
+
+    // If the username is too long, invalid.
+    if (payload.size() > HASH_LENGTH + MAX_USERNAME_LENGTH)
+    {
+        return request;
+    }
+
+    // copy the hash bytes
+    std::copy(payload.begin(), payload.begin() + HASH_LENGTH, request.hash.begin());
+
+    idx += HASH_LENGTH;
+    // copy the rest into the username
+    request.username.assign(payload.begin() + idx, payload.end())
+
+    return request;
+}
+
 // Convert the current message to a command to be used in a game instance.
 Command Message::to_command()
 {

@@ -3,10 +3,16 @@
 #include "header.h"
 #include "environment.h"
 #include "player-view.h"
+#include "command.h"
 
 #include <type_traits>
 #include <vector>
 #include <cstring>
+#include <algorithm>
+
+constexpr HASH_LENGTH = 32;
+
+constexpr MAX_USERNAME_LENGTH = 20;
 
 enum class GameMode : uint8_t
 {
@@ -40,43 +46,17 @@ struct MatchStartNotification
     uint8_t player_id;
 };
 
-enum class CommandType : uint8_t
-{
-    Move,
-    RotateTank,
-    RotateBarrel,
-    Fire,
-    Place,
-    Load,
-    NO_OP
-};
-
-// Command structure
-struct Command
-{
-    uint8_t sender;
-    CommandType type;
-    uint8_t tank_id;
-    // Primary place to put a command parameter.
-    uint8_t payload_first;
-    // Mostly used to give a second x coordinate for placement.
-    uint8_t payload_second;
-    // Necessary since the client is asynchronous.
-    uint16_t sequence_number;
-
-    static constexpr std::size_t COMMAND_SIZE = 5 * sizeof(uint8_t)
-                                                + sizeof(uint16_t);
-};
-
-// TODO: login request format when feature is to be added
 struct LoginRequest
 {
-    uint64_t temp;
+    std::array<uint8_t, HASH_LENGTH> hash;
+    std::string username;
 };
 
 struct Message
 {
 public:
+    LoginRequest to_login_request();
+
     Command to_command();
 
     // Modify view with success return type.

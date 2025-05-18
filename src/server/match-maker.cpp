@@ -1,13 +1,16 @@
 #include "match-maker.h"
 
-MatchMaker::MatchMaker(asio::io_context & cntx, SendCallback send_callback)
+MatchMaker::MatchMaker(asio::io_context & cntx,
+                       SendCallback send_callback,
+                       ResultsCallback results_callback)
 :global_strand_(cntx.get_executor()),
  all_maps_(std::vector<GameMap>
         {
         GameMap(std::string("envs/test2.txt"), 12, 8, 2)
         }),
  io_cntx_(cntx),
- send_callback_(std::move(send_callback))
+ send_callback_(std::move(send_callback)),
+ results_callback_(std::move(results_callback))
 {
     auto match_call_back = [this](std::vector<Session::ptr> players, MatchSettings settings)
     {
@@ -41,6 +44,7 @@ void MatchMaker::cancel(const ptr & p, GameMode queued_mode)
         auto it = session_to_match_.find(p);
         if (it != session_to_match_.end())
         {
+            // TODO: bool Called_By_User or something
             forfeit_impl(p);
         }
 
@@ -77,6 +81,7 @@ void MatchMaker::make_match_on_strand(std::vector<Session::ptr> players,
         std::vector<PlayerInfo> player_list;
         player_list.reserve(players.size());
 
+        // TODO uuid's instead
         for (uint8_t p_id = 0; p_id < players.size(); p_id++)
         {
             player_list.emplace_back(PlayerInfo(p_id, players[p_id]->id()));
@@ -96,7 +101,8 @@ void MatchMaker::make_match_on_strand(std::vector<Session::ptr> players,
                                                         settings,
                                                         player_list,
                                                         player_list.size(),
-                                                        send_callback_);
+                                                        send_callback_,
+                                                        results_callback_);
 
         // Add players to session_to_match_
         for (uint8_t i = 0; i < player_list.size(); i++)

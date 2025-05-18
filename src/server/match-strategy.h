@@ -3,7 +3,7 @@
 #include <memory>
 #include <unordered_set>
 
-#include <asio.hpp>
+#include <boost/asio.hpp>
 
 #include "session.h"
 #include "message.h"
@@ -32,7 +32,7 @@ class CasualTwoPlayerStrategy : public IMatchStrategy
 {
 public:
 
-    CasualTwoPlayerStrategy(asio::io_context & cntx,
+    CasualTwoPlayerStrategy(boost::asio::io_context & cntx,
                             MakeMatchCallback on_match_ready,
                             const MapRepository & map_repo);
 
@@ -56,7 +56,7 @@ public:
 
 private:
     // strand for this game mode to manage async queue/cancel attempts
-    asio::strand<asio::io_context::executor_type> strand_;
+    boost::asio::strand<boost::asio::io_context::executor_type> strand_;
 
     MakeMatchCallback on_match_ready_;
 

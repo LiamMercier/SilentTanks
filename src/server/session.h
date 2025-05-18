@@ -3,12 +3,13 @@
 #include <deque>
 #include <iostream>
 
-#include <asio.hpp>
-#include <asio/ip/tcp.hpp>
-#include <asio/error_code.hpp>
+#include <boost/asio.hpp>
+#include <boost/asio/ip/tcp.hpp>
 
 #include "message.h"
 #include "header.h"
+
+namespace asio = boost::asio;
 
 class Session : public std::enable_shared_from_this<Session>
 {
@@ -45,11 +46,13 @@ private:
 
     void handle_message();
 
-    void handle_read_error(asio::error_code ec);
+    void handle_read_error(boost::system::error_code ec);
 
-    void handle_write_error(asio::error_code ec);
+    void handle_write_error(boost::system::error_code ec);
 
     void close_session();
+
+    void set_login_true();
 
     // TODO: handle invalid headers
     //       mitigate spam/syn flood style attacks
@@ -59,9 +62,16 @@ public:
 private:
     tcp::socket socket_;
     asio::strand<asio::io_context::executor_type> strand_;
+
     // Unique ID for this session. Session IDs are used internally
     // so we can simply use uint64_t for our implementation.
     uint64_t session_id_;
+    // Remains false until a login, then remains true until
+    // object is destroyed.
+    //
+    // We want to use this to prevent calls to our database
+    // when we already are logged in.
+    bool logged_in_;
 
     // Data related members.
     Header incoming_header_;

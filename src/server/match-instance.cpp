@@ -11,7 +11,8 @@ MatchInstance::MatchInstance(asio::io_context & cntx,
                              const MatchSettings & settings,
                              std::vector<PlayerInfo> player_list,
                              uint8_t num_players,
-                             SendCallback send_callback)
+                             SendCallback send_callback,
+                             ResultsCallback results_callback)
     : // initializer list
     current_player(0),
     remaining_players(num_players),
@@ -27,7 +28,8 @@ MatchInstance::MatchInstance(asio::io_context & cntx,
     current_state(GameState::Setup),
     command_queues_(num_players),
     time_left_(num_players, std::chrono::milliseconds(settings.initial_time_ms)),
-    send_callback_(send_callback)
+    send_callback_(send_callback),
+    results_callback_(results_callback)
 {
     // reserve and emplace_back into player_views_
     player_views_.reserve(num_players);
@@ -153,7 +155,7 @@ void MatchInstance::start_turn()
     timer_.async_wait(asio::bind_executor(strand_,
         [self = shared_from_this(),
          id=current_player,
-         t_id = turn_ID_](asio::error_code ec)
+         t_id = turn_ID_](boost::system::error_code ec)
         {
             // check for stale timer calls
             if (t_id != self->turn_ID_)
@@ -270,6 +272,9 @@ void MatchInstance::on_player_move_arrived(uint16_t t_id)
     }
 
     time_left_[current_player] += increment_;
+
+    // Add this command to the move history of the match
+    results_.move_history.push_back(std::move(CommandHead(next_move)));
 
     // If we're in the setup phase, don't consume fuel.
     // Just show the tank placement.
@@ -495,8 +500,6 @@ void MatchInstance::compute_all_views()
                        std::move(view_message));
 
 
-        // player_views_[i].map_view.print_view(game_instance_.tanks_);
-
     }
 
 }
@@ -519,6 +522,8 @@ void MatchInstance::conclude_game()
     std::cout << "Winner: " << +winner << "\n";
 
     // TODO: callbacks at end of game
+
+    // TODO: break down the game instance
 
     return;
 }

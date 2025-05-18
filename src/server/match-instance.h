@@ -4,13 +4,17 @@
 #include <queue>
 #include <chrono>
 
-#include <asio.hpp>
-#include <asio/ts/timer.hpp>
+#include <boost/asio.hpp>
+#include <boost/asio/ts/timer.hpp>
+#include <boost/uuid/uuid.hpp>
 
 #include "game-instance.h"
 #include "maps.h"
 #include "constants.h"
 #include "message.h"
+#include "match-result.h"
+
+namespace asio = boost::asio;
 
 // Player information struct for usage by MatchInstance
 struct PlayerInfo
@@ -21,6 +25,7 @@ public:
 public:
     uint8_t PlayerID;
     uint64_t session_id;
+    boost::uuids::uuid player_id;
     bool alive;
 };
 
@@ -31,7 +36,8 @@ enum class GameState : uint8_t
     Concluded
 };
 
-struct ApplyResult {
+struct ApplyResult
+{
     bool valid_move;
     bool op_status;
 };
@@ -41,6 +47,7 @@ class MatchInstance : public std::enable_shared_from_this<MatchInstance>
 using steady_timer = asio::steady_timer;
 using steady_clock = std::chrono::steady_clock;
 using SendCallback = std::function<void(uint64_t s_id, Message msg)>;
+using ResultsCallback = std::function<void(MatchResult result)>;
 
 public:
     MatchInstance() = delete;
@@ -50,7 +57,8 @@ public:
                   const MatchSettings & settings,
                   std::vector<PlayerInfo> player_list,
                   uint8_t num_players,
-                  SendCallback send_callback);
+                  SendCallback send_callback,
+                  ResultsCallback results_callback);
 
     // Called by the networking layer to enqueue commands.
     void receive_command(uint64_t session_id, Command cmd);
@@ -150,7 +158,13 @@ private:
     // Per player views of the game.
     std::vector<PlayerView> player_views_;
 
-    // Callback function to send message to a player's session
+    // Move history for recording the game history.
+    MatchResult results_;
+
+    // Callback function to send message to a player's session.
     SendCallback send_callback_;
+
+    // Callback to return the match result.
+    ResultsCallback results_callback_;
 
 };

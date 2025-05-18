@@ -11,36 +11,17 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Werror -std=c++11")
 set(CMAKE_CXX_FLAGS_DEBUG
     "${CMAKE_CXX_FLAGS_DEBUG} -fsanitize=address -fno-omit-frame-pointer")
 
-include(FetchContent)
+find_package(Boost REQUIRED COMPONENTS system)
 
-FetchContent_Declare(asio
-GIT_REPOSITORY https://github.com/chriskohlhoff/asio.git
-GIT_TAG asio-1-34-2
-GIT_SHALLOW TRUE
-)
+find_package(argon2 REQUIRED)
 
-FetchContent_GetProperties(asio)
-if (NOT asio_POPULATED)
-  FetchContent_Populate(asio)
+if(NOT Boost_FOUND)
+  message(FATAL_ERROR "Boost not found!")
 endif()
 
-add_library(asio INTERFACE)
-target_include_directories(asio INTERFACE
-  ${asio_SOURCE_DIR}/asio/include
-)
-
-target_compile_definitions(asio INTERFACE
-  ASIO_STANDALONE
-  ASIO_NO_DEPRECATED
-)
-
-find_package(Threads REQUIRED)
-# Asio needs threading support
-target_link_libraries(asio INTERFACE
-  Threads::Threads
-)
-
-add_library(asio::asio ALIAS asio)
+if(NOT argon2_FOUND)
+  message(FATAL_ERROR "libargon2 not found!")
+endif()
 
 add_subdirectory(src/libgame)
 add_subdirectory(src/server)

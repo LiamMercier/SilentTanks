@@ -45,7 +45,7 @@ LoginRequest Message::to_login_request()
 
     idx += HASH_LENGTH;
     // copy the rest into the username
-    request.username.assign(payload.begin() + idx, payload.end())
+    request.username.assign(payload.begin() + idx, payload.end());
 
     return request;
 }

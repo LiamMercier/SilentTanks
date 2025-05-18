@@ -12,7 +12,9 @@ class Server
 
 public:
     // construct the server given a context and an endpoint
-    Server(asio::io_context & cntx, tcp::endpoint endpoint);
+    Server(asio::io_context & cntx,
+           tcp::endpoint endpoint,
+           const std::string & conn_str);
 
     void do_accept();
 
@@ -51,7 +53,7 @@ private:
 
     // We would prefer to hand off login requests to a login manager
     // just like we did with match making requests.
-    std::shared_ptr<UserManager> user_manager_;
+    UserManager user_manager_;
 
     Database db_;
 

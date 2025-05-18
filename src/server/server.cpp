@@ -1,6 +1,8 @@
 #include "server.h"
 
-Server::Server(asio::io_context & cntx, tcp::endpoint endpoint)
+Server::Server(asio::io_context & cntx,
+               tcp::endpoint endpoint,
+               const std::string & conn_str)
 :server_strand_(cntx.get_executor()),
 acceptor_(cntx, endpoint),
 matcher_(cntx,
@@ -14,11 +16,20 @@ matcher_(cntx,
             }
             // Otherwise, session no longer exists!
             },
+         // Callback for match results
          [this](MatchResult result)
             {
                 result_recorder_.deliver_results(result);
-            }
-         )
+            }),
+user_manager_(cntx),
+db_(cntx,
+    conn_str,
+    // Database callback for authentication
+    [this](UserData data, std::shared_ptr<Session> session)
+    {
+        this->on_auth(data, session);
+    }
+)
 {
     // Accept connections in a loop.
     do_accept();
@@ -69,6 +80,7 @@ void Server::do_accept()
         }));
 }
 
+// TODO: notify match making about this, probably with ->cancel();
 void Server::remove_session(const ptr & session)
 {
     // Run removal of session on the server's strand.
@@ -104,7 +116,7 @@ void Server::on_message(const ptr & session, Message msg)
         case HeaderType::LoginRequest:
         {
             // Prevent login attempts when already logged in.
-            if (session.is_authenticated())
+            if (session->is_authenticated())
             {
                 break;
             }
@@ -115,7 +127,7 @@ void Server::on_message(const ptr & session, Message msg)
         case HeaderType::RegistrationRequest:
         {
             // Prevent registration attempts when already logged in.
-            if (session.is_authenticated())
+            if (session->is_authenticated())
             {
                 Message bad_reg;
                 bad_reg.create_serialized(HeaderType::BadRegistration);
@@ -130,7 +142,7 @@ void Server::on_message(const ptr & session, Message msg)
         {
 
             // Prevent actions before login.
-            if (!session.is_authenticated())
+            if (!session->is_authenticated())
             {
                 Message not_authorized;
                 not_authorized.create_serialized(HeaderType::Unauthorized);
@@ -154,7 +166,7 @@ void Server::on_message(const ptr & session, Message msg)
         {
 
             // Prevent actions before login.
-            if (!session.is_authenticated())
+            if (!session->is_authenticated())
             {
                 Message not_authorized;
                 not_authorized.create_serialized(HeaderType::Unauthorized);
@@ -176,7 +188,7 @@ void Server::on_message(const ptr & session, Message msg)
         case HeaderType::SendCommand:
 
             // Prevent actions before login.
-            if (!session.is_authenticated())
+            if (!session->is_authenticated())
             {
                 Message not_authorized;
                 not_authorized.create_serialized(HeaderType::Unauthorized);
@@ -190,7 +202,7 @@ void Server::on_message(const ptr & session, Message msg)
         case HeaderType::Text:
 
             // Prevent actions before login.
-            if (!session.is_authenticated())
+            if (!session->is_authenticated())
             {
                 Message not_authorized;
                 not_authorized.create_serialized(HeaderType::Unauthorized);
@@ -203,7 +215,7 @@ void Server::on_message(const ptr & session, Message msg)
         case HeaderType::ForfeitMatch:
 
             // Prevent actions before login.
-            if (!session.is_authenticated())
+            if (!session->is_authenticated())
             {
                 Message not_authorized;
                 not_authorized.create_serialized(HeaderType::Unauthorized);
@@ -221,11 +233,11 @@ void Server::on_message(const ptr & session, Message msg)
 
 void Server::on_auth(UserData data, std::shared_ptr<Session> session)
 {
-    std::post(strand_, [this, user_data = std::move(data), s = std::move(session)]{
+    asio::post(server_strand_, [this, user_data = std::move(data), s = std::move(session)]{
 
         // First, check if the uuid is nil, if so then auth failed
         // and we should tell the client to try again.
-        if (user_data.uuid == boost::uuids::nil())
+        if (user_data.user_id == boost::uuids::nil_uuid())
         {
             // Notify session with BadAuth
             Message bad_auth_msg;

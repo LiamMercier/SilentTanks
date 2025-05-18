@@ -3,6 +3,8 @@
 #include "match-strategy.h"
 #include "match-instance.h"
 
+#include <boost/functional/hash.hpp>
+
 class MatchMaker
 {
 using ptr = std::shared_ptr<Session>;
@@ -45,7 +47,9 @@ private:
     std::array<std::unique_ptr<IMatchStrategy>, static_cast<size_t>(GameMode::NO_MODE)> matching_queues_;
 
     // Mapping from unique users to their matches
-    std::unordered_map<boost::uuids::uuid, std::shared_ptr<MatchInstance>> session_to_match_;
+    std::unordered_map<boost::uuids::uuid,
+                       std::shared_ptr<MatchInstance>,
+                       boost::hash<boost::uuids::uuid>> uuid_to_match_;
 
     // TODO: find a better data structure for this, matches will end at different
     // times and thus fragment the memory.

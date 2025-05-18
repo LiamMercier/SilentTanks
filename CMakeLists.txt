@@ -8,18 +8,22 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_CXX_COMPILER "g++")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Werror -std=c++11")
 
+# find libargon2
+set(CMAKE_PREFIX_PATH "/usr/local;/usr")
+set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
+
 set(CMAKE_CXX_FLAGS_DEBUG
     "${CMAKE_CXX_FLAGS_DEBUG} -fsanitize=address -fno-omit-frame-pointer")
 
 find_package(Boost REQUIRED COMPONENTS system)
 
-find_package(argon2 REQUIRED)
+find_package(Argon2 REQUIRED)
 
 if(NOT Boost_FOUND)
   message(FATAL_ERROR "Boost not found!")
 endif()
 
-if(NOT argon2_FOUND)
+if(NOT Argon2_FOUND)
   message(FATAL_ERROR "libargon2 not found!")
 endif()
 

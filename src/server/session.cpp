@@ -204,7 +204,7 @@ void Session::close_session()
     asio::post(strand_, [self = shared_from_this()]
     {
         self->force_close_session();
-    };
+    });
 }
 
 void Session::force_close_session()
@@ -229,10 +229,12 @@ void Session::force_close_session()
 }
 
 // To be called when we see a login from the user manager.
-void Session::set_login_true()
+void Session::set_session_data(UserData user_data)
 {
-    asio::post(strand_, [self = shared_from_this()=]
+    asio::post(strand_, [self = shared_from_this(), data = std::move(user_data)]
     {
-        self->logged_in_ = true;
-    };
+        // Set authenticated to true, and move a copy of the data
+        self->authenticated_ = true;
+        self->user_data_ = std::move(data);
+    });
 }

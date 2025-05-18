@@ -41,7 +41,7 @@ void MatchMaker::cancel(const ptr & p, GameMode queued_mode)
     // handle match cancels if a match is currently ongoing.
     asio::post(global_strand_, [this, p]{
 
-        auto it = session_to_match_.find(p);
+        auto it = uuid_to_match_.find((p->get_user_data()).user_id);
         if (it != session_to_match_.end())
         {
             // TODO: bool Called_By_User or something
@@ -105,9 +105,11 @@ void MatchMaker::make_match_on_strand(std::vector<Session::ptr> players,
                                                         results_callback_);
 
         // Add players to session_to_match_
+        //
+        // TODO: route this to the player manager, possibly through session?
         for (uint8_t i = 0; i < player_list.size(); i++)
         {
-            session_to_match_[players[i]] = new_inst;
+            uuid_to_match_[players[i]] = new_inst;
         }
 
         live_matches_.push_back(new_inst);
@@ -121,9 +123,9 @@ void MatchMaker::make_match_on_strand(std::vector<Session::ptr> players,
 // Decode into a command and send to the server
 void MatchMaker::route_impl(const Session::ptr & p, Message msg)
 {
-    auto match = session_to_match_.find(p);
+    auto match = uuid_to_match_.find((p->user_data).user_id);
 
-    if (match != session_to_match_.end())
+    if (match != uuid_to_match_.end())
     {
         // Convert message to command
         Command cmd_to_send = msg.to_command();
@@ -142,12 +144,14 @@ void MatchMaker::route_impl(const Session::ptr & p, Message msg)
 
 void MatchMaker::forfeit_impl(const Session::ptr & p)
 {
+    auto & u_id = (p->user_data).user_id
+
     // tell the match instance that we are forfeiting
-    auto inst = session_to_match_[p];
+    auto inst = uuid_to_match_[u_id];
 
     // TODO: make a forfeit function for MatchInstance
-    //inst->forfeit(p);
+    //inst->forfeit(p->uuid);
 
     // remove from map
-    session_to_match_.erase(p);
+    uuid_to_match_.erase(u_id);
 }

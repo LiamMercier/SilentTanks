@@ -1,5 +1,10 @@
 #include "user-manager.h"
 
+UserManager::UserManager(boost::asio::io_context & cntx)
+:strand_(cntx.get_executor())
+{
+}
+
 void UserManager::on_login(UserData data,
                            std::shared_ptr<Session> session)
 {
@@ -25,7 +30,7 @@ void UserManager::on_login(UserData data,
 
         // Set the user session and set login to true.
         user->current_session = session;
-        session->set_login_true();
+        session->set_session_data(user_data);
 
         // Map the session ID to this uuid.
         (self->sid_to_uuid_)[session->id()] = user_data.user_id;

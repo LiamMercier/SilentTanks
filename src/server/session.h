@@ -8,6 +8,7 @@
 
 #include "message.h"
 #include "header.h"
+#include "user-data.h"
 
 namespace asio = boost::asio;
 
@@ -39,6 +40,8 @@ public:
 
     inline bool is_authenticated() const;
 
+    inline UserData get_user_data() const;
+
 private:
     void do_read_header();
 
@@ -52,11 +55,11 @@ private:
 
     void handle_write_error(boost::system::error_code ec);
 
-    void force_close_session()
+    void force_close_session();
 
     void close_session();
 
-    void set_login_true();
+    void set_session_data(UserData user_data);
 
     // TODO: handle invalid headers
     //       mitigate spam/syn flood style attacks
@@ -76,6 +79,8 @@ private:
     // We want to use this to prevent calls to our database
     // when we already are authenticated.
     bool authenticated_;
+
+    UserData user_data_;
 
     // Data related members.
     Header incoming_header_;
@@ -100,4 +105,9 @@ inline uint64_t Session::id() const
 inline bool Session::is_authenticated() const
 {
     return authenticated_;
+}
+
+inline UserData Session::get_user_data() const
+{
+    return user_data_;
 }

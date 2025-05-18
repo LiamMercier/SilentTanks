@@ -2,6 +2,6 @@ add_executable(SilentTanks-Server main-server.cpp match-instance.cpp session.cpp
 
 target_include_directories(SilentTanks-Server PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 target_include_directories(SilentTanks-Server PRIVATE ${Boost_INCLUDE_DIRS})
-target_include_directories(${argon2_INCLUDE_DIRS})
+target_include_directories(SilentTanks-Server PRIVATE ${Argon2_INCLUDE_DIRS})
 
-target_link_libraries(SilentTanks-Server PRIVATE libgame Boost::system ${argon2_LIBRARIES})
+target_link_libraries(SilentTanks-Server PRIVATE libgame Boost::system ${Argon2_LIBRARIES})

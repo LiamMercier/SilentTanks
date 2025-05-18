@@ -7,12 +7,13 @@
 
 #include <type_traits>
 #include <vector>
+#include <array>
 #include <cstring>
 #include <algorithm>
 
-constexpr HASH_LENGTH = 32;
+constexpr size_t HASH_LENGTH = 32;
 
-constexpr MAX_USERNAME_LENGTH = 20;
+constexpr size_t MAX_USERNAME_LENGTH = 20;
 
 enum class GameMode : uint8_t
 {

@@ -1,6 +1,8 @@
 #pragma once
 
 #include <boost/uuid/uuid.hpp>
+#include <boost/uuid/nil_generator.hpp>
+#include <boost/functional/hash.hpp>
 #include <unordered_map>
 
 #include "user.h"
@@ -9,8 +11,10 @@ class UserManager : public std::enable_shared_from_this<UserManager>
 {
 public:
     // TODO: determine if these are necessary
-    using LoginCallback = std::function<void>(std::shared_ptr<User>)>;
+    using LoginCallback = std::function<void(std::shared_ptr<User>)>;
     using DisconnectHandler = std::function<void()>;
+
+    UserManager(boost::asio::io_context & cntx);
 
     // Adds a user on login
     //
@@ -27,7 +31,9 @@ public:
 private:
 
     boost::asio::io_context::strand strand_;
-    std::unordered_map<boost::uuids::uuid, std::shared_ptr<User>> users_;
+    std::unordered_map<boost::uuids::uuid,
+                       std::shared_ptr<User>,
+                       boost::hash<boost::uuids::uuid>> users_;
     std::unordered_map<uint64_t, boost::uuids::uuid> sid_to_uuid_;
     // LoginCallback
 };

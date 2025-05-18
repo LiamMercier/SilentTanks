@@ -15,7 +15,10 @@ int main()
     asio::io_context server_io_context;
 
     asio::ip::tcp::endpoint endpoint(asio::ip::make_address("127.0.0.1"), 12345);
-        Server server(server_io_context, endpoint);
+
+    std::string conn_string = "test";
+
+    Server server(server_io_context, endpoint, conn_string);
 
     std::cout << "Server started on " << endpoint << std::endl;
 

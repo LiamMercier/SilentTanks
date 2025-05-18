@@ -1,23 +1,16 @@
 #pragma once
 
+#include "user-data.h"
+#include "session.h"
+
 #include <boost/uuid/uuid.hpp>
 #include <string>
 
-struct UserData
-{
-    UserData()
-    :user_id()
-    {
-
-    }
-    boost::uuids::uuid user_id;
-    std::string username;
-};
 
 struct User
 {
     User()
-    :user_id()
+    :user_data()
     {
     }
 

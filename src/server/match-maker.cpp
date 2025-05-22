@@ -31,7 +31,7 @@ void MatchMaker::enqueue(const ptr & p, GameMode queued_mode)
     matching_queues_[static_cast<size_t>(queued_mode)]->enqueue(p);
 }
 
-void MatchMaker::cancel(const ptr & p, GameMode queued_mode)
+void MatchMaker::cancel(const ptr & p, GameMode queued_mode, bool called_by_user)
 {
     // call matching cancel function for this game mode
     //
@@ -39,13 +39,27 @@ void MatchMaker::cancel(const ptr & p, GameMode queued_mode)
     matching_queues_[static_cast<size_t>(queued_mode)]->cancel(p);
 
     // handle match cancels if a match is currently ongoing.
-    asio::post(global_strand_, [this, p]{
+    asio::post(global_strand_, [this, p, queued_mode, called_by_user]{
+
+        // Handle user cancels differently
+        if (called_by_user == true)
+        {
+            auto it = uuid_to_match_.find((p->get_user_data()).user_id);
+            // If a match exists, tell them they must forfeit
+            // since the game started already.
+            if (it != uuid_to_match_.end())
+            {
+                // TODO: notify of bad cancel
+
+            }
+            return;
+        }
 
         auto it = uuid_to_match_.find((p->get_user_data()).user_id);
-        if (it != session_to_match_.end())
+        if (it != uuid_to_match_.end())
         {
             // TODO: bool Called_By_User or something
-            forfeit_impl(p);
+            forfeit_impl(p, false);
         }
 
     });
@@ -81,10 +95,18 @@ void MatchMaker::make_match_on_strand(std::vector<Session::ptr> players,
         std::vector<PlayerInfo> player_list;
         player_list.reserve(players.size());
 
-        // TODO uuid's instead
+        // Setup players list from our session data
         for (uint8_t p_id = 0; p_id < players.size(); p_id++)
         {
-            player_list.emplace_back(PlayerInfo(p_id, players[p_id]->id()));
+            player_list.emplace_back
+            (
+                PlayerInfo
+                (
+                    p_id,
+                    players[p_id]->id(),
+                    (players[p_id]->get_user_data()).user_id
+                )
+             );
 
             Message notify_match;
             MatchStartNotification notification;
@@ -104,12 +126,10 @@ void MatchMaker::make_match_on_strand(std::vector<Session::ptr> players,
                                                         send_callback_,
                                                         results_callback_);
 
-        // Add players to session_to_match_
-        //
-        // TODO: route this to the player manager, possibly through session?
+        // Add players to uuid_to_match_
         for (uint8_t i = 0; i < player_list.size(); i++)
         {
-            uuid_to_match_[players[i]] = new_inst;
+            uuid_to_match_[(players[i]->get_user_data()).user_id] = new_inst;
         }
 
         live_matches_.push_back(new_inst);
@@ -123,7 +143,7 @@ void MatchMaker::make_match_on_strand(std::vector<Session::ptr> players,
 // Decode into a command and send to the server
 void MatchMaker::route_impl(const Session::ptr & p, Message msg)
 {
-    auto match = uuid_to_match_.find((p->user_data).user_id);
+    auto match = uuid_to_match_.find((p->get_user_data()).user_id);
 
     if (match != uuid_to_match_.end())
     {
@@ -142,14 +162,15 @@ void MatchMaker::route_impl(const Session::ptr & p, Message msg)
     }
 }
 
-void MatchMaker::forfeit_impl(const Session::ptr & p)
+void MatchMaker::forfeit_impl(const Session::ptr & p, bool called_by_user)
 {
-    auto & u_id = (p->user_data).user_id
+    const auto & u_id = (p->get_user_data()).user_id;
 
     // tell the match instance that we are forfeiting
     auto inst = uuid_to_match_[u_id];
 
     // TODO: make a forfeit function for MatchInstance
+    // if exists:
     //inst->forfeit(p->uuid);
 
     // remove from map

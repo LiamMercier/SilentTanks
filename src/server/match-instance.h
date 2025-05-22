@@ -20,12 +20,12 @@ namespace asio = boost::asio;
 struct PlayerInfo
 {
 public:
-    PlayerInfo(uint8_t id, uint64_t s_id);
+    PlayerInfo(uint8_t id, uint64_t s_id, boost::uuids::uuid u_id);
 
 public:
     uint8_t PlayerID;
     uint64_t session_id;
-    boost::uuids::uuid player_id;
+    boost::uuids::uuid user_id;
     bool alive;
 };
 

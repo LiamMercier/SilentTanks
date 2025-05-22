@@ -6,6 +6,7 @@
 #include <boost/uuid/uuid.hpp>
 #include <string>
 
+class MatchInstance;
 
 struct User
 {

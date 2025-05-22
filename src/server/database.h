@@ -8,7 +8,11 @@
 #include <pqxx/pqxx>
 #include <boost/asio.hpp>
 #include <boost/uuid/uuid.hpp>
+#include <boost/uuid/string_generator.hpp>
+#include <boost/uuid/random_generator.hpp>
+#include <boost/uuid/uuid_io.hpp>
 #include <argon2.h>
+#include <sodium.h>
 
 constexpr size_t SALT_LENGTH = 16;
 
@@ -24,17 +28,20 @@ namespace asio = boost::asio;
 class Database
 {
 public:
-    // TODO: user information instead of just uuid
-    using AuthCallback = std::function<void(UserData data, std::shared_ptr<Session> session)>;
+    using AuthCallback = std::function<void(UserData data,
+                                            std::shared_ptr<Session> session)>;
 
     Database(asio::io_context& io,
-             const std::string & conn_str,
              AuthCallback auth_callback);
 
     void authenticate(Message msg, std::shared_ptr<Session> session);
 
+    void register_account(Message msg, std::shared_ptr<Session> session);
+
 private:
     void do_auth(LoginRequest request, std::shared_ptr<Session> session);
+
+    void do_register(LoginRequest request, std::shared_ptr<Session> session);
 
 private:
     // Main strand to serialize requests.
@@ -43,7 +50,6 @@ private:
     // Small number of threads for this pool to stop our main
     // threads from blocking.
     asio::thread_pool thread_pool_;
-    pqxx::connection conn_;
     AuthCallback auth_callback_;
 
 };

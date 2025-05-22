@@ -1,7 +1,7 @@
 #include "match-instance.h"
 
-PlayerInfo::PlayerInfo(uint8_t p_id, uint64_t s_id)
-:PlayerID(p_id), session_id(s_id), alive(true)
+PlayerInfo::PlayerInfo(uint8_t id, uint64_t s_id, boost::uuids::uuid u_id)
+:PlayerID(id), session_id(s_id), user_id(u_id), alive(true)
 {
 
 }

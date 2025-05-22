@@ -18,7 +18,7 @@ public:
 
     void enqueue(const ptr & p, GameMode queued_mode);
 
-    void cancel(const ptr & p, GameMode queued_mode);
+    void cancel(const ptr & p, GameMode queued_mode, bool called_by_user);
 
     void tick_all();
 
@@ -30,7 +30,7 @@ private:
 
     void route_impl(const Session::ptr & p, Message msg);
 
-    void forfeit_impl(const Session::ptr & p);
+    void forfeit_impl(const Session::ptr & p, bool called_by_user);
 
 private:
     // strand to serialize shared state requests

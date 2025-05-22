@@ -41,7 +41,8 @@ void UserManager::on_login(UserData data,
         auto inst = user->current_match.lock();
         if (inst)
         {
-            inst->sync_state_to(session);
+            // TODO: make this function
+            //inst->request_view(session.id());
         }
 
         });

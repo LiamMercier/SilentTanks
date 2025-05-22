@@ -3,7 +3,9 @@
 Session::Session(asio::io_context & cntx, uint64_t session_id)
 :socket_(cntx),
 strand_(cntx.get_executor()),
-session_id_(session_id)
+session_id_(session_id),
+authenticated_(false),
+user_data_()
 {
 
 }

@@ -13,8 +13,7 @@ class Server
 public:
     // construct the server given a context and an endpoint
     Server(asio::io_context & cntx,
-           tcp::endpoint endpoint,
-           const std::string & conn_str);
+           tcp::endpoint endpoint);
 
     void do_accept();
 

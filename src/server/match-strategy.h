@@ -17,10 +17,14 @@ public:
 
     virtual ~IMatchStrategy() = default;
 
-    // enqueue player for this particular game mode
+    // Enqueue player for this particular game mode.
+    //
+    // Must be idempotent.
     virtual void enqueue(Session::ptr p) = 0;
 
-    // cancel or remove a queued player
+    // Cancel or remove a queued player
+    //
+    // Must be idempotent.
     virtual void cancel(Session::ptr p) = 0;
 
     // tick strategies to change elo windows
@@ -40,7 +44,7 @@ public:
 
     void cancel(Session::ptr p) override;
 
-    // do nothing, casual uses a deque to automatically match
+    // Do nothing, casual uses a deque to automatically match.
     void tick() override
     {
 

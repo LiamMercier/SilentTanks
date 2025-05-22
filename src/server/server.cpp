@@ -1,8 +1,7 @@
 #include "server.h"
 
 Server::Server(asio::io_context & cntx,
-               tcp::endpoint endpoint,
-               const std::string & conn_str)
+               tcp::endpoint endpoint)
 :server_strand_(cntx.get_executor()),
 acceptor_(cntx, endpoint),
 matcher_(cntx,
@@ -19,11 +18,11 @@ matcher_(cntx,
          // Callback for match results
          [this](MatchResult result)
             {
-                result_recorder_.deliver_results(result);
+                // todo: do this in server?
+                //result_recorder_.deliver_results(result);
             }),
 user_manager_(cntx),
 db_(cntx,
-    conn_str,
     // Database callback for authentication
     [this](UserData data, std::shared_ptr<Session> session)
     {
@@ -80,7 +79,6 @@ void Server::do_accept()
         }));
 }
 
-// TODO: notify match making about this, probably with ->cancel();
 void Server::remove_session(const ptr & session)
 {
     // Run removal of session on the server's strand.
@@ -88,6 +86,12 @@ void Server::remove_session(const ptr & session)
 
         // Remove this session by s_ID.
         sessions_.erase(session->id());
+
+        // Cancel all queues, if any exist
+        for (int mode = 0; mode < static_cast<int>(GameMode::NO_MODE); mode++)
+        {
+            matcher_.cancel(session, static_cast<GameMode>(mode), false);
+        }
 
         // Call for the user manager to handle removal.
         //
@@ -118,6 +122,10 @@ void Server::on_message(const ptr & session, Message msg)
             // Prevent login attempts when already logged in.
             if (session->is_authenticated())
             {
+                Message not_authorized;
+                not_authorized.create_serialized(HeaderType::Unauthorized);
+                session->deliver(not_authorized);
+
                 break;
             }
 
@@ -130,12 +138,14 @@ void Server::on_message(const ptr & session, Message msg)
             if (session->is_authenticated())
             {
                 Message bad_reg;
-                bad_reg.create_serialized(HeaderType::BadRegistration);
+                BadRegNotification r_notif(BadRegNotification::Reason::CurrentlyAuthenticated);
+                bad_reg.create_serialized(r_notif);
+
                 session->deliver(bad_reg);
                 break;
             }
 
-            // TODO: Registration
+            db_.register_account(msg, session);
             break;
         }
         case HeaderType::QueueMatch:
@@ -182,7 +192,7 @@ void Server::on_message(const ptr & session, Message msg)
             // Quickly grab the game mode so we can drop the message data.
             GameMode queued_mode = GameMode(msg.payload[0]);
             std::cout << "Trying to cancel queue for game mode " << +uint8_t(queued_mode) << "\n";
-            matcher_.cancel(session, queued_mode);
+            matcher_.cancel(session, queued_mode, true);
             break;
         }
         case HeaderType::SendCommand:

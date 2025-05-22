@@ -19,12 +19,30 @@ find_package(Boost REQUIRED COMPONENTS system)
 
 find_package(Argon2 REQUIRED)
 
+find_package(libpqxx REQUIRED)
+
+find_package(libsodium REQUIRED)
+
+find_package(OpenSSL REQUIRED)
+
 if(NOT Boost_FOUND)
   message(FATAL_ERROR "Boost not found!")
 endif()
 
 if(NOT Argon2_FOUND)
   message(FATAL_ERROR "libargon2 not found!")
+endif()
+
+if(NOT libpqxx_FOUND)
+  message(FATAL_ERROR "libpqxx not found!")
+endif()
+
+if(NOT libsodium_FOUND)
+  message(FATAL_ERROR "libsodium not found!")
+endif()
+
+if(NOT OpenSSL_FOUND)
+  message(FATAL_ERROR "OpenSSL not found!")
 endif()
 
 add_subdirectory(src/libgame)

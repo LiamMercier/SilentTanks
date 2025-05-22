@@ -6,19 +6,24 @@
 #include <boost/asio.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/local/stream_protocol.hpp>
+#include <sodium.h>
 
 int main()
 {
     namespace asio = boost::asio;
 
     // basic test code
+
+    if (sodium_init() == -1) {
+        std::cout << "libsodium failed to initialize \n";
+        return 1;
+    }
+
     asio::io_context server_io_context;
 
     asio::ip::tcp::endpoint endpoint(asio::ip::make_address("127.0.0.1"), 12345);
 
-    std::string conn_string = "test";
-
-    Server server(server_io_context, endpoint, conn_string);
+    Server server(server_io_context, endpoint);
 
     std::cout << "Server started on " << endpoint << std::endl;
 
@@ -156,6 +161,43 @@ int main()
         client_io.run();
     });
 
+    RegisterRequest u1_req;
+    std::string u1_pass = "apples";
+    u1_req.username = "oranges";
+    std::vector<uint8_t> salt;
+    salt.push_back(1);
+    salt.push_back(2);
+    salt.push_back(3);
+    salt.push_back(4);
+    salt.push_back(5);
+    salt.push_back(6);
+    salt.push_back(7);
+    salt.push_back(8);
+
+    int result = argon2id_hash_raw(
+                    ARGON2_TIME,
+                    ARGON2_MEMORY,
+                    ARGON2_PARALLEL,
+                    reinterpret_cast<const uint8_t*>(u1_pass.data()),
+                    u1_pass.size(),
+                    salt.data(),
+                    salt.size(),
+                    u1_req.hash.data(),
+                    u1_req.hash.size());
+
+    if (result != ARGON2_OK)
+    {
+        std::cout << "Failed to hash in main server \n";
+        return 1;
+    }
+
+    Message msg;
+    msg.create_serialized(u1_req);
+    s1->deliver(msg);
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+
+    /*
     Message msg;
     msg.create_serialized(QueueMatchRequest(GameMode::ClassicTwoPlayer));
 
@@ -584,6 +626,7 @@ int main()
     }
 
     std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+    */
 
     client_io.stop();
 

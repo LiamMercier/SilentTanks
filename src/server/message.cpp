@@ -18,7 +18,13 @@ template void Message::create_serialized<PlayerView>(PlayerView const&);
 
 template void Message::create_serialized<Command>(Command const&);
 
-LoginRequest Message::to_login_request()
+template void Message::create_serialized<BadRegNotification>(BadRegNotification const&);
+
+template void Message::create_serialized<LoginRequest>(LoginRequest const&);
+
+template void Message::create_serialized<RegisterRequest>(RegisterRequest const&);
+
+LoginRequest Message::to_login_request() const
 {
     LoginRequest request;
 
@@ -199,6 +205,36 @@ void Message::create_serialized(const mType & req)
     {
         header.type_ = HeaderType::MatchStarting;
         payload_buffer.push_back(static_cast<uint8_t>(req.player_id));
+    }
+    // Create message to notify the user of a bad signup request.
+    else if constexpr (std::is_same_v<mType, BadRegNotification>)
+    {
+        header.type_ = HeaderType::BadRegistration;
+        payload_buffer.push_back(static_cast<uint8_t>(req.reason));
+    }
+    else if constexpr (std::is_same_v<mType, LoginRequest>)
+    {
+        header.type_ = HeaderType::LoginRequest;
+
+        payload_buffer.insert(payload_buffer.end(),
+                              req.hash.begin(),
+                              req.hash.end());
+
+        payload_buffer.insert(payload_buffer.end(),
+                              req.username.begin(),
+                              req.username.end());
+    }
+    else if constexpr (std::is_same_v<mType, RegisterRequest>)
+    {
+        header.type_ = HeaderType::RegistrationRequest;
+
+        payload_buffer.insert(payload_buffer.end(),
+                              req.hash.begin(),
+                              req.hash.end());
+
+        payload_buffer.insert(payload_buffer.end(),
+                              req.username.begin(),
+                              req.username.end());
     }
     // For views, we need to put the FlatArray of grid cells into the buffer.
     //

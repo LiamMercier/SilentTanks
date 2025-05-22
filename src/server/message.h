@@ -42,6 +42,25 @@ struct CancelMatchRequest
     GameMode mode;
 };
 
+struct BadRegNotification
+{
+    enum class Reason : uint8_t
+    {
+        NotUnique = 0,
+        InvalidUsername,
+        CurrentlyAuthenticated,
+        ServerError
+    };
+
+    BadRegNotification(Reason input_reason)
+    :reason(input_reason)
+    {
+    }
+
+    Reason reason;
+};
+
+
 struct MatchStartNotification
 {
     uint8_t player_id;
@@ -53,10 +72,16 @@ struct LoginRequest
     std::string username;
 };
 
+struct RegisterRequest
+{
+    std::array<uint8_t, HASH_LENGTH> hash;
+    std::string username;
+};
+
 struct Message
 {
 public:
-    LoginRequest to_login_request();
+    LoginRequest to_login_request() const;
 
     Command to_command();
 

@@ -7,6 +7,8 @@
 
 #include "user.h"
 
+namespace asio = boost::asio;
+
 class UserManager : public std::enable_shared_from_this<UserManager>
 {
 public:
@@ -20,7 +22,7 @@ public:
     //
     // This function is not responsible for handling logic related to user
     // authentication, only adding them to the list of logged in users.
-    void on_login(const UserData & data,
+    void on_login(UserData data,
                   std::shared_ptr<Session> session);
 
     // Called from the server after a session disconnects.
@@ -30,7 +32,7 @@ public:
 
 private:
 
-    boost::asio::io_context::strand strand_;
+    asio::strand<asio::io_context::executor_type> strand_;
     std::unordered_map<boost::uuids::uuid,
                        std::shared_ptr<User>,
                        boost::hash<boost::uuids::uuid>> users_;

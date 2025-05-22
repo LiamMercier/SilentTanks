@@ -34,6 +34,10 @@ public:
     // use deliver(std::move(msg)) to avoid copies.
     void deliver(Message msg);
 
+    void close_session();
+
+    void set_session_data(UserData user_data);
+
     inline tcp::socket& socket();
 
     inline uint64_t id() const;
@@ -56,10 +60,6 @@ private:
     void handle_write_error(boost::system::error_code ec);
 
     void force_close_session();
-
-    void close_session();
-
-    void set_session_data(UserData user_data);
 
     // TODO: handle invalid headers
     //       mitigate spam/syn flood style attacks

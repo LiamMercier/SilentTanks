@@ -1,3 +1,5 @@
+BEGIN;
+
 -- Create the users table
 CREATE TABLE Users(
     user_id UUID PRIMARY KEY NOT NULL,
@@ -16,7 +18,7 @@ CREATE INDEX idx_users_username ON Users(username);
 CREATE TABLE Matches(
     match_id BIGSERIAL PRIMARY KEY,
     game_mode SMALLINT NOT NULL,
-    finished_at TIMESTAMPZ NOT NULL DEFAULT now(),
+    finished_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     settings JSONB NOT NULL,
     move_history JSONB NOT NULL
 );
@@ -48,3 +50,5 @@ CREATE TABLE UserElos(
     current_elo INT NOT NULL DEFAULT 1000,
     PRIMARY KEY (user_id, game_mode)
 );
+
+COMMIT;

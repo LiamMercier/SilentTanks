@@ -11,8 +11,7 @@ MatchInstance::MatchInstance(asio::io_context & cntx,
                              const MatchSettings & settings,
                              std::vector<PlayerInfo> player_list,
                              uint8_t num_players,
-                             SendCallback send_callback,
-                             ResultsCallback results_callback)
+                             SendCallback send_callback)
     : // initializer list
     current_player(0),
     remaining_players(num_players),
@@ -28,8 +27,9 @@ MatchInstance::MatchInstance(asio::io_context & cntx,
     current_state(GameState::Setup),
     command_queues_(num_players),
     time_left_(num_players, std::chrono::milliseconds(settings.initial_time_ms)),
+    results_(num_players, settings),
     send_callback_(send_callback),
-    results_callback_(results_callback)
+    results_callback_(nullptr)
 {
     // reserve and emplace_back into player_views_
     player_views_.reserve(num_players);
@@ -37,6 +37,11 @@ MatchInstance::MatchInstance(asio::io_context & cntx,
     {
         player_views_.emplace_back(settings.map.width, settings.map.height);
     }
+}
+
+void MatchInstance::set_results_callback(ResultsCallback cb)
+{
+    results_callback_ = std::move(cb);
 }
 
 // Function to add a command to the queue (routed by the server)
@@ -331,6 +336,12 @@ void MatchInstance::handle_timeout()
     remaining_players = remaining_players - 1;
     time_left_[current_player] = std::chrono::milliseconds(0);
     players_[current_player].alive = false;
+    results_.elimination_order.push_back(current_player);
+
+    // Inform the player that they are eliminated
+    Message inform_elimination;
+    inform_elimination.create_serialized(HeaderType::TimedOut);
+    send_callback_(players_[current_player].session_id, inform_elimination);
 
     // Handle updating the setup criterion.
     if (current_state == GameState::Setup)
@@ -491,6 +502,12 @@ void MatchInstance::compute_all_views()
             remaining_players -= 1;
 
             players_[i].alive = false;
+            results_.elimination_order.push_back(i);
+
+            // Inform the player that they are eliminated
+            Message inform_elimination;
+            inform_elimination.create_serialized(HeaderType::Eliminated);
+            send_callback_(players_[i].session_id, inform_elimination);
         }
 
         // Send view to the player
@@ -515,13 +532,22 @@ void MatchInstance::conclude_game()
         if (players_[i].alive == true)
         {
             winner = i;
-            break;
         }
+
+        results_.user_ids[i] = players_[i].user_id;
     }
 
     std::cout << "Winner: " << +winner << "\n";
 
-    // TODO: callbacks at end of game
+    // Tell winner that they won, everyone else has already
+    // been told that they lost.
+    Message inform_winner;
+    inform_winner.create_serialized(HeaderType::Victory);
+    send_callback_(players_[winner].session_id, inform_winner);
+
+    // Call back to the server to write results to the database
+    // and handle any updates
+    results_callback_(results_);
 
     // TODO: break down the game instance
 

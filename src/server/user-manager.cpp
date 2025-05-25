@@ -5,14 +5,16 @@ UserManager::UserManager(boost::asio::io_context & cntx)
 {
 }
 
+// TODO: consider what happens when someone connects twice
+//       rapidly and then sends commands from the old session.
 void UserManager::on_login(UserData data,
                            std::shared_ptr<Session> session)
 {
-    boost::asio::post(strand_, [self = shared_from_this(),
+    boost::asio::post(strand_, [this,
                                 user_data = std::move(data),
                                 session = session]{
 
-        auto & user = (self->users_)[user_data.user_id];
+        auto & user = (this->users_)[user_data.user_id];
 
         // Handle new user.
         if (!user)
@@ -33,7 +35,7 @@ void UserManager::on_login(UserData data,
         session->set_session_data(user_data);
 
         // Map the session ID to this uuid.
-        (self->sid_to_uuid_)[session->id()] = user_data.user_id;
+        (this->sid_to_uuid_)[session->id()] = user_data.user_id;
 
         // Sync match if we currently are still in one.
         //
@@ -55,17 +57,17 @@ void UserManager::on_login(UserData data,
 void UserManager::disconnect(std::shared_ptr<Session> session)
 {
     boost::asio::post(strand_,
-    [self = shared_from_this(), sid = session->id()]{
-        auto s_itr = (self->sid_to_uuid_).find(sid);
-        if (s_itr != (self->sid_to_uuid_).end())
+    [this, sid = session->id()]{
+        auto s_itr = (this->sid_to_uuid_).find(sid);
+        if (s_itr != (this->sid_to_uuid_).end())
         {
             auto uuid = s_itr->second;
 
-            (self->sid_to_uuid_).erase(s_itr);
+            (this->sid_to_uuid_).erase(s_itr);
 
-            auto u_itr = (self->users_).find(uuid);
+            auto u_itr = (this->users_).find(uuid);
 
-            if (u_itr != (self->users_).end())
+            if (u_itr != (this->users_).end())
             {
                 auto & user = u_itr->second;
 
@@ -87,7 +89,7 @@ void UserManager::disconnect(std::shared_ptr<Session> session)
                 // Otherwise we need to drop this user's data.
                 else
                 {
-                    (self->users_).erase(u_itr);
+                    (this->users_).erase(u_itr);
                 }
             }
 

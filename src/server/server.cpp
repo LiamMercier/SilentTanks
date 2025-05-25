@@ -18,8 +18,8 @@ matcher_(cntx,
          // Callback for match results
          [this](MatchResult result)
             {
-                // todo: do this in server?
-                //result_recorder_.deliver_results(result);
+                // Hand this off to the results recorder.
+                db_.record_match(result);
             }),
 user_manager_(cntx),
 db_(cntx,
@@ -34,6 +34,7 @@ db_(cntx,
     do_accept();
 }
 
+// TODO: IP ban handling
 void Server::do_accept()
 {
     acceptor_.async_accept(
@@ -103,7 +104,6 @@ void Server::remove_session(const ptr & session)
 
 // TODO: Error handling
 // TODO: message validation
-// TODO: network to host bytes
 // TODO: any filtering of excessive packets
 //
 // This function is used in session's strand. As such, it must not
@@ -123,6 +123,7 @@ void Server::on_message(const ptr & session, Message msg)
             if (session->is_authenticated())
             {
                 Message not_authorized;
+                // TODO: bad auth notification instead?
                 not_authorized.create_serialized(HeaderType::Unauthorized);
                 session->deliver(not_authorized);
 
@@ -160,10 +161,10 @@ void Server::on_message(const ptr & session, Message msg)
                 break;
             }
 
-            // TODO: needs to be sent through UserManager first
             if (!msg.valid_matching_command())
             {
                 std::cout << "Invalid game mode detected\n";
+                // TODO: bad matchmaking operation message
                 break;
             }
             // Quickly grab the game mode so we can drop the message data.
@@ -186,6 +187,7 @@ void Server::on_message(const ptr & session, Message msg)
 
             if (!msg.valid_matching_command())
             {
+                // TODO: bad matchmaking operation message
                 std::cout << "Invalid game mode detected\n";
                 break;
             }

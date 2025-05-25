@@ -3,6 +3,7 @@
 #include <vector>
 #include <queue>
 #include <chrono>
+#include <utility>
 
 #include <boost/asio.hpp>
 #include <boost/asio/ts/timer.hpp>
@@ -10,6 +11,7 @@
 
 #include "game-instance.h"
 #include "maps.h"
+#include "match-settings.h"
 #include "constants.h"
 #include "message.h"
 #include "match-result.h"
@@ -57,8 +59,10 @@ public:
                   const MatchSettings & settings,
                   std::vector<PlayerInfo> player_list,
                   uint8_t num_players,
-                  SendCallback send_callback,
-                  ResultsCallback results_callback);
+                  SendCallback send_callback);
+
+    // To be called before the instance starts async operations.
+    void set_results_callback(ResultsCallback cb);
 
     // Called by the networking layer to enqueue commands.
     void receive_command(uint64_t session_id, Command cmd);

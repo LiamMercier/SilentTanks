@@ -59,6 +59,12 @@ int main()
         return;
     }
 
+    if (m.header.type_ == HeaderType::GoodAuth)
+    {
+        std::cout << "[" << s->id() << "] " << "Good auth! \n";
+        return;
+    }
+
     if (m.header.type_ == HeaderType::FailedMove)
     {
         std::cout << "[" << s->id() << "] " << "Move failed \n";
@@ -191,22 +197,84 @@ int main()
         return 1;
     }
 
-    Message msg;
-    msg.create_serialized(u1_req);
-    s1->deliver(msg);
+    LoginRequest u1_login;
+    u1_login.username = u1_req.username;
+    u1_login.hash = u1_req.hash;
+
+    {
+        Message msg;
+        msg.create_serialized(u1_req);
+        s1->deliver(msg);
+    }
 
     std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
-    /*
+    {
+        Message msg;
+        msg.create_serialized(u1_login);
+        s1->deliver(msg);
+    }
+
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+
+
     Message msg;
     msg.create_serialized(QueueMatchRequest(GameMode::ClassicTwoPlayer));
 
     s1->deliver(msg);
 
-    Message msg2;
-    msg2.create_serialized(QueueMatchRequest(GameMode::ClassicTwoPlayer));
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
-    s2->deliver(msg2);
+    {
+        RegisterRequest u2_req;
+        std::string u2_pass = "cannon";
+        u2_req.username = "bananas";
+
+        int result2 = argon2id_hash_raw(
+                        ARGON2_TIME,
+                        ARGON2_MEMORY,
+                        ARGON2_PARALLEL,
+                        reinterpret_cast<const uint8_t*>(u2_pass.data()),
+                        u2_pass.size(),
+                        salt.data(),
+                        salt.size(),
+                        u2_req.hash.data(),
+                        u2_req.hash.size());
+
+        if (result2 != ARGON2_OK)
+        {
+            std::cout << "Failed to hash in main server \n";
+            return 1;
+        }
+
+        LoginRequest u2_login;
+        u2_login.username = u2_req.username;
+        u2_login.hash = u2_req.hash;
+
+        Message msg;
+        msg.create_serialized(u2_req);
+        s2->deliver(msg);
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+
+        Message msg2;
+        msg2.create_serialized(u2_login);
+        s2->deliver(msg2);
+
+    }
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+
+    {
+        Message msg2;
+        msg2.create_serialized(QueueMatchRequest(GameMode::ClassicTwoPlayer));
+
+        s2->deliver(msg2);
+    }
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
 
     {
         Message msg;
@@ -625,8 +693,7 @@ int main()
         s1->deliver(msg);
     }
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-    */
+    std::this_thread::sleep_for(std::chrono::milliseconds(2000));
 
     client_io.stop();
 

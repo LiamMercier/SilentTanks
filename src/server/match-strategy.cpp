@@ -58,7 +58,7 @@ void CasualTwoPlayerStrategy::try_form_match()
         // get match settings
         // TODO: evaluate how to handle this properly
         GameMap map = (map_repo_.get_available_maps()[0]);
-        MatchSettings settings(map, initial_time_ms, increment_ms);
+        MatchSettings settings(map, initial_time_ms, increment_ms, GameMode::ClassicTwoPlayer);
 
         // spawn a new match instance
         on_match_ready_(std::vector<Session::ptr>{p1, p2}, settings);

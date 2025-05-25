@@ -19,6 +19,7 @@ void Session::set_message_handler(MessageHandler m_handler, DisconnectHandler d_
 void Session::start()
 {
     std::cout << "Starting session!\n";
+    live_.store(true, std::memory_order_release);
     do_read_header();
 }
 
@@ -203,6 +204,8 @@ void Session::handle_write_error(boost::system::error_code ec)
 
 void Session::close_session()
 {
+    live_.store(false, std::memory_order_release);
+
     asio::post(strand_, [self = shared_from_this()]
     {
         self->force_close_session();
@@ -236,7 +239,8 @@ void Session::set_session_data(UserData user_data)
     asio::post(strand_, [self = shared_from_this(), data = std::move(user_data)]
     {
         // Set authenticated to true, and move a copy of the data
-        self->authenticated_ = true;
+        std::lock_guard lock(self->user_data_mutex_);
         self->user_data_ = std::move(data);
+        self->authenticated_.store(true, std::memory_order_release);
     });
 }

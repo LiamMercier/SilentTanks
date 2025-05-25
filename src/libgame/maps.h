@@ -16,14 +16,6 @@ public:
     uint8_t num_tanks;
 };
 
-struct MatchSettings
-{
-    MatchSettings(GameMap map, uint64_t init_time_ms, uint64_t inc);
-    GameMap map;
-    uint64_t initial_time_ms;
-    uint64_t increment_ms;
-};
-
 class MapRepository
 {
 public:

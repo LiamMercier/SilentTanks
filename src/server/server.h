@@ -1,7 +1,8 @@
 #pragma once
 
+#include <utility>
+
 #include "match-maker.h"
-#include "match-result-recorder.h"
 #include "user-manager.h"
 #include "database.h"
 
@@ -47,8 +48,6 @@ private:
 
     // Class to handle matching players who want to play against one another
     MatchMaker matcher_;
-
-    MatchResultRecorder result_recorder_;
 
     // We would prefer to hand off login requests to a login manager
     // just like we did with match making requests.

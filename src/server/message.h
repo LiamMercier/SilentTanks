@@ -15,12 +15,16 @@ constexpr size_t HASH_LENGTH = 32;
 
 constexpr size_t MAX_USERNAME_LENGTH = 20;
 
+// This must be ordered so that all ranked modes are together.
 enum class GameMode : uint8_t
 {
     ClassicTwoPlayer = 0,
     RankedTwoPlayer,
     NO_MODE
 };
+
+// First GameMode which is ranked, for fast checks of a game mode.
+constexpr uint8_t RANKED_MODES_START = static_cast<uint8_t>(GameMode::RankedTwoPlayer);
 
 struct QueueMatchRequest
 {

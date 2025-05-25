@@ -2,12 +2,14 @@
 
 #include <memory>
 #include <unordered_set>
+#include <utility>
 
 #include <boost/asio.hpp>
 
 #include "session.h"
 #include "message.h"
 #include "maps.h"
+#include "match-settings.h"
 
 class IMatchStrategy
 {

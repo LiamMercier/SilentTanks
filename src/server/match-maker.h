@@ -14,7 +14,7 @@ using ResultsCallback = std::function<void(MatchResult result)>;
 public:
     MatchMaker(asio::io_context & cntx,
                SendCallback send_callback,
-               ResultsCallback results_callback);
+               ResultsCallback recorder_callback);
 
     void enqueue(const ptr & p, GameMode queued_mode);
 
@@ -38,8 +38,6 @@ private:
 
     // Queues for each game mode offered by the server, accessed via an array
     //
-    // TODO: look at this, does it need to be uuid?
-    //
     // We can probably keep these as session pointers since when we close
     // the client connection it would allow us to call cancel on the queue
     // and this would remove the player from the queue. Shared ptr means we will
@@ -51,18 +49,22 @@ private:
                        std::shared_ptr<MatchInstance>,
                        boost::hash<boost::uuids::uuid>> uuid_to_match_;
 
-    // TODO: find a better data structure for this, matches will end at different
-    // times and thus fragment the memory.
-    std::vector<std::shared_ptr<MatchInstance>> live_matches_;
+    // Temporary match ID to instance mapping
+    std::unordered_map<uint64_t, std::shared_ptr<MatchInstance>> live_matches_;
 
+    // TODO: set this up at server startup instead of inline.
     MapRepository all_maps_;
 
     // Necessary to create match instances with a different strand
     // to prevent having to use global_strand_ for all calls.
     asio::io_context & io_cntx_;
 
+    // Note: this is only an internal value, the database match
+    // ID is managed by postgreSQL and will differ.
+    uint64_t next_match_id_{0};
+
     // Callback to server to send a message to a session
     SendCallback send_callback_;
 
-    ResultsCallback results_callback_;
+    ResultsCallback recorder_callback_;
 };

@@ -2,6 +2,7 @@
 #include <memory>
 #include <deque>
 #include <iostream>
+#include <utility>
 
 #include <boost/asio.hpp>
 #include <boost/asio/ip/tcp.hpp>
@@ -28,6 +29,14 @@ public:
 
     void start();
 
+    // disable copy
+    Session(const Session&)            = delete;
+    Session& operator=(const Session&) = delete;
+
+    // disable move
+    Session(Session&&)                 = delete;
+    Session& operator=(Session&&)      = delete;
+
     // Send a message to the client
     //
     // If the message does not need to be preserved, one can
@@ -43,6 +52,8 @@ public:
     inline uint64_t id() const;
 
     inline bool is_authenticated() const;
+
+    inline bool is_live() const;
 
     inline UserData get_user_data() const;
 
@@ -72,14 +83,23 @@ private:
 
     // Unique ID for this session. Session IDs are used internally
     // so we can simply use uint64_t for our implementation.
-    uint64_t session_id_;
+    //
+    // This value is never changed.
+    const uint64_t session_id_;
+
     // Remains false until a login, then remains true until
     // object is destroyed.
     //
     // We want to use this to prevent calls to our database
     // when we already are authenticated.
-    bool authenticated_;
+    std::atomic<bool> authenticated_;
 
+    // For managing game queues
+    std::atomic<bool> live_;
+
+    // Mutex to prevent needing a strand call for this data
+    // since it will probably not be accessed by multiple people.
+    mutable std::mutex user_data_mutex_;
     UserData user_data_;
 
     // Data related members.
@@ -102,12 +122,18 @@ inline uint64_t Session::id() const
     return session_id_;
 }
 
-inline bool Session::is_authenticated() const
+bool Session::is_authenticated() const
 {
-    return authenticated_;
+    return authenticated_.load(std::memory_order_acquire);
+}
+
+inline bool Session::is_live() const
+{
+    return live_.load(std::memory_order_acquire);
 }
 
 inline UserData Session::get_user_data() const
 {
+    std::lock_guard lock(user_data_mutex_);
     return user_data_;
 }

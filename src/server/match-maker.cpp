@@ -2,7 +2,7 @@
 
 MatchMaker::MatchMaker(asio::io_context & cntx,
                        SendCallback send_callback,
-                       ResultsCallback results_callback)
+                       ResultsCallback recorder_callback)
 :global_strand_(cntx.get_executor()),
  all_maps_(std::vector<GameMap>
         {
@@ -10,8 +10,10 @@ MatchMaker::MatchMaker(asio::io_context & cntx,
         }),
  io_cntx_(cntx),
  send_callback_(std::move(send_callback)),
- results_callback_(std::move(results_callback))
+ recorder_callback_(std::move(recorder_callback))
 {
+    // Create a callback to make a match when the match strategy
+    // finds valid players.
     auto match_call_back = [this](std::vector<Session::ptr> players, MatchSettings settings)
     {
         make_match_on_strand(std::move(players), settings);
@@ -31,6 +33,14 @@ void MatchMaker::enqueue(const ptr & p, GameMode queued_mode)
     matching_queues_[static_cast<size_t>(queued_mode)]->enqueue(p);
 }
 
+
+// The user may request to cancel before the game starts, but
+// before we get the request the match might begin.
+//
+// This should be treated as the user having a request to
+// cancel, instead of blindly cancelling. If the request
+// is not able to be followed through, we tell the client
+// that their game has started and they must play or forfeit.
 void MatchMaker::cancel(const ptr & p, GameMode queued_mode, bool called_by_user)
 {
     // call matching cancel function for this game mode
@@ -52,6 +62,7 @@ void MatchMaker::cancel(const ptr & p, GameMode queued_mode, bool called_by_user
                 // TODO: notify of bad cancel
 
             }
+
             return;
         }
 
@@ -60,6 +71,8 @@ void MatchMaker::cancel(const ptr & p, GameMode queued_mode, bool called_by_user
         {
             // TODO: bool Called_By_User or something
             forfeit_impl(p, false);
+
+            // remove mapping?
         }
 
     });
@@ -91,11 +104,48 @@ void MatchMaker::make_match_on_strand(std::vector<Session::ptr> players,
         std::cout << "Creating match with session IDs: "
         << players[0]->id() << " " << players[1]->id() << "\n";
 
-        // setup PlayerInfo structs
+        std::vector<Session::ptr> live_players;
+        live_players.reserve(players.size());
+
+        // Ensure a valid game is about to commence.
+        for (uint8_t i = 0; i < players.size(); i++)
+        {
+            Session::ptr p = players[i];
+
+            // If still live, add to the match
+            if(p->socket().is_open() && p->is_live())
+            {
+                live_players.push_back(p);
+            }
+
+            // else, cancel the match since a user disconnected
+            // before the match started
+            else
+            {
+                break;
+
+            }
+        }
+
+        // Match cancel logic
+        if (live_players.size() < players.size())
+        {
+            // iterate through the vector
+            for (uint8_t j = 0; j < live_players.size(); j++)
+            {
+                Message queue_dropped;
+                queue_dropped.create_serialized(HeaderType::QueueDropped);
+                send_callback_(live_players[j]->id(), queue_dropped);
+            }
+
+            return;
+        }
+
+        // Setup PlayerInfo structs.
         std::vector<PlayerInfo> player_list;
         player_list.reserve(players.size());
 
-        // Setup players list from our session data
+        // Setup players list from our session data.
         for (uint8_t p_id = 0; p_id < players.size(); p_id++)
         {
             player_list.emplace_back
@@ -108,33 +158,57 @@ void MatchMaker::make_match_on_strand(std::vector<Session::ptr> players,
                 )
              );
 
+            // Tell the player that the game is starting.
             Message notify_match;
             MatchStartNotification notification;
             notification.player_id = p_id;
-
             notify_match.create_serialized(notification);
-
-            // also tell the player that the game is starting
-            send_callback_(players[p_id]->id(), notify_match);
+            send_callback_(player_list[p_id].session_id, notify_match);
         }
 
-        // setup instance
         auto new_inst = std::make_shared<MatchInstance>(io_cntx_,
                                                         settings,
                                                         player_list,
                                                         player_list.size(),
-                                                        send_callback_,
-                                                        results_callback_);
+                                                        send_callback_);
+        next_match_id_++;
 
-        // Add players to uuid_to_match_
+        // Setup the results callback to handle deletion.
+        auto results_cb = [this, m_id = next_match_id_](MatchResult result) mutable
+        {
+           asio::post(global_strand_,
+            [this, result = std::move(result), m_id]{
+
+                // Remove UUID to match mapping
+                for (size_t i = 0; i < result.user_ids.size(); i++)
+                {
+                    uuid_to_match_.erase(result.user_ids[i]);
+                }
+
+                // Remove from live matches
+                live_matches_.erase(m_id);
+
+                // Push off the rest of the work to the match recorder
+                recorder_callback_(std::move(result));
+
+            });
+        };
+        // End results callback lambda
+
+
+        // Add players to uuid_to_match_ mapping.
         for (uint8_t i = 0; i < player_list.size(); i++)
         {
-            uuid_to_match_[(players[i]->get_user_data()).user_id] = new_inst;
+            uuid_to_match_[player_list[i].user_id] = new_inst;
         }
 
-        live_matches_.push_back(new_inst);
+        // set the instance's results callback using the weak_ptr
+        // to allow us to quickly remove it when the game ends.
+        new_inst->set_results_callback(std::move(results_cb));
 
-        // start the instance
+        live_matches_[next_match_id_] = new_inst;
+
+        // start the instance, it is now async.
         new_inst->start();
     });
 

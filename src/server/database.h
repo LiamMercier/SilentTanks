@@ -2,6 +2,7 @@
 
 #include "message.h"
 #include "user.h"
+#include "match-result.h"
 
 #include <array>
 #include <cstdint>
@@ -11,6 +12,7 @@
 #include <boost/uuid/string_generator.hpp>
 #include <boost/uuid/random_generator.hpp>
 #include <boost/uuid/uuid_io.hpp>
+#include <glaze/glaze.hpp>
 #include <argon2.h>
 #include <sodium.h>
 
@@ -31,17 +33,25 @@ public:
     using AuthCallback = std::function<void(UserData data,
                                             std::shared_ptr<Session> session)>;
 
-    Database(asio::io_context& io,
+    Database(asio::io_context & io,
              AuthCallback auth_callback);
 
     void authenticate(Message msg, std::shared_ptr<Session> session);
 
     void register_account(Message msg, std::shared_ptr<Session> session);
 
+    void record_match(MatchResult result);
+
 private:
     void do_auth(LoginRequest request, std::shared_ptr<Session> session);
 
     void do_register(LoginRequest request, std::shared_ptr<Session> session);
+
+    void do_record(std::vector<boost::uuids::uuid> user_ids,
+                   std::vector<uint8_t> elimination_order,
+                   std::string settings_json,
+                   std::string moves_json,
+                   GameMode mode);
 
 private:
     // Main strand to serialize requests.

@@ -20,13 +20,17 @@ enum class HeaderType : uint8_t
     QueueMatch,
     CancelMatch,
     ForfeitMatch,
+    QueueDropped,
+    MatchStarting,
+    NoMatchFound,
     SendCommand,
     PlayerView,
     Text,
-    MatchStarting,
-    NoMatchFound,
     FailedMove,
     StaleMove,
+    Eliminated,
+    TimedOut,
+    Victory,
     MAX_TYPE
 };
 

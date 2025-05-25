@@ -74,6 +74,56 @@ void Database::register_account(Message msg, std::shared_ptr<Session> session)
 
 }
 
+void Database::record_match(MatchResult result)
+{
+    asio::post(strand_, [this, result = std::move(result)] mutable
+    {
+        /*
+        // First, convert the settings into json
+        json::object settings_obj;
+
+        // Add the map
+        json::object map_obj;
+        map_obj["map_filename"] = result.settings.map.filename;
+        map_obj["width"] = result.settings.map.width;
+        map_obj["height"] = result.settings.map.height;
+        map_obj["num_tanks"] = result.settings.map.num_tanks;
+        settings_obj["map"] = map_obj;
+
+        // Add other settings
+        settings_obj["initial_ms"] = result.settings.initial_time_ms;
+        settings_obj["increment_ms"] = result.settings.increment_ms;
+
+        // Now loop through each command and turn them into json
+        json::array moves_arr;
+        for (auto const & cmd : result.move_history)
+        {
+            json::object cmd_obj;
+            cmd_obj["sender"] = cmd.sender;
+            cmd_obj["type"] = static_cast<uint8_t>(cmd.type);
+            cmd_obj["tank_id"] = cmd.tank_id;
+            cmd_obj["payload_first"] = cmd.payload_first;
+            cmd_obj["payload_second"] = cmd.payload_second;
+            moves_arr.push_back(std::move(cmd_obj));
+        }
+        */
+
+        std::string moves_json = glz::write_json(result.move_history).value_or("error");
+        std::string settings_json = glz::write_json(result.settings).value_or("error");
+
+        std::cerr << settings_json << "\n\n\n";
+        std::cerr << moves_json << "\n\n\n";
+
+        // post database work to the database thread pool.
+        do_record(result.user_ids,
+                  result.elimination_order,
+                  settings_json,
+                  moves_json,
+                  result.settings.mode);
+
+    });
+}
+
 // One connection to the database per thread in the thread pool.
 static thread_local std::unique_ptr<pqxx::connection> conn_;
 
@@ -87,13 +137,18 @@ void Database::do_auth(LoginRequest request, std::shared_ptr<Session> session)
         {
             if (!conn_)
             {
-                conn_ = std::make_unique<pqxx::connection>();
+                conn_ = std::make_unique<pqxx::connection>(
+                    "host=127.0.0.1 \
+                    port=5432 \
+                    dbname=SilentTanksDB \
+                    user=SilentTanksOperator"
+                );
                 conn_->prepare("auth",
-                              "SELECT uuid, hash, salt \
+                              "SELECT user_id, hash, salt \
                               FROM Users \
                               WHERE username = $1");
                 conn_->prepare("reg",
-                              "INSERT INTO Users (uuid, username, hash, salt) \
+                              "INSERT INTO Users (user_id, username, hash, salt) \
                               VALUES ($1, $2, $3, $4)");
             }
 
@@ -105,17 +160,21 @@ void Database::do_auth(LoginRequest request, std::shared_ptr<Session> session)
             {
                 auto row = res[0];
 
-                // get hash and salt from DB row (as string).
-                //
-                // this is allowed because std::string is not
-                // null terminated.
-                std::string hash_bytes = row["hash"].as<std::string>();
-                std::string salt_bytes = row["salt"].as<std::string>();
+                // get hash and salt from DB row as binarystring
+                // and then convert to string (which can then be
+                // converted to uint8_t).
+
+                pqxx::binarystring hb{row["hash"]};
+                pqxx::binarystring sb{row["salt"]};
+
+                std::string hash_bytes = hb.str();
+                std::string salt_bytes = sb.str();
 
                 if (hash_bytes.size() != HASH_LENGTH ||
                     salt_bytes.size() != SALT_LENGTH)
                 {
                     std::cerr << "DB call had wrong hashing lengths!\n";
+                    std::cerr << hash_bytes.size() << " " << salt_bytes.size() << "\n";
                     return;
                 }
 
@@ -157,7 +216,7 @@ void Database::do_auth(LoginRequest request, std::shared_ptr<Session> session)
                     if (computed_hash == hash)
                     {
                         // Turn uuid data into a boost UUID.
-                        std::string uuid_str = row["uuid"].as<std::string>();
+                        std::string uuid_str = row["user_id"].as<std::string>();
                         boost::uuids::string_generator gen;
                         data.user_id = gen(uuid_str);
 
@@ -242,13 +301,17 @@ void Database::do_register(LoginRequest request, std::shared_ptr<Session> sessio
         {
             if (!conn_)
             {
-                conn_ = std::make_unique<pqxx::connection>();
+                conn_ = std::make_unique<pqxx::connection>(
+                    "host=127.0.0.1 \
+                    port=5432 \
+                    dbname=SilentTanksDB \
+                    user=SilentTanksOperator");
                 conn_->prepare("auth",
-                              "SELECT uuid, hash, salt \
+                              "SELECT user_id, hash, salt \
                               FROM Users \
                               WHERE username = $1");
                 conn_->prepare("reg",
-                              "INSERT INTO Users (uuid, username, hash, salt) \
+                              "INSERT INTO Users (user_id, username, hash, salt) \
                               VALUES ($1, $2, $3, $4)");
             }
 
@@ -275,6 +338,8 @@ void Database::do_register(LoginRequest request, std::shared_ptr<Session> sessio
 
         catch (const pqxx::unique_violation & e)
         {
+            std::cerr << "Exception in registration: user not unique" << "\n";
+
             // Tell client that their username is not unique
             Message bad_reg;
             BadRegNotification r_notif(BadRegNotification::Reason::NotUnique);
@@ -297,4 +362,84 @@ void Database::do_register(LoginRequest request, std::shared_ptr<Session> sessio
 
     });
 
+}
+
+void Database::do_record(std::vector<boost::uuids::uuid> user_ids,
+                   std::vector<uint8_t> elimination_order,
+                   std::string settings_json,
+                   std::string moves_json,
+                   GameMode mode)
+{
+    asio::post(thread_pool_,
+        [this,
+        user_ids,
+        elimination_order,
+        settings_json,
+        moves_json,
+        mode]() mutable{
+
+        try
+        {
+            if (!conn_)
+            {
+                conn_ = std::make_unique<pqxx::connection>(
+                    "host=127.0.0.1 \
+                    port=5432 \
+                    dbname=SilentTanksDB \
+                    user=SilentTanksOperator");
+                conn_->prepare("auth",
+                              "SELECT user_id, hash, salt \
+                              FROM Users \
+                              WHERE username = $1");
+                conn_->prepare("reg",
+                              "INSERT INTO Users (user_id, username, hash, salt) \
+                              VALUES ($1, $2, $3, $4)");
+            }
+
+            // start transaction
+            pqxx::work txn{*conn_};
+
+            // Insert the match
+            auto res_m_id = txn.exec_params(
+                "INSERT INTO Matches(game_mode, settings, move_history) \
+                VALUES ($1, $2::jsonb, $3::jsonb) \
+                RETURNING match_id",
+                static_cast<short>(mode),
+                settings_json,
+                moves_json
+            );
+
+            long match_id = res_m_id[0][0].as<long>();
+
+            // Now we insert each player for the game into the
+            // MatchPlayers table. Loop through the players.
+            for (size_t i = 0; i < user_ids.size(); i++)
+            {
+                txn.exec_params(
+                    "INSERT INTO MatchPlayers(match_id, user_id, \
+                    player_id, placement) VALUES ($1, $2, $3, $4)",
+                    match_id,
+                    boost::uuids::to_string(user_ids[i]),
+                    static_cast<short>(i),
+                    static_cast<short>(elimination_order[i])
+                );
+            }
+
+            // Next, we decide if we need to change the player
+            // elo and if so we fetch the player's current ranks.
+            if (static_cast<uint8_t>(mode) >= RANKED_MODES_START)
+            {
+                // TODO: ranked updates
+            }
+
+            // Commit the transaction.
+            txn.commit();
+
+        }
+        catch (const std::exception & e)
+        {
+            std::cerr << "standard exception in db match write: " << e.what() << "\n";
+        }
+
+    });
 }

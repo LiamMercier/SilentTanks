@@ -1,5 +1,6 @@
 #pragma once
 
+#include <glaze/glaze.hpp>
 #include <cstdint>
 
 enum class CommandType : uint8_t
@@ -48,4 +49,20 @@ struct CommandHead
     uint8_t payload_first;
     // Mostly used to give a second x coordinate for placement.
     uint8_t payload_second;
+};
+
+namespace glz{
+
+template <>
+struct meta<CommandHead> {
+    using T = CommandHead;
+    static constexpr auto value = object(
+        &T::sender,
+        &T::type,
+        &T::tank_id,
+        &T::payload_first,
+        &T::payload_second
+    );
+};
+
 };

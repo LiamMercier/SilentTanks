@@ -12,10 +12,6 @@ namespace asio = boost::asio;
 class UserManager : public std::enable_shared_from_this<UserManager>
 {
 public:
-    // TODO: determine if these are necessary
-    using LoginCallback = std::function<void(std::shared_ptr<User>)>;
-    using DisconnectHandler = std::function<void()>;
-
     UserManager(boost::asio::io_context & cntx);
 
     // Adds a user on login
@@ -28,7 +24,12 @@ public:
     // Called from the server after a session disconnects.
     void disconnect(std::shared_ptr<Session> session);
 
-    // TODO: on match end for when a match finishes
+    // Notify of forfeit or match end
+    void notify_match_finished(boost::uuids::uuid user_id);
+
+    // Notify match start
+    void notify_match_start(boost::uuids::uuid user_id,
+                            std::shared_ptr<MatchInstance> inst);
 
 private:
 
@@ -37,7 +38,6 @@ private:
                        std::shared_ptr<User>,
                        boost::hash<boost::uuids::uuid>> users_;
     std::unordered_map<uint64_t, boost::uuids::uuid> sid_to_uuid_;
-    // LoginCallback
 };
 
 

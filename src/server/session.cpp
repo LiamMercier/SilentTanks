@@ -204,6 +204,13 @@ void Session::handle_write_error(boost::system::error_code ec)
 
 void Session::close_session()
 {
+    // if already being closed, ignore call and don't
+    // waste resources on strand post
+    if (!is_live())
+    {
+        return;
+    }
+
     live_.store(false, std::memory_order_release);
 
     asio::post(strand_, [self = shared_from_this()]

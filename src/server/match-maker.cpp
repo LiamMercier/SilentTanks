@@ -2,7 +2,8 @@
 
 MatchMaker::MatchMaker(asio::io_context & cntx,
                        SendCallback send_callback,
-                       ResultsCallback recorder_callback)
+                       ResultsCallback recorder_callback,
+                       std::shared_ptr<UserManager> user_manager)
 :global_strand_(cntx.get_executor()),
  all_maps_(std::vector<GameMap>
         {
@@ -10,7 +11,8 @@ MatchMaker::MatchMaker(asio::io_context & cntx,
         }),
  io_cntx_(cntx),
  send_callback_(std::move(send_callback)),
- recorder_callback_(std::move(recorder_callback))
+ recorder_callback_(std::move(recorder_callback)),
+ user_manager_(user_manager)
 {
     // Create a callback to make a match when the match strategy
     // finds valid players.
@@ -59,8 +61,10 @@ void MatchMaker::cancel(const ptr & p, GameMode queued_mode, bool called_by_user
             // since the game started already.
             if (it != uuid_to_match_.end())
             {
-                // TODO: notify of bad cancel
-
+                // Notify of bad cancel.
+                Message bad_cancel;
+                bad_cancel.create_serialized(HeaderType::BadCancel);
+                send_callback_(p->id(), bad_cancel);
             }
 
             return;
@@ -69,10 +73,14 @@ void MatchMaker::cancel(const ptr & p, GameMode queued_mode, bool called_by_user
         auto it = uuid_to_match_.find((p->get_user_data()).user_id);
         if (it != uuid_to_match_.end())
         {
-            // TODO: bool Called_By_User or something
             forfeit_impl(p, false);
 
-            // remove mapping?
+            // Remove the mapping from uuid to match
+
+            boost::uuids::uuid uuid = p->get_user_data().user_id;
+            uuid_to_match_.erase(uuid);
+
+            user_manager_->notify_match_finished(uuid);
         }
 
     });
@@ -96,6 +104,14 @@ void MatchMaker::route_to_match(const ptr & p, Message msg)
     });
 }
 
+void MatchMaker::forfeit(const Session::ptr & p, bool called_by_user)
+{
+    asio::post(global_strand_, [this, p, called_by_user]
+    {
+       forfeit_impl(p, called_by_user);
+    });
+}
+
 void MatchMaker::make_match_on_strand(std::vector<Session::ptr> players,
                                       MatchSettings settings)
 {
@@ -113,17 +129,16 @@ void MatchMaker::make_match_on_strand(std::vector<Session::ptr> players,
             Session::ptr p = players[i];
 
             // If still live, add to the match
-            if(p->socket().is_open() && p->is_live())
+            if(p->is_live())
             {
                 live_players.push_back(p);
             }
 
-            // else, cancel the match since a user disconnected
-            // before the match started
+            // Else, cancel the match since a user disconnected
+            // before the match started.
             else
             {
                 break;
-
             }
         }
 
@@ -179,10 +194,13 @@ void MatchMaker::make_match_on_strand(std::vector<Session::ptr> players,
            asio::post(global_strand_,
             [this, result = std::move(result), m_id]{
 
-                // Remove UUID to match mapping
+                // Remove UUID to match mapping and notify
+                // the user manager.
                 for (size_t i = 0; i < result.user_ids.size(); i++)
                 {
-                    uuid_to_match_.erase(result.user_ids[i]);
+                    boost::uuids::uuid u_id = result.user_ids[i];
+                    uuid_to_match_.erase(u_id);
+                    user_manager_->notify_match_finished(u_id);
                 }
 
                 // Remove from live matches
@@ -195,11 +213,13 @@ void MatchMaker::make_match_on_strand(std::vector<Session::ptr> players,
         };
         // End results callback lambda
 
-
-        // Add players to uuid_to_match_ mapping.
+        // Add players to uuid_to_match_ mapping and
+        // inform the user manager.
         for (uint8_t i = 0; i < player_list.size(); i++)
         {
-            uuid_to_match_[player_list[i].user_id] = new_inst;
+            boost::uuids::uuid uuid = player_list[i].user_id;
+            uuid_to_match_[uuid] = new_inst;
+            user_manager_->notify_match_start(uuid, new_inst);
         }
 
         // set the instance's results callback using the weak_ptr
@@ -243,10 +263,10 @@ void MatchMaker::forfeit_impl(const Session::ptr & p, bool called_by_user)
     // tell the match instance that we are forfeiting
     auto inst = uuid_to_match_[u_id];
 
-    // TODO: make a forfeit function for MatchInstance
-    // if exists:
-    //inst->forfeit(p->uuid);
+    inst->forfeit(p->id(), called_by_user);
 
-    // remove from map
+    // Remove from the map and notify the user manager.
     uuid_to_match_.erase(u_id);
+
+    user_manager_->notify_match_finished(u_id);
 }

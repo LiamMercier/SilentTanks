@@ -78,41 +78,9 @@ void Database::record_match(MatchResult result)
 {
     asio::post(strand_, [this, result = std::move(result)] mutable
     {
-        /*
-        // First, convert the settings into json
-        json::object settings_obj;
-
-        // Add the map
-        json::object map_obj;
-        map_obj["map_filename"] = result.settings.map.filename;
-        map_obj["width"] = result.settings.map.width;
-        map_obj["height"] = result.settings.map.height;
-        map_obj["num_tanks"] = result.settings.map.num_tanks;
-        settings_obj["map"] = map_obj;
-
-        // Add other settings
-        settings_obj["initial_ms"] = result.settings.initial_time_ms;
-        settings_obj["increment_ms"] = result.settings.increment_ms;
-
-        // Now loop through each command and turn them into json
-        json::array moves_arr;
-        for (auto const & cmd : result.move_history)
-        {
-            json::object cmd_obj;
-            cmd_obj["sender"] = cmd.sender;
-            cmd_obj["type"] = static_cast<uint8_t>(cmd.type);
-            cmd_obj["tank_id"] = cmd.tank_id;
-            cmd_obj["payload_first"] = cmd.payload_first;
-            cmd_obj["payload_second"] = cmd.payload_second;
-            moves_arr.push_back(std::move(cmd_obj));
-        }
-        */
 
         std::string moves_json = glz::write_json(result.move_history).value_or("error");
         std::string settings_json = glz::write_json(result.settings).value_or("error");
-
-        std::cerr << settings_json << "\n\n\n";
-        std::cerr << moves_json << "\n\n\n";
 
         // post database work to the database thread pool.
         do_record(result.user_ids,

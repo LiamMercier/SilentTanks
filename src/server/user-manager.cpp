@@ -5,8 +5,6 @@ UserManager::UserManager(boost::asio::io_context & cntx)
 {
 }
 
-// TODO: consider what happens when someone connects twice
-//       rapidly and then sends commands from the old session.
 void UserManager::on_login(UserData data,
                            std::shared_ptr<Session> session)
 {
@@ -37,14 +35,15 @@ void UserManager::on_login(UserData data,
         // Map the session ID to this uuid.
         (this->sid_to_uuid_)[session->id()] = user_data.user_id;
 
-        // Sync match if we currently are still in one.
-        //
-        // TODO: make this an async call to the session to get data
+        // Send the user the current match state if they are
+        // still inside of a match.
         auto inst = user->current_match.lock();
         if (inst)
         {
+            // TODO: notify that game exists.
+
             // TODO: make this function
-            //inst->request_view(session.id());
+            // inst->request_view(session.id());
         }
 
         });
@@ -95,8 +94,60 @@ void UserManager::disconnect(std::shared_ptr<Session> session)
 
         }
 
-        // callback? might be necessary, need to figure this out
-        // on_complete();
+    });
+}
+
+void UserManager::notify_match_finished(boost::uuids::uuid user_id)
+{
+    boost::asio::post(strand_,
+    [this, user_id]{
+
+        // Find the User and void its weak pointer.
+        auto user_itr = users_.find(user_id);
+        if (user_itr == users_.end())
+        {
+            return;
+        }
+
+        auto & user = user_itr->second;
+
+        // Reset the weak pointer, the game is already over.
+        user->current_match.reset();
+
+        // If user is not connected, remove their data.
+        //
+        // This might happen if the user logs out before the
+        // match ends and thus disconnect does not clean up the user.
+        if (!user->current_session || !(user->current_session->is_live()))
+        {
+            users_.erase(user_itr);
+        }
 
     });
+
+}
+
+void UserManager::notify_match_start(boost::uuids::uuid user_id, std::shared_ptr<MatchInstance> inst){
+
+    boost::asio::post(strand_,
+    [this, user_id, inst]{
+
+        // Find the User for this uuid.
+        auto user_itr = users_.find(user_id);
+        if (user_itr == users_.end())
+        {
+            return;
+        }
+
+        auto & user = user_itr->second;
+
+        // Update the weak pointer to point at this new
+        // match instance.
+        //
+        // We can do this assuming we only change users
+        // inside of the user strand, which is true.
+        user->current_match = inst;
+
+    });
+
 }

@@ -46,12 +46,12 @@ private:
     // We map each session ID to a session with this structure.
     std::unordered_map<uint64_t, ptr> sessions_;
 
-    // Class to handle matching players who want to play against one another
-    MatchMaker matcher_;
-
     // We would prefer to hand off login requests to a login manager
     // just like we did with match making requests.
-    UserManager user_manager_;
+    std::shared_ptr<UserManager> user_manager_;
+
+    // Class to handle matching players who want to play against one another
+    MatchMaker matcher_;
 
     Database db_;
 

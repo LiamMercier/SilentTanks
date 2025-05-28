@@ -23,4 +23,6 @@ struct User
     UserData user_data;
     std::shared_ptr<Session> current_session;
     std::weak_ptr<MatchInstance> current_match;
+    // If we increase how verbose this struct is, we may need
+    // to store login "tokens" (counters) for login/disconnect races.
 };

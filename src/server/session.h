@@ -94,7 +94,7 @@ private:
     // when we already are authenticated.
     std::atomic<bool> authenticated_;
 
-    // For managing game queues
+    // For managing game queues.
     std::atomic<bool> live_;
 
     // Mutex to prevent needing a strand call for this data

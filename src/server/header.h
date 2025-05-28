@@ -20,6 +20,7 @@ enum class HeaderType : uint8_t
     QueueMatch,
     CancelMatch,
     ForfeitMatch,
+    BadCancel,
     QueueDropped,
     MatchStarting,
     NoMatchFound,

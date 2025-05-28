@@ -101,6 +101,37 @@ void MatchInstance::receive_command(uint64_t session_id, Command cmd)
         });
 }
 
+void MatchInstance::forfeit(uint64_t session_id, bool called_by_user)
+{
+    asio::post(strand_,
+        [self = shared_from_this(),
+        s_id = session_id]{
+
+        // Find the player given the current session.
+        uint8_t correct_id = UINT8_MAX;
+        for (uint8_t p_id = 0; p_id < self->n_players_; p_id++)
+        {
+            if (self->players_[p_id].session_id == s_id)
+            {
+                correct_id = p_id;
+                break;
+            }
+        }
+
+        // If we couldn't find the player, return
+        if (correct_id == UINT8_MAX)
+        {
+                return;
+        }
+
+        // Now, if we got a player, we do regular elimination logic.
+        //
+        // We can just do the usual elimination logic.
+        self->handle_elimination(correct_id, HeaderType::ForfeitMatch);
+
+    });
+}
+
 void MatchInstance::start()
 {
     // Send an initial view of the environment to each player
@@ -321,27 +352,32 @@ void MatchInstance::on_player_move_arrived(uint16_t t_id)
 
 void MatchInstance::handle_timeout()
 {
+    handle_elimination(current_player, HeaderType::TimedOut);
+}
+
+void MatchInstance::handle_elimination(uint8_t p_id, HeaderType reason)
+{
     // Handle accidental calls to handle_timeout twice.
-    if (players_[current_player].alive == false)
+    if (players_[p_id].alive == false)
     {
         return;
     }
 
     // Reclaim priority queue space.
     std::priority_queue<Command, std::vector<Command>, seq_comp> none;
-    std::swap(command_queues_[current_player], none);
+    std::swap(command_queues_[p_id], none);
 
     // Remove the player.
-    Player & this_player = game_instance_.get_player(current_player);
+    Player & this_player = game_instance_.get_player(p_id);
     remaining_players = remaining_players - 1;
-    time_left_[current_player] = std::chrono::milliseconds(0);
-    players_[current_player].alive = false;
-    results_.elimination_order.push_back(current_player);
+    time_left_[p_id] = std::chrono::milliseconds(0);
+    players_[p_id].alive = false;
+    results_.elimination_order.push_back(p_id);
 
     // Inform the player that they are eliminated
     Message inform_elimination;
-    inform_elimination.create_serialized(HeaderType::TimedOut);
-    send_callback_(players_[current_player].session_id, inform_elimination);
+    inform_elimination.create_serialized(reason);
+    send_callback_(players_[p_id].session_id, inform_elimination);
 
     // Handle updating the setup criterion.
     if (current_state == GameState::Setup)
@@ -362,9 +398,14 @@ void MatchInstance::handle_timeout()
 
     compute_all_views();
 
-    // Prepare for the next player.
-    current_player = ((current_player + 1) % n_players_);
-    current_fuel = TURN_PLAYER_FUEL;
+    // Prepare for the next player if necessary.
+    if (p_id == current_player)
+    {
+        current_player = ((current_player + 1) % n_players_);
+        current_fuel = TURN_PLAYER_FUEL;
+        // Cancel timers.
+        timer_.cancel();
+    }
 
     // Go back to main game loop by posting a new turn.
     start_turn_strand();

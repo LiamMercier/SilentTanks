@@ -67,6 +67,10 @@ public:
     // Called by the networking layer to enqueue commands.
     void receive_command(uint64_t session_id, Command cmd);
 
+    void forfeit(uint64_t session_id, bool called_by_user);
+
+    // TODO: sync state on new session reconnect function.
+
     // Initialization function to start a match.
     void start();
 
@@ -84,19 +88,15 @@ private:
     // Handles timing out the player and preparing for the next game state.
     void handle_timeout();
 
+    void handle_elimination(uint8_t p_id, HeaderType reason);
+
     // Applies a command, with a validation check returned.
     ApplyResult apply_command(const Command & cmd);
 
     // Compute the view of the game for every player.
     void compute_all_views();
 
-    // TODO: forfeit implementation.
-    //
-    // Calling forfeit should eliminate the player on their next turn.
-
     // Determines the winner and sends this information back to the server
-    //
-    // TODO: tear down the instance
     //
     // First, we should clean our instance up on its strand (cancel timers, etc)
     // and then we should let the match maker clean its memory up in its

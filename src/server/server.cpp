@@ -4,6 +4,7 @@ Server::Server(asio::io_context & cntx,
                tcp::endpoint endpoint)
 :server_strand_(cntx.get_executor()),
 acceptor_(cntx, endpoint),
+user_manager_(std::make_shared<UserManager>(cntx)),
 matcher_(cntx,
          // Callback function to send messages to sessions
          [this](uint64_t s_id, Message msg)
@@ -20,8 +21,10 @@ matcher_(cntx,
             {
                 // Hand this off to the results recorder.
                 db_.record_match(result);
-            }),
-user_manager_(cntx),
+            },
+         // Pass a reference to the user manager
+         user_manager_
+         ),
 db_(cntx,
     // Database callback for authentication
     [this](UserData data, std::shared_ptr<Session> session)
@@ -97,7 +100,7 @@ void Server::remove_session(const ptr & session)
         // Call for the user manager to handle removal.
         //
         // If there is no game for the user, we drop the user struct from memory.
-        user_manager_.disconnect(session);
+        user_manager_->disconnect(session);
 
     });
 }
@@ -175,7 +178,6 @@ void Server::on_message(const ptr & session, Message msg)
         }
         case HeaderType::CancelMatch:
         {
-
             // Prevent actions before login.
             if (!session->is_authenticated())
             {
@@ -235,7 +237,7 @@ void Server::on_message(const ptr & session, Message msg)
                 break;
             }
 
-            //matcher_.
+            matcher_.forfeit(session, true);
             break;
         default:
             // do nothing, should never happen
@@ -260,7 +262,7 @@ void Server::on_auth(UserData data, std::shared_ptr<Session> session)
 
         // Otherwise, we authenticated correctly, lets add this user
         // to the user manager.
-        user_manager_.on_login(std::move(user_data), s);
+        user_manager_->on_login(std::move(user_data), s);
 
         // Notify session of good auth
         Message good_auth_msg;

@@ -2,8 +2,11 @@
 
 #include "match-strategy.h"
 #include "match-instance.h"
+#include "user-manager.h"
 
 #include <boost/functional/hash.hpp>
+
+class UserManager;
 
 class MatchMaker
 {
@@ -14,7 +17,8 @@ using ResultsCallback = std::function<void(MatchResult result)>;
 public:
     MatchMaker(asio::io_context & cntx,
                SendCallback send_callback,
-               ResultsCallback recorder_callback);
+               ResultsCallback recorder_callback,
+               std::shared_ptr<UserManager> user_manager);
 
     void enqueue(const ptr & p, GameMode queued_mode);
 
@@ -23,6 +27,8 @@ public:
     void tick_all();
 
     void route_to_match(const ptr & u_id, Message msg);
+
+    void forfeit(const Session::ptr & p, bool called_by_user);
 
 private:
     void make_match_on_strand(std::vector<Session::ptr> players,
@@ -67,4 +73,6 @@ private:
     SendCallback send_callback_;
 
     ResultsCallback recorder_callback_;
+
+    std::shared_ptr<UserManager> user_manager_;
 };

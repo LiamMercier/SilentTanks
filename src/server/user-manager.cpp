@@ -1,4 +1,5 @@
 #include "user-manager.h"
+#include "match-instance.h"
 
 UserManager::UserManager(boost::asio::io_context & cntx)
 :strand_(cntx.get_executor())
@@ -46,7 +47,7 @@ void UserManager::on_login(UserData data,
             session->deliver(match_found);
 
             // Sync the player, send them their current view.
-            inst->sync_player(session.id(), user_data.user_id);
+            inst->sync_player(session->id(), user_data.user_id);
         }
 
         });

@@ -34,33 +34,24 @@ enum class HeaderType : uint8_t
     Eliminated,
     TimedOut,
     Victory,
+    BadMessage,
+    Ping,
+    PingResponse,
+    PingTimeout,
     MAX_TYPE
 };
 
+static constexpr uint32_t MAX_PAYLOAD_LEN = 3000;
+
 struct Header
 {
-    inline bool valid();
+    bool valid();
     inline Header to_network();
     inline Header from_network();
 
     HeaderType type_;
     uint32_t payload_len;
 };
-
-inline bool Header::valid()
-{
-    if (type_ >= HeaderType::MAX_TYPE)
-    {
-        return false;
-    }
-    // TODO: make this more defined/reasonable
-    if (payload_len > 3000)
-    {
-        return false;
-    }
-
-    return true;
-}
 
 inline Header Header::to_network()
 {

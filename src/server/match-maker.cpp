@@ -24,6 +24,9 @@ MatchMaker::MatchMaker(asio::io_context & cntx,
     matching_queues_[static_cast<size_t>(GameMode::ClassicTwoPlayer)] = std::make_unique<CasualTwoPlayerStrategy>(cntx, match_call_back, all_maps_);
 
     // other matchmaking options go here
+    //
+    // TODO: change this to the proper option when implemented
+    matching_queues_[static_cast<size_t>(GameMode::RankedTwoPlayer)] = std::make_unique<CasualTwoPlayerStrategy>(cntx, match_call_back, all_maps_);
 
 }
 

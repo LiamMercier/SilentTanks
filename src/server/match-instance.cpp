@@ -156,12 +156,12 @@ void MatchInstance::sync_player(uint64_t session_id,
                     return;
             }
 
-            players_[correct_id].session_id = s_id;
+            self->players_[correct_id].session_id = s_id;
 
             // We should dump the old session's commands
             // to make the client experience more consistent.
             std::priority_queue<Command, std::vector<Command>, seq_comp> none;
-            std::swap(command_queues_[correct_id], none);
+            std::swap(self->command_queues_[correct_id], none);
 
             // Views were already computed in previous strand call
             // because we always compute everyone's view at
@@ -169,8 +169,8 @@ void MatchInstance::sync_player(uint64_t session_id,
             // the view to the client.
 
             Message view_message;
-            view_message.create_serialized(player_views_[correct_id]);
-            send_callback_(s_id, std::move(view_message));
+            view_message.create_serialized(self->player_views_[correct_id]);
+            self->send_callback_(s_id, std::move(view_message));
 
     });
 }
@@ -636,8 +636,8 @@ void MatchInstance::conclude_game()
     // Break down the game instance. We do not need it anymore.
     timer_.cancel();
 
-    SendCallback = nullptr;
-    ResultsCallback = nullptr;
+    send_callback_ = nullptr;
+    results_callback_ = nullptr;
 
     return;
 }

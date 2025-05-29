@@ -3,6 +3,7 @@
 #include <deque>
 #include <iostream>
 #include <utility>
+#include <chrono>
 
 #include <boost/asio.hpp>
 #include <boost/asio/ip/tcp.hpp>
@@ -10,6 +11,14 @@
 #include "message.h"
 #include "header.h"
 #include "user-data.h"
+
+// Seconds to wait before closing session when data is not sent.
+static constexpr uint64_t READ_TIMEOUT = 10;
+
+// Seconds between pings to the client.
+static constexpr uint64_t PING_INTERVAL = 90;
+
+static constexpr uint64_t PING_TIMEOUT = READ_TIMEOUT;
 
 namespace asio = boost::asio;
 
@@ -30,12 +39,12 @@ public:
     void start();
 
     // disable copy
-    Session(const Session&)            = delete;
+    Session(const Session&) = delete;
     Session& operator=(const Session&) = delete;
 
     // disable move
-    Session(Session&&)                 = delete;
-    Session& operator=(Session&&)      = delete;
+    Session(Session&&) = delete;
+    Session& operator=(Session&&) = delete;
 
     // Send a message to the client
     //
@@ -58,6 +67,8 @@ public:
     inline UserData get_user_data() const;
 
 private:
+    void start_ping();
+
     void do_read_header();
 
     void do_read_body();
@@ -81,6 +92,17 @@ private:
     tcp::socket socket_;
     asio::strand<asio::io_context::executor_type> strand_;
 
+    // We need to ensure clients are not connecting and
+    // pretending to send data (slowloris), so we set this
+    // timer and disconnect the session if they do not deliver
+    // their data in a reasonable manner.
+    asio::steady_timer read_timer_;
+
+    // We need to ensure sessions are still active and remove
+    // them if we see no activity for awhile.
+    asio::steady_timer ping_timer_;
+    asio::steady_timer pong_timer_;
+
     // Unique ID for this session. Session IDs are used internally
     // so we can simply use uint64_t for our implementation.
     //
@@ -96,6 +118,8 @@ private:
 
     // For managing game queues.
     std::atomic<bool> live_;
+
+    bool awaiting_pong_;
 
     // Mutex to prevent needing a strand call for this data
     // since it will probably not be accessed by multiple people.
@@ -122,7 +146,7 @@ inline uint64_t Session::id() const
     return session_id_;
 }
 
-bool Session::is_authenticated() const
+inline bool Session::is_authenticated() const
 {
     return authenticated_.load(std::memory_order_acquire);
 }

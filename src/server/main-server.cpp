@@ -53,6 +53,18 @@ int main()
 
     auto callbk = [](const Session::ptr & s, Message m){
 
+    if (m.header.type_ == HeaderType::Ping)
+    {
+        std::cout << "[" << s->id() << "] " << "Pinged by server \n";
+        return;
+    }
+
+    if (m.header.type_ == HeaderType::PingTimeout)
+    {
+        std::cout << "[" << s->id() << "] " << "Ping Timed Out \n";
+        return;
+    }
+
     if (m.header.type_ == HeaderType::NoMatchFound)
     {
         std::cout << "[" << s->id() << "] " << "match not found \n";

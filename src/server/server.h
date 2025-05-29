@@ -1,6 +1,7 @@
 #pragma once
 
 #include <utility>
+#include <chrono>
 
 #include "match-maker.h"
 #include "user-manager.h"
@@ -19,6 +20,9 @@ public:
     void do_accept();
 
 private:
+    void handle_accept(const boost::system::error_code & ec,
+                       tcp::socket socket);
+
     void remove_session(const ptr & session);
 
     void on_message(const ptr & session, Message msg);
@@ -54,6 +58,10 @@ private:
     MatchMaker matcher_;
 
     Database db_;
+
+    // Hash map of banned IPs and their unban times.
+    std::unordered_map<std::string,
+                        std::chrono::system_clock::time_point> bans_;
 
     // Increasing counter for the next session ID.
     uint64_t next_session_id_{1};

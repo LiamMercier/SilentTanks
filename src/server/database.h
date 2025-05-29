@@ -6,6 +6,7 @@
 
 #include <array>
 #include <cstdint>
+#include <chrono>
 #include <pqxx/pqxx>
 #include <boost/asio.hpp>
 #include <boost/uuid/uuid.hpp>
@@ -42,6 +43,11 @@ public:
 
     void record_match(MatchResult result);
 
+    void ban_ip(std::string ip,
+                std::chrono::system_clock::time_point banned_until);
+
+    void unban_ip(std::string ip);
+
 private:
     void do_auth(LoginRequest request, std::shared_ptr<Session> session);
 
@@ -52,6 +58,13 @@ private:
                    std::string settings_json,
                    std::string moves_json,
                    GameMode mode);
+
+    void do_ban_ip(std::string ip,
+                std::chrono::system_clock::time_point banned_until);
+
+    void do_unban_ip(std::string ip);
+
+    void prepares();
 
 private:
     // Main strand to serialize requests.

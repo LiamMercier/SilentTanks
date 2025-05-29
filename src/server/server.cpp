@@ -33,54 +33,74 @@ db_(cntx,
     }
 )
 {
+    auto now = std::chrono::system_clock::now();
+    db_.ban_ip("10.0.5.12", now + std::chrono::hours(1));
     // Accept connections in a loop.
     do_accept();
 }
 
-// TODO: IP ban handling
 void Server::do_accept()
 {
     acceptor_.async_accept(
         asio::bind_executor(server_strand_,
-        [this](boost::system::error_code ec, tcp::socket socket)
-        {
-            // start lambda
-            //
-            // this could use its own function with std::bind eventually for more complex
-            // logic (for example, IP bans).
-            if (!ec)
-            {
-
-                // Increment and store the next session ID.
-                uint64_t s_id = next_session_id_++;
-
-                // Construct new session for the client
-                //
-                // We need to cast to io_context which is fine because we
-                // only accept io_context as the construction argument.
-                auto session = std::make_shared<Session>(
-                    static_cast<asio::io_context&>(
-                        acceptor_.get_executor().context()),
-                        s_id);
-
-                // Move socket into session.
-                session->socket() = std::move(socket);
-
-                // Set callback to on_message.
-                session->set_message_handler
-                (
-                    [this](const ptr & s, Message m){ on_message(s, m); },
-                    [this](const ptr & s){ remove_session(s); }
-                );
-
-                // Add to map of sessions and start the session.
-                sessions_.emplace(s_id, session);
-                session->start();
-            }
-
-            // Recursively accept in our handler.
-            do_accept();
+        [this](boost::system::error_code ec, tcp::socket sock){
+            this->handle_accept(ec, std::move(sock));
         }));
+}
+
+void Server::handle_accept(const boost::system::error_code & ec,
+                           tcp::socket socket)
+{
+    if (!ec)
+    {
+        // Handle IP bans.
+        auto client_ip = socket.remote_endpoint().address().to_string();
+        auto ip_itr = bans_.find(client_ip);
+        auto now = std::chrono::system_clock::now();
+
+        // Drop connections of banned players
+        if(ip_itr != bans_.end() && now < ip_itr->second)
+        {
+            socket.close();
+            do_accept();
+            return;
+        }
+        // If a ban exists but expired, clean it up
+        else if (ip_itr != bans_.end())
+        {
+            bans_.erase(ip_itr);
+            // TODO: database call to delete this IP ban
+        }
+
+        // Increment and store the next session ID.
+        uint64_t s_id = next_session_id_++;
+
+        // Construct new session for the client
+        //
+        // We need to cast to io_context which is fine because we
+        // only accept io_context as the construction argument.
+        auto session = std::make_shared<Session>(
+            static_cast<asio::io_context&>(
+                acceptor_.get_executor().context()),
+                s_id);
+
+        // Move socket into session.
+        session->socket() = std::move(socket);
+
+        // Set callback to on_message.
+        session->set_message_handler
+        (
+            [this](const ptr & s, Message m){ on_message(s, m); },
+            [this](const ptr & s){ remove_session(s); }
+        );
+
+        // Add to map of sessions and start the session.
+        sessions_.emplace(s_id, session);
+        session->start();
+    }
+
+    // Recursively accept in our handler.
+    do_accept();
 }
 
 void Server::remove_session(const ptr & session)
@@ -166,7 +186,9 @@ void Server::on_message(const ptr & session, Message msg)
             if (!msg.valid_matching_command())
             {
                 std::cout << "Invalid game mode detected\n";
-                // TODO: bad matchmaking operation message
+                Message bad_queue;
+                bad_queue.create_serialized(HeaderType::BadQueue);
+                session->deliver(bad_queue);
                 break;
             }
             // Quickly grab the game mode so we can drop the message data.

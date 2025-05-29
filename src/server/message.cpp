@@ -179,8 +179,6 @@ PlayerView Message::to_player_view(bool & op_status)
     return view;
 }
 
-// TODO: more implementations
-//
 // Function to create a network serialized message for a message type.
 template <typename mType>
 void Message::create_serialized(const mType & req)

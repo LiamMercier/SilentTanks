@@ -89,8 +89,15 @@ void MatchInstance::receive_command(uint64_t session_id, Command cmd)
             // Override the sender field
             m_cmd.sender = correct_id;
 
-            // Enqueue the command
-            self->command_queues_[m_cmd.sender].push(std::move(m_cmd));
+            // Enqueue the command if there is room. Otherwise, drop.
+            if (self->command_queues_[m_cmd.sender].size() < MAX_QUEUE_SIZE)
+            {
+                self->command_queues_[m_cmd.sender].push(std::move(m_cmd));
+            }
+            else
+            {
+                return;
+            }
 
             // notify if necessary
             if (m_cmd.sender == self->current_player)

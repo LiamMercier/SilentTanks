@@ -44,6 +44,8 @@ struct ApplyResult
     bool op_status;
 };
 
+static constexpr size_t MAX_QUEUE_SIZE = 8;
+
 class MatchInstance : public std::enable_shared_from_this<MatchInstance>
 {
 using steady_timer = asio::steady_timer;
@@ -142,8 +144,6 @@ private:
     std::chrono::milliseconds increment_;
     GameState current_state;
 
-    // TODO: limit the size of this data structure
-    //
     // We have a vector of prioritiy queues, one for each player, sorted by
     // the sequence number of the given command.
     //

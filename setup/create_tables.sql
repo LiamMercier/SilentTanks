@@ -14,6 +14,12 @@ CREATE TABLE Users(
 -- And index on the username since we frequently look up users like this
 CREATE INDEX idx_users_username ON Users(username);
 
+-- Create a table to hold IP bans
+CREATE TABLE BannedIPs(
+    ip INET PRIMARY KEY,
+    banned_until TIMESTAMPTZ NOT NULL
+);
+
 -- Create the matches table
 CREATE TABLE Matches(
     match_id BIGSERIAL PRIMARY KEY,

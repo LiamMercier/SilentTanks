@@ -92,6 +92,21 @@ void Database::record_match(MatchResult result)
     });
 }
 
+void Database::ban_ip(std::string ip,
+            std::chrono::system_clock::time_point banned_until)
+{
+    asio::post(strand_, [this, ip, banned_until]{
+        do_ban_ip(ip, banned_until);
+    });
+}
+
+void Database::unban_ip(std::string ip)
+{
+    asio::post(strand_, [this, ip]{
+        do_unban_ip(ip);
+    });
+}
+
 // One connection to the database per thread in the thread pool.
 static thread_local std::unique_ptr<pqxx::connection> conn_;
 
@@ -103,22 +118,7 @@ void Database::do_auth(LoginRequest request, std::shared_ptr<Session> session)
 
         try
         {
-            if (!conn_)
-            {
-                conn_ = std::make_unique<pqxx::connection>(
-                    "host=127.0.0.1 \
-                    port=5432 \
-                    dbname=SilentTanksDB \
-                    user=SilentTanksOperator"
-                );
-                conn_->prepare("auth",
-                              "SELECT user_id, hash, salt \
-                              FROM Users \
-                              WHERE username = $1");
-                conn_->prepare("reg",
-                              "INSERT INTO Users (user_id, username, hash, salt) \
-                              VALUES ($1, $2, $3, $4)");
-            }
+            prepares();
 
             pqxx::work txn{*conn_};
             auto res = txn.exec_prepared("auth",
@@ -267,21 +267,7 @@ void Database::do_register(LoginRequest request, std::shared_ptr<Session> sessio
         // Now, try to insert into the database
         try
         {
-            if (!conn_)
-            {
-                conn_ = std::make_unique<pqxx::connection>(
-                    "host=127.0.0.1 \
-                    port=5432 \
-                    dbname=SilentTanksDB \
-                    user=SilentTanksOperator");
-                conn_->prepare("auth",
-                              "SELECT user_id, hash, salt \
-                              FROM Users \
-                              WHERE username = $1");
-                conn_->prepare("reg",
-                              "INSERT INTO Users (user_id, username, hash, salt) \
-                              VALUES ($1, $2, $3, $4)");
-            }
+            prepares();
 
             pqxx::work txn{*conn_};
 
@@ -348,21 +334,7 @@ void Database::do_record(std::vector<boost::uuids::uuid> user_ids,
 
         try
         {
-            if (!conn_)
-            {
-                conn_ = std::make_unique<pqxx::connection>(
-                    "host=127.0.0.1 \
-                    port=5432 \
-                    dbname=SilentTanksDB \
-                    user=SilentTanksOperator");
-                conn_->prepare("auth",
-                              "SELECT user_id, hash, salt \
-                              FROM Users \
-                              WHERE username = $1");
-                conn_->prepare("reg",
-                              "INSERT INTO Users (user_id, username, hash, salt) \
-                              VALUES ($1, $2, $3, $4)");
-            }
+            prepares();
 
             // start transaction
             pqxx::work txn{*conn_};
@@ -410,4 +382,79 @@ void Database::do_record(std::vector<boost::uuids::uuid> user_ids,
         }
 
     });
+}
+
+void Database::do_ban_ip(std::string ip,
+               std::chrono::system_clock::time_point banned_until)
+{
+
+    asio::post(thread_pool_, [this, ip, banned_until]{
+        try
+        {
+            prepares();
+
+            pqxx::work txn{*conn_};
+
+            // prepare time point for DB insertion
+            auto tt = std::chrono::system_clock::to_time_t(banned_until);
+            std::tm tm_utc;
+
+            // We need different time conversion (thread safe)
+            // functions for different platforms.
+#if defined(_WIN32) || defined(_WIN64)
+            gmtime_s(&tm_utc, &tt);
+#else
+            gmtime_r(&tt, &tm_utc);
+#endif
+
+            std::ostringstream oss;
+            oss << std::put_time(&tm_utc, "%Y-%m-%dT%H:%M:%S");
+
+            std::string banned_until_str = oss.str();
+
+            banned_until_str += "Z";
+
+            txn.exec_prepared("ban", ip, banned_until_str);
+            txn.commit();
+        }
+        catch (const std::exception & e)
+        {
+            std::cerr << "Exception in do_ban_ip: " << e.what() << "\n";
+        }
+
+    });
+}
+
+void Database::do_unban_ip(std::string ip)
+{
+
+}
+
+void Database::prepares()
+{
+    if (!conn_)
+    {
+        conn_ = std::make_unique<pqxx::connection>(
+            "host=127.0.0.1 "
+            "port=5432 "
+            "dbname=SilentTanksDB "
+            "user=SilentTanksOperator");
+        conn_->prepare("auth",
+            "SELECT user_id, hash, salt "
+            "FROM Users "
+            "WHERE username = $1");
+        conn_->prepare("reg",
+            "INSERT INTO Users (user_id, username, hash, salt) "
+            "VALUES ($1, $2, $3, $4)");
+        conn_->prepare("ban",
+            "INSERT INTO BannedIPs (ip, banned_until) "
+            "VALUES ($1, $2) "
+            "ON CONFLICT (ip) DO UPDATE "
+            "  SET banned_until = EXCLUDED.banned_until"
+            );
+        conn_->prepare("unban",
+            "DELETE FROM BannedIPs "
+            "WHERE ip = $1"
+            );
+    }
 }

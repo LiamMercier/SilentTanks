@@ -1,7 +1,6 @@
 #pragma once
 #include <cstdint>
 
-// TODO: setup winsock in the main compilation unit
 #ifdef _WIN32
 #include <winsock2.h>
 #else
@@ -19,6 +18,7 @@ enum class HeaderType : uint8_t
     BadAuth,
     GoodAuth,
     QueueMatch,
+    BadQueue,
     CancelMatch,
     ForfeitMatch,
     BadCancel,

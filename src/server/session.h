@@ -83,8 +83,7 @@ private:
 
     void force_close_session();
 
-    // TODO: handle invalid headers
-    //       mitigate spam/syn flood style attacks
+    // TODO: mitigate spam/syn flood style attacks
 
 public:
 

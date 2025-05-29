@@ -125,10 +125,9 @@ void Server::on_message(const ptr & session, Message msg)
             // Prevent login attempts when already logged in.
             if (session->is_authenticated())
             {
-                Message not_authorized;
-                // TODO: bad auth notification instead?
-                not_authorized.create_serialized(HeaderType::Unauthorized);
-                session->deliver(not_authorized);
+                Message already_authorized;
+                already_authorized.create_serialized(HeaderType::AlreadyAuthorized);
+                session->deliver(already_authorized);
 
                 break;
             }
@@ -237,7 +236,7 @@ void Server::on_message(const ptr & session, Message msg)
                 break;
             }
 
-            matcher_.forfeit(session, true);
+            matcher_.forfeit(session);
             break;
         default:
             // do nothing, should never happen

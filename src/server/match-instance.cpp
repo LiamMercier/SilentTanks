@@ -101,17 +101,16 @@ void MatchInstance::receive_command(uint64_t session_id, Command cmd)
         });
 }
 
-void MatchInstance::forfeit(uint64_t session_id, bool called_by_user)
+void MatchInstance::forfeit(boost::uuids::uuid user_id)
 {
     asio::post(strand_,
-        [self = shared_from_this(),
-        s_id = session_id]{
+        [self = shared_from_this(), u_id = user_id]{
 
-        // Find the player given the current session.
+        // Find the player given the user ID.
         uint8_t correct_id = UINT8_MAX;
         for (uint8_t p_id = 0; p_id < self->n_players_; p_id++)
         {
-            if (self->players_[p_id].session_id == s_id)
+            if (self->players_[p_id].user_id == u_id)
             {
                 correct_id = p_id;
                 break;
@@ -128,6 +127,50 @@ void MatchInstance::forfeit(uint64_t session_id, bool called_by_user)
         //
         // We can just do the usual elimination logic.
         self->handle_elimination(correct_id, HeaderType::ForfeitMatch);
+
+    });
+}
+
+void MatchInstance::sync_player(uint64_t session_id,
+                                boost::uuids::uuid user_id)
+{
+    asio::post(strand_,
+               [self = shared_from_this(),
+               s_id = session_id,
+               u_id = user_id]{
+
+            // Get the player ID for this user.
+            uint8_t correct_id = UINT8_MAX;
+            for (uint8_t p_id = 0; p_id < self->n_players_; p_id++)
+            {
+                if (self->players_[p_id].user_id == u_id)
+                {
+                    correct_id = p_id;
+                    break;
+                }
+            }
+
+            // If we couldn't find the player, return
+            if (correct_id == UINT8_MAX)
+            {
+                    return;
+            }
+
+            players_[correct_id].session_id = s_id;
+
+            // We should dump the old session's commands
+            // to make the client experience more consistent.
+            std::priority_queue<Command, std::vector<Command>, seq_comp> none;
+            std::swap(command_queues_[correct_id], none);
+
+            // Views were already computed in previous strand call
+            // because we always compute everyone's view at
+            // the end of an operation. Just grab this and send
+            // the view to the client.
+
+            Message view_message;
+            view_message.create_serialized(player_views_[correct_id]);
+            send_callback_(s_id, std::move(view_message));
 
     });
 }
@@ -590,7 +633,11 @@ void MatchInstance::conclude_game()
     // and handle any updates
     results_callback_(results_);
 
-    // TODO: break down the game instance
+    // Break down the game instance. We do not need it anymore.
+    timer_.cancel();
+
+    SendCallback = nullptr;
+    ResultsCallback = nullptr;
 
     return;
 }

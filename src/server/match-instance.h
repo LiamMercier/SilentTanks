@@ -67,9 +67,10 @@ public:
     // Called by the networking layer to enqueue commands.
     void receive_command(uint64_t session_id, Command cmd);
 
-    void forfeit(uint64_t session_id, bool called_by_user);
+    void forfeit(boost::uuids::uuid user_id);
 
-    // TODO: sync state on new session reconnect function.
+    // To be used when a reconnecting client needs to sync state.
+    void sync_player(uint64_t session_id, boost::uuids::uuid user_id);
 
     // Initialization function to start a match.
     void start();
@@ -128,12 +129,14 @@ private:
     uint8_t n_players_;
     uint8_t tanks_placed;
 
-    // important
-    // TODO: document this
+    // The turn ID exists to ensure commands put into the queue
+    // for a given turn are not used in later turns due to client or
+    // server strand ordering differences.
     uint16_t turn_ID_;
 
-    // claims the turn to prevent race condition (move -> timeout -> start turn)
-    // TODO: document this
+    // Allows the winning async function (timer or move received) to
+    // claim the turn and prevent the race condition caused by
+    // having the strand order (move -> timeout -> start turn).
     bool turn_claimed_;
 
     std::chrono::milliseconds increment_;

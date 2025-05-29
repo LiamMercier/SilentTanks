@@ -40,10 +40,13 @@ void UserManager::on_login(UserData data,
         auto inst = user->current_match.lock();
         if (inst)
         {
-            // TODO: notify that game exists.
+            // Notify the client that a game exists.
+            Message match_found;
+            match_found.create_serialized(HeaderType::MatchInProgress);
+            session->deliver(match_found);
 
-            // TODO: make this function
-            // inst->request_view(session.id());
+            // Sync the player, send them their current view.
+            inst->sync_player(session.id(), user_data.user_id);
         }
 
         });

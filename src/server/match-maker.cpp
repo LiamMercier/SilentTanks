@@ -50,10 +50,10 @@ void MatchMaker::cancel(const ptr & p, GameMode queued_mode, bool called_by_user
     // matching_queues_[queued_mode] handles concurrency on its strand
     matching_queues_[static_cast<size_t>(queued_mode)]->cancel(p);
 
-    // handle match cancels if a match is currently ongoing.
+    // Handle match cancels if a match is currently ongoing.
     asio::post(global_strand_, [this, p, queued_mode, called_by_user]{
 
-        // Handle user cancels differently
+        // Handle user cancels if the match is already ongoing.
         if (called_by_user == true)
         {
             auto it = uuid_to_match_.find((p->get_user_data()).user_id);
@@ -68,19 +68,6 @@ void MatchMaker::cancel(const ptr & p, GameMode queued_mode, bool called_by_user
             }
 
             return;
-        }
-
-        auto it = uuid_to_match_.find((p->get_user_data()).user_id);
-        if (it != uuid_to_match_.end())
-        {
-            forfeit_impl(p, false);
-
-            // Remove the mapping from uuid to match
-
-            boost::uuids::uuid uuid = p->get_user_data().user_id;
-            uuid_to_match_.erase(uuid);
-
-            user_manager_->notify_match_finished(uuid);
         }
 
     });
@@ -104,11 +91,11 @@ void MatchMaker::route_to_match(const ptr & p, Message msg)
     });
 }
 
-void MatchMaker::forfeit(const Session::ptr & p, bool called_by_user)
+void MatchMaker::forfeit(const Session::ptr & p)
 {
-    asio::post(global_strand_, [this, p, called_by_user]
+    asio::post(global_strand_, [this, p]
     {
-       forfeit_impl(p, called_by_user);
+       forfeit_impl(p);
     });
 }
 
@@ -256,14 +243,14 @@ void MatchMaker::route_impl(const Session::ptr & p, Message msg)
     }
 }
 
-void MatchMaker::forfeit_impl(const Session::ptr & p, bool called_by_user)
+void MatchMaker::forfeit_impl(const Session::ptr & p)
 {
     const auto & u_id = (p->get_user_data()).user_id;
 
     // tell the match instance that we are forfeiting
     auto inst = uuid_to_match_[u_id];
 
-    inst->forfeit(p->id(), called_by_user);
+    inst->forfeit(u_id);
 
     // Remove from the map and notify the user manager.
     uuid_to_match_.erase(u_id);

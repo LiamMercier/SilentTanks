@@ -28,7 +28,7 @@ public:
 
     void route_to_match(const ptr & u_id, Message msg);
 
-    void forfeit(const Session::ptr & p, bool called_by_user);
+    void forfeit(const Session::ptr & p);
 
 private:
     void make_match_on_strand(std::vector<Session::ptr> players,
@@ -36,7 +36,7 @@ private:
 
     void route_impl(const Session::ptr & p, Message msg);
 
-    void forfeit_impl(const Session::ptr & p, bool called_by_user);
+    void forfeit_impl(const Session::ptr & p);
 
 private:
     // strand to serialize shared state requests

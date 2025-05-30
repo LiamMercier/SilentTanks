@@ -38,6 +38,7 @@ enum class HeaderType : uint8_t
     Ping,
     PingResponse,
     PingTimeout,
+    Banned,
     MAX_TYPE
 };
 

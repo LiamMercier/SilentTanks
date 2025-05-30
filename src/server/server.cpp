@@ -33,8 +33,11 @@ db_(cntx,
     }
 )
 {
-    auto now = std::chrono::system_clock::now();
-    db_.ban_ip("10.0.5.12", now + std::chrono::hours(1));
+    // Load bans into the server's map on startup.
+    //
+    // This will block the server thread until they are loaded.
+    bans_ = db_.load_bans();
+
     // Accept connections in a loop.
     do_accept();
 }
@@ -58,10 +61,42 @@ void Server::handle_accept(const boost::system::error_code & ec,
         auto ip_itr = bans_.find(client_ip);
         auto now = std::chrono::system_clock::now();
 
-        // Drop connections of banned players
+        //db_.ban_ip(client_ip, now + std::chrono::minutes(10));
+
+        // Drop connections of banned players.
         if(ip_itr != bans_.end() && now < ip_itr->second)
         {
-            socket.close();
+            // Send a banned message and close the socket.
+            BanMessage banned;
+            banned.time_till_unban = ip_itr->second;
+
+            auto banned_msg_ptr = std::make_shared<Message>();
+            banned_msg_ptr->create_serialized(banned);
+
+            // Buffer over header and payload.
+            const std::array<asio::const_buffer, 2> & bufs
+            {
+                {
+                    asio::buffer(&banned_msg_ptr->header, sizeof(Header)),
+                    asio::buffer(banned_msg_ptr->payload)
+                }
+            };
+
+            // Keep data alive until socket is fully closed.
+            auto socket_ptr = std::make_shared<tcp::socket>(std::move(socket));
+
+            // Close the session after sending
+            asio::async_write(*socket_ptr, bufs,
+                    [socket_ptr, banned_msg_ptr]
+                    (boost::system::error_code ec, std::size_t){
+                        boost::system::error_code ignored_ec;
+
+                        socket_ptr->shutdown(tcp::socket::shutdown_both,
+                                             ignored_ec);
+
+                        socket_ptr->close(ignored_ec);
+            });
+
             do_accept();
             return;
         }
@@ -69,7 +104,8 @@ void Server::handle_accept(const boost::system::error_code & ec,
         else if (ip_itr != bans_.end())
         {
             bans_.erase(ip_itr);
-            // TODO: database call to delete this IP ban
+            // Tell the database to drop this ban entry.
+            db_.unban_ip(client_ip);
         }
 
         // Increment and store the next session ID.

@@ -65,6 +65,25 @@ int main()
         return;
     }
 
+    if (m.header.type_ == HeaderType::Banned)
+    {
+        BanMessage banned = m.to_ban_message();
+        if (banned.time_till_unban == std::chrono::system_clock::time_point::min())
+        {
+            std::cout << "ban msg failed\n";
+        }
+
+        std::cout << "[" << s->id() << "] " << "Banned by server until: ";
+
+        std::time_t time = std::chrono::system_clock::to_time_t(banned.time_till_unban);
+        std::tm tm = *std::localtime(&time);
+        std::cout << std::put_time(&tm, "%Y-%m-%d %H:%M:%S");
+
+        std::cout << "\n";
+
+        return;
+    }
+
     if (m.header.type_ == HeaderType::NoMatchFound)
     {
         std::cout << "[" << s->id() << "] " << "match not found \n";

@@ -1,5 +1,8 @@
 #include "database.h"
 
+// One connection to the database per thread in the thread pool.
+static thread_local std::unique_ptr<pqxx::connection> conn_;
+
 // We expect that a file exists at ~/.pgpass
 Database::Database(asio::io_context& io,
          AuthCallback auth_callback)
@@ -107,8 +110,39 @@ void Database::unban_ip(std::string ip)
     });
 }
 
-// One connection to the database per thread in the thread pool.
-static thread_local std::unique_ptr<pqxx::connection> conn_;
+std::unordered_map<std::string, std::chrono::system_clock::time_point>
+Database::load_bans()
+{
+    std::unordered_map<std::string, std::chrono::system_clock::time_point>
+    map;
+
+    std::unique_ptr<pqxx::connection> temp_conn_ = std::make_unique<pqxx::connection>(
+            "host=127.0.0.1 "
+            "port=5432 "
+            "dbname=SilentTanksDB "
+            "user=SilentTanksOperator");
+
+    pqxx::work txn{*temp_conn_};
+    // Get the time in terms of the unix epoch
+    auto res = txn.exec_params(
+        "SELECT ip, (extract(epoch FROM banned_until)*1000)::bigint AS banned_ms "
+        "FROM BannedIPs");
+
+    // For row in rows essentially.
+    for (const auto & row : res)
+    {
+        std::string ip = row["ip"].c_str();
+
+        auto ms = row["banned_ms"].as<long long>();
+
+        auto timepoint = std::chrono::system_clock::time_point{
+                                std::chrono::milliseconds(ms)
+                                };
+        map.emplace(std::move(ip), timepoint);
+    }
+
+    return map;
+}
 
 void Database::do_auth(LoginRequest request, std::shared_ptr<Session> session)
 {
@@ -387,7 +421,6 @@ void Database::do_record(std::vector<boost::uuids::uuid> user_ids,
 void Database::do_ban_ip(std::string ip,
                std::chrono::system_clock::time_point banned_until)
 {
-
     asio::post(thread_pool_, [this, ip, banned_until]{
         try
         {
@@ -427,7 +460,22 @@ void Database::do_ban_ip(std::string ip,
 
 void Database::do_unban_ip(std::string ip)
 {
+    asio::post(thread_pool_, [this, ip]{
+        try
+        {
+            prepares();
 
+            pqxx::work txn{*conn_};
+
+            txn.exec_prepared("unban", ip);
+            txn.commit();
+        }
+        catch (const std::exception & e)
+        {
+            std::cerr << "Exception in do_unban_ip: " << e.what() << "\n";
+        }
+
+    });
 }
 
 void Database::prepares()

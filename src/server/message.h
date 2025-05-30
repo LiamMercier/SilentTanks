@@ -10,6 +10,8 @@
 #include <array>
 #include <cstring>
 #include <algorithm>
+#include <chrono>
+#include <bit>
 
 constexpr size_t HASH_LENGTH = 32;
 
@@ -82,9 +84,16 @@ struct RegisterRequest
     std::string username;
 };
 
+struct BanMessage
+{
+    std::chrono::system_clock::time_point time_till_unban;
+};
+
 struct Message
 {
 public:
+    bool valid_matching_command() const;
+
     LoginRequest to_login_request() const;
 
     Command to_command();
@@ -92,7 +101,7 @@ public:
     // Modify view with success return type.
     PlayerView to_player_view(bool & op_status);
 
-    bool valid_matching_command() const;
+    BanMessage to_ban_message();
 
     template <typename mType>
     void create_serialized(const mType & req);

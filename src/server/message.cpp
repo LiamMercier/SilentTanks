@@ -1,5 +1,18 @@
 #include "message.h"
 
+// Utility function to turn uint64_t into network order.
+int64_t htonll(int64_t host_long_long)
+{
+    if constexpr (std::endian::native == std::endian::little)
+    {
+        return std::byteswap(host_long_long);
+    }
+    else
+    {
+        return host_long_long;
+    }
+}
+
 template<class>
 struct always_false : std::false_type {};
 
@@ -23,6 +36,8 @@ template void Message::create_serialized<BadRegNotification>(BadRegNotification 
 template void Message::create_serialized<LoginRequest>(LoginRequest const&);
 
 template void Message::create_serialized<RegisterRequest>(RegisterRequest const&);
+
+template void Message::create_serialized<BanMessage>(BanMessage const&);
 
 LoginRequest Message::to_login_request() const
 {
@@ -179,6 +194,37 @@ PlayerView Message::to_player_view(bool & op_status)
     return view;
 }
 
+BanMessage Message::to_ban_message()
+{
+    using system_clock = std::chrono::system_clock;
+
+    BanMessage ban_message;
+
+    // If message is too small, return a default. Called must check
+    // for this after return.
+    if (payload.size() < sizeof(int64_t))
+    {
+        ban_message.time_till_unban = system_clock::time_point::min();
+        return ban_message;
+    }
+
+    // Grab message bytes. We know at least 8 bytes exist because
+    // of our check.
+    int64_t network_time;
+    std::memcpy(&network_time, payload.data(), sizeof(int64_t));
+
+    // Convert to host time.
+    //
+    // Since we used byteswap, we can just call the same function
+    int64_t host_time = htonll(network_time);
+
+    // Convert to time point for our internal use.
+    std::time_t unban_time_t = static_cast<std::time_t>(host_time);
+    ban_message.time_till_unban = system_clock::from_time_t(unban_time_t);
+
+    return ban_message;
+}
+
 // Function to create a network serialized message for a message type.
 template <typename mType>
 void Message::create_serialized(const mType & req)
@@ -233,6 +279,21 @@ void Message::create_serialized(const mType & req)
         payload_buffer.insert(payload_buffer.end(),
                               req.username.begin(),
                               req.username.end());
+    }
+    // Create a ban message to send to a banned user/IP.
+    else if constexpr (std::is_same_v<mType, BanMessage>)
+    {
+        header.type_ = HeaderType::Banned;
+
+        // First, turn this into unix timestamp
+        std::time_t unban_time = std::chrono::system_clock::to_time_t(req.time_till_unban);
+
+        // Now, use a consistent sized type
+        int64_t network_time = htonll(static_cast<int64_t>(unban_time));
+
+        // Insert the bytes into the buffer
+        uint8_t* time_bytes = reinterpret_cast<uint8_t*>(&network_time);
+        payload_buffer.insert(payload_buffer.end(), time_bytes, time_bytes + sizeof(network_time));
     }
     // For views, we need to put the FlatArray of grid cells into the buffer.
     //
@@ -309,7 +370,7 @@ void Message::create_serialized(const mType & req)
         // Now load in the sequence number.
         uint16_t net_sequence = htons(req.sequence_number);
 
-        // Copy into the vector, 8 bytes at a time.
+        // Copy into the vector, 1 byte at a time.
         //
         // If net_sequence = 0xABCD then we push back:
         //

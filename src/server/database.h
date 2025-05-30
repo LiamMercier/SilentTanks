@@ -48,6 +48,9 @@ public:
 
     void unban_ip(std::string ip);
 
+    std::unordered_map<std::string, std::chrono::system_clock::time_point>
+    load_bans();
+
 private:
     void do_auth(LoginRequest request, std::shared_ptr<Session> session);
 

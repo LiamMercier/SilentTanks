@@ -1,6 +1,8 @@
 BEGIN;
 
 -- Create the users table
+--
+-- status tracks if the account is in good standing.
 CREATE TABLE Users(
     user_id UUID PRIMARY KEY NOT NULL,
     username TEXT UNIQUE NOT NULL,
@@ -8,10 +10,19 @@ CREATE TABLE Users(
     salt BYTEA NOT NULL CHECK (octet_length(salt) = 16),
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     last_login TIMESTAMPTZ NOT NULL DEFAULT now(),
-    status SMALLINT NOT NULL DEFAULT 0
+    last_ip INET NOT NULL
 );
 
--- And index on the username since we frequently look up users like this
+-- Stores ban history for users.
+CREATE TABLE UserBans(
+    ban_id BIGSERIAL PRIMARY KEY,
+    user_id UUID NOT NULL REFERENCES Users(user_id) ON DELETE RESTRICT,
+    banned_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    banned_until TIMESTAMPTZ NOT NULL,
+    reason TEXT NOT NULL DEFAULT ''
+);
+
+-- And index on the username since we frequently look up users like this.
 CREATE INDEX idx_users_username ON Users(username);
 
 -- Create a table to hold IP bans
@@ -52,7 +63,7 @@ CREATE TABLE EloHistory(
 -- Create the elo table
 CREATE TABLE UserElos(
     user_id UUID NOT NULL REFERENCES Users(user_id),
-    game_mode INT NOT NULL,
+    game_mode SMALLINT NOT NULL,
     current_elo INT NOT NULL DEFAULT 1000,
     PRIMARY KEY (user_id, game_mode)
 );

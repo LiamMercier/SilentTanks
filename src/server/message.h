@@ -87,6 +87,7 @@ struct RegisterRequest
 struct BanMessage
 {
     std::chrono::system_clock::time_point time_till_unban;
+    std::string reason;
 };
 
 struct Message

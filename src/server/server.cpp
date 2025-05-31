@@ -85,7 +85,7 @@ void Server::handle_accept(const boost::system::error_code & ec,
             // Keep data alive until socket is fully closed.
             auto socket_ptr = std::make_shared<tcp::socket>(std::move(socket));
 
-            // Close the session after sending
+            // Close the session after sending.
             asio::async_write(*socket_ptr, bufs,
                     [socket_ptr, banned_msg_ptr]
                     (boost::system::error_code ec, std::size_t){
@@ -188,7 +188,20 @@ void Server::on_message(const ptr & session, Message msg)
                 break;
             }
 
-            db_.authenticate(msg, session);
+            std::string client_ip;
+
+            // Grab the current client IP.
+            try
+            {
+                client_ip = session->socket().remote_endpoint().address().to_string();
+            }
+            catch (const std::exception & e)
+            {
+                // Set to null IP on error.
+                client_ip = "0.0.0.0";
+            }
+
+            db_.authenticate(msg, session, client_ip);
             break;
         }
         case HeaderType::RegistrationRequest:
@@ -204,7 +217,20 @@ void Server::on_message(const ptr & session, Message msg)
                 break;
             }
 
-            db_.register_account(msg, session);
+            std::string client_ip;
+
+            // Grab the current client IP.
+            try
+            {
+                client_ip = session->socket().remote_endpoint().address().to_string();
+            }
+            catch (const std::exception & e)
+            {
+                // Set to null IP on error.
+                client_ip = "0.0.0.0";
+            }
+
+            db_.register_account(msg, session, client_ip);
             break;
         }
         case HeaderType::QueueMatch:
@@ -221,7 +247,6 @@ void Server::on_message(const ptr & session, Message msg)
 
             if (!msg.valid_matching_command())
             {
-                std::cout << "Invalid game mode detected\n";
                 Message bad_queue;
                 bad_queue.create_serialized(HeaderType::BadQueue);
                 session->deliver(bad_queue);
@@ -246,8 +271,9 @@ void Server::on_message(const ptr & session, Message msg)
 
             if (!msg.valid_matching_command())
             {
-                // TODO: bad matchmaking operation message
-                std::cout << "Invalid game mode detected\n";
+                Message bad_queue;
+                bad_queue.create_serialized(HeaderType::BadQueue);
+                session->deliver(bad_queue);
                 break;
             }
             // Quickly grab the game mode so we can drop the message data.

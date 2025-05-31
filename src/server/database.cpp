@@ -1,4 +1,5 @@
 #include "database.h"
+#include "message.h"
 
 // One connection to the database per thread in the thread pool.
 static thread_local std::unique_ptr<pqxx::connection> conn_;
@@ -11,9 +12,15 @@ thread_pool_(MAX_CONCURRENT_AUTHS),
 auth_callback_(std::move(auth_callback))
 {}
 
-void Database::authenticate(Message msg, std::shared_ptr<Session> session)
+void Database::authenticate(Message msg,
+                            std::shared_ptr<Session> session,
+                            std::string client_ip)
 {
-    asio::post(strand_, [this, m = std::move(msg), s = std::move(session)]
+    asio::post(strand_,
+               [this,
+                m = std::move(msg),
+                s = std::move(session),
+                ip = std::move(client_ip)]
     {
 
         // First, turn the message into an authentication attempt
@@ -40,14 +47,20 @@ void Database::authenticate(Message msg, std::shared_ptr<Session> session)
         // that might be a username. Attempt to authenticate the user.
         //
         // Post the database call to our thread pool.
-        do_auth(std::move(request), std::move(s));
+        do_auth(std::move(request), std::move(s), std::move(ip));
 
     });
 }
 
-void Database::register_account(Message msg, std::shared_ptr<Session> session)
+void Database::register_account(Message msg,
+                                std::shared_ptr<Session> session,
+                                std::string client_ip)
 {
-    asio::post(strand_, [this, m = std::move(msg), s = std::move(session)]{
+    asio::post(strand_,
+               [this,
+                m = std::move(msg),
+                s = std::move(session),
+                ip = std::move(client_ip)]{
 
         // First, turn the message into a registration attempt
         //
@@ -71,7 +84,7 @@ void Database::register_account(Message msg, std::shared_ptr<Session> session)
         // Otherwise we have a valid registration attempt.
         //
         // Post the database call to our thread pool.
-        do_register(std::move(request), std::move(s));
+        do_register(std::move(request), std::move(s), std::move(ip));
 
     });
 
@@ -144,9 +157,15 @@ Database::load_bans()
     return map;
 }
 
-void Database::do_auth(LoginRequest request, std::shared_ptr<Session> session)
+void Database::do_auth(LoginRequest request,
+                       std::shared_ptr<Session> session,
+                       std::string client_ip)
 {
-    asio::post(thread_pool_, [this, req=std::move(request), s = std::move(session)]() mutable{
+    asio::post(thread_pool_,
+               [this,
+               req=std::move(request),
+               s = std::move(session),
+               ip = std::move(client_ip)]() mutable{
 
         UserData data;
 
@@ -155,14 +174,57 @@ void Database::do_auth(LoginRequest request, std::shared_ptr<Session> session)
             prepares();
 
             pqxx::work txn{*conn_};
-            auto res = txn.exec_prepared("auth",
-                                         req.username);
+            auto res = txn.exec_prepared("auth", req.username);
 
             if (!res.empty())
             {
                 auto row = res[0];
 
-                // get hash and salt from DB row as binarystring
+                pqxx::result ban_res = txn.exec_prepared
+                                        (
+                                            "check_bans",
+                                            row["user_id"].as<std::string>()
+                                        );
+
+                // If user is banned, reject and send them a banned message.
+                if(!ban_res.empty())
+                {
+                    auto ban_row = ban_res[0];
+
+                    // Convert the ban time, same as load_bans
+                    auto ms = ban_row["banned_ms"].as<long long>();
+
+                    auto timepoint = std::chrono::system_clock::time_point
+                                {
+                                    std::chrono::milliseconds(ms)
+                                };
+
+                    // Convert to message and deliver to the session.
+                    BanMessage ban_msg;
+                    ban_msg.time_till_unban = timepoint;
+                    ban_msg.reason = ban_row["reason"].as<std::string>();
+
+                    Message banned;
+                    banned.create_serialized(ban_msg);
+                    s->deliver(banned);
+
+                    txn.commit();
+
+                    if(auth_callback_)
+                    {
+                        auth_callback_(data, s);
+                    }
+                    else
+                    {
+                        std::cerr << "Auth callback was not set!\n";
+                    }
+
+                    return;
+                }
+
+                // If we get here, the user is not currently banned.
+                //
+                // Get the hash and salt from DB row as binarystring
                 // and then convert to string (which can then be
                 // converted to uint8_t).
 
@@ -197,8 +259,8 @@ void Database::do_auth(LoginRequest request, std::shared_ptr<Session> session)
                     salt.begin()
                 );
 
-                // First, take our 32 byte H(password) from the user, and compute
-                // H(H(password), salt) using libargon2
+                // First, take our 32 byte H(password) from the user
+                // and compute H(H(password), salt) using libargon2
                 std::array<uint8_t, HASH_LENGTH> computed_hash{};
                 int result = argon2id_hash_raw(
                     ARGON2_TIME,
@@ -220,12 +282,17 @@ void Database::do_auth(LoginRequest request, std::shared_ptr<Session> session)
                         // Turn uuid data into a boost UUID.
                         std::string uuid_str = row["user_id"].as<std::string>();
                         boost::uuids::string_generator gen;
-                        data.user_id = gen(uuid_str);
 
+                        data.user_id = gen(uuid_str);
                         data.username = req.username;
+
+                        // Update the user's login history
+                        txn.exec_prepared("update_user_logins",
+                                          ip,
+                                          uuid_str);
                     }
                 }
-                // Bad function call.
+                // Handle bad function calls.
                 else
                 {
                     std::cerr << "Argon2 hashing failed " << argon2_error_message(result) << "\n";
@@ -262,9 +329,15 @@ void Database::do_auth(LoginRequest request, std::shared_ptr<Session> session)
     });
 }
 
-void Database::do_register(LoginRequest request, std::shared_ptr<Session> session)
+void Database::do_register(LoginRequest request,
+                           std::shared_ptr<Session> session,
+                           std::string client_ip)
 {
-    asio::post(thread_pool_, [this, req=std::move(request), s = std::move(session)]() mutable{
+    asio::post(thread_pool_,
+               [this,
+               req=std::move(request),
+               s = std::move(session),
+               ip = std::move(client_ip)]() mutable{
 
         std::array<uint8_t, SALT_LENGTH> salt;
 
@@ -313,7 +386,19 @@ void Database::do_register(LoginRequest request, std::shared_ptr<Session> sessio
                 boost::uuids::to_string(user_id),
                 req.username,
                 pqxx::binarystring(reinterpret_cast<const char*>(computed_hash.data()), computed_hash.size()),
-                pqxx::binarystring(reinterpret_cast<const char*>(salt.data()), salt.size()));
+                pqxx::binarystring(reinterpret_cast<const char*>(salt.data()), salt.size()),
+                ip);
+
+            // Create initial elo entries for the user.
+            for (uint8_t mode = RANKED_MODES_START;
+                 mode < static_cast<uint8_t>(GameMode::NO_MODE);
+                 mode++)
+            {
+                txn.exec_prepared("add_user_elos",
+                              boost::uuids::to_string(user_id),
+                              static_cast<int16_t>(mode),
+                              DEFAULT_ELO);
+            }
 
             txn.commit();
 
@@ -492,8 +577,8 @@ void Database::prepares()
             "FROM Users "
             "WHERE username = $1");
         conn_->prepare("reg",
-            "INSERT INTO Users (user_id, username, hash, salt) "
-            "VALUES ($1, $2, $3, $4)");
+            "INSERT INTO Users (user_id, username, hash, salt, last_ip) "
+            "VALUES ($1, $2, $3, $4, $5)");
         conn_->prepare("ban",
             "INSERT INTO BannedIPs (ip, banned_until) "
             "VALUES ($1, $2) "
@@ -504,5 +589,20 @@ void Database::prepares()
             "DELETE FROM BannedIPs "
             "WHERE ip = $1"
             );
+        conn_->prepare("update_user_logins",
+                "UPDATE USERS "
+                "SET last_login = now(), "
+                "last_ip = $1 "
+                "WHERE user_id = $2");
+        conn_->prepare("check_bans",
+                "SELECT banned_at, (extract(epoch FROM banned_until)*1000)::bigint AS banned_ms, reason "
+                "FROM UserBans "
+                "WHERE user_id = $1 "
+                " AND banned_until > now() "
+                "ORDER BY banned_at DESC "
+                "LIMIT 1");
+        conn_->prepare("add_user_elos",
+                       "INSERT INTO UserElos (user_id, game_mode, current_elo) "
+                       "VALUES ($1, $2, $3)");
     }
 }

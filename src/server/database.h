@@ -26,6 +26,9 @@ constexpr uint32_t ARGON2_PARALLEL = 1;
 // Limit how much memory we are consuming for logins.
 constexpr size_t MAX_CONCURRENT_AUTHS = 3;
 
+// Default elo on table insert
+constexpr int DEFAULT_ELO = 1000;
+
 namespace asio = boost::asio;
 
 class Database
@@ -37,9 +40,13 @@ public:
     Database(asio::io_context & io,
              AuthCallback auth_callback);
 
-    void authenticate(Message msg, std::shared_ptr<Session> session);
+    void authenticate(Message msg,
+                      std::shared_ptr<Session> session,
+                      std::string client_ip);
 
-    void register_account(Message msg, std::shared_ptr<Session> session);
+    void register_account(Message msg,
+                          std::shared_ptr<Session> session,
+                          std::string client_ip);
 
     void record_match(MatchResult result);
 
@@ -52,9 +59,13 @@ public:
     load_bans();
 
 private:
-    void do_auth(LoginRequest request, std::shared_ptr<Session> session);
+    void do_auth(LoginRequest request,
+                 std::shared_ptr<Session> session,
+                 std::string client_ip);
 
-    void do_register(LoginRequest request, std::shared_ptr<Session> session);
+    void do_register(LoginRequest request,
+                     std::shared_ptr<Session> session,
+                     std::string client_ip);
 
     void do_record(std::vector<boost::uuids::uuid> user_ids,
                    std::vector<uint8_t> elimination_order,

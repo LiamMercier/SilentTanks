@@ -222,6 +222,18 @@ BanMessage Message::to_ban_message()
     std::time_t unban_time_t = static_cast<std::time_t>(host_time);
     ban_message.time_till_unban = system_clock::from_time_t(unban_time_t);
 
+    // If a reason exists, convert it.
+    if (payload.size() > sizeof(int64_t))
+    {
+        const uint8_t * reason_ptr = payload.data() + sizeof(int64_t);
+        size_t len = payload.size() - sizeof(int64_t);
+
+        // Construct string given the data pointer and length.
+        ban_message.reason = std::string(
+                                reinterpret_cast<const char *>(reason_ptr),
+                                len);
+    }
+
     return ban_message;
 }
 
@@ -288,12 +300,25 @@ void Message::create_serialized(const mType & req)
         // First, turn this into unix timestamp
         std::time_t unban_time = std::chrono::system_clock::to_time_t(req.time_till_unban);
 
-        // Now, use a consistent sized type
+        // Now, use a consistent sized type.
         int64_t network_time = htonll(static_cast<int64_t>(unban_time));
 
-        // Insert the bytes into the buffer
+        // Insert the bytes into the buffer.
         uint8_t* time_bytes = reinterpret_cast<uint8_t*>(&network_time);
-        payload_buffer.insert(payload_buffer.end(), time_bytes, time_bytes + sizeof(network_time));
+        payload_buffer.insert(payload_buffer.end(),
+                              time_bytes,
+                              time_bytes + sizeof(network_time));
+
+        // Add the ban message to the buffer, if it exists.
+        if (!req.reason.empty())
+        {
+            const char * reason = req.reason.data();
+            payload_buffer.insert(
+                payload_buffer.end(),
+                reinterpret_cast<const uint8_t*>(reason),
+                reinterpret_cast<const uint8_t*>(reason) + req.reason.size());
+        }
+
     }
     // For views, we need to put the FlatArray of grid cells into the buffer.
     //

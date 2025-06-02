@@ -65,6 +65,17 @@ public:
                   std::chrono::system_clock::time_point banned_until,
                   std::string reason);
 
+    void unban_user(std::string username, uint64_t ban_id);
+
+    void send_friend_request(boost::uuids::uuid user,
+                             std::string friend_username,
+                             std::shared_ptr<Session> session);
+
+    void respond_friend_request(boost::uuids::uuid user,
+                                boost::uuids::uuid sender,
+                                bool decision,
+                                std::shared_ptr<Session> session);
+
     std::unordered_map<std::string, std::chrono::system_clock::time_point>
     load_bans();
 
@@ -91,6 +102,17 @@ private:
     void do_ban_user(std::string username,
                      std::chrono::system_clock::time_point banned_until,
                      std::string reason);
+
+    void do_unban_user(std::string username, uint64_t ban_id);
+
+    void do_send_friend_request(boost::uuids::uuid user,
+                                std::string friend_username,
+                                std::shared_ptr<Session> session);
+
+    void do_respond_friend_request(boost::uuids::uuid user,
+                                   boost::uuids::uuid sender,
+                                   bool decision,
+                                   std::shared_ptr<Session> session);
 
     void prepares();
 

@@ -16,12 +16,36 @@ CREATE TABLE Users(
 -- Enforce case insensitive uniqueness of usernames.
 CREATE UNIQUE INDEX idx_users_username_lower ON Users(LOWER(username));
 
+CREATE TABLE Friends(
+    user_id UUID NOT NULL REFERENCES Users(user_id) ON DELETE CASCADE,
+    friend_id UUID NOT NULL REFERENCES Users(user_id) ON DELETE CASCADE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (user_id, friend_id),
+    CHECK (user_id <> friend_id)
+);
+
+CREATE TABLE FriendRequests(
+    sender UUID NOT NULL REFERENCES Users(user_id) ON DELETE CASCADE,
+    receiver UUID NOT NULL REFERENCES Users(user_id) ON DELETE CASCADE,
+    PRIMARY KEY (sender, receiver),
+    CHECK (sender <> receiver)
+);
+
+CREATE TABLE BlockedUsers(
+    blocker UUID NOT NULL REFERENCES Users(user_id) ON DELETE CASCADE,
+    blocked UUID NOT NULL REFERENCES Users(user_id) ON DELETE CASCADE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (blocker, blocked),
+    CHECK (blocker <> blocked)
+);
+
 -- Stores ban history for users.
 CREATE TABLE UserBans(
     ban_id BIGSERIAL PRIMARY KEY,
     user_id UUID NOT NULL REFERENCES Users(user_id) ON DELETE RESTRICT,
     banned_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     banned_until TIMESTAMPTZ NOT NULL,
+    original_expiration TIMESTAMPTZ NOT NULL,
     reason TEXT NOT NULL DEFAULT ''
 );
 
@@ -31,7 +55,9 @@ CREATE INDEX idx_users_username ON Users(username);
 -- Create a table to hold IP bans
 CREATE TABLE BannedIPs(
     ip INET PRIMARY KEY,
-    banned_until TIMESTAMPTZ NOT NULL
+    banned_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    banned_until TIMESTAMPTZ NOT NULL,
+    original_expiration TIMESTAMPTZ NOT NULL
 );
 
 -- Create the matches table

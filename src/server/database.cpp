@@ -158,6 +158,31 @@ void Database::ban_user(std::string username,
                 std::move(reason));
 }
 
+void Database::unban_user(std::string username, uint64_t ban_id)
+{
+    do_unban_user(std::move(username), ban_id);
+}
+
+void Database::send_friend_request(boost::uuids::uuid user,
+                                   std::string friend_username,
+                                   std::shared_ptr<Session> session)
+{
+    do_send_friend_request(std::move(user),
+                           std::move(friend_username),
+                           std::move(session));
+}
+
+void Database::respond_friend_request(boost::uuids::uuid user,
+                                      boost::uuids::uuid sender,
+                                      bool decision,
+                                      std::shared_ptr<Session> session)
+{
+    do_respond_friend_request(std::move(user),
+                              std::move(sender),
+                              decision,
+                              std::move(session));
+}
+
 std::unordered_map<std::string, std::chrono::system_clock::time_point>
 Database::load_bans()
 {
@@ -677,6 +702,169 @@ void Database::do_ban_user(std::string username,
     });
 }
 
+void Database::do_unban_user(std::string username, uint64_t ban_id)
+{
+    asio::post(thread_pool_,
+        [this,
+        username = std::move(username),
+        ban_id]{
+
+        try
+        {
+            prepares();
+
+            pqxx::work txn{*conn_};
+
+            // Find the uuid for this username
+
+            auto user_res = txn.exec_prepared("find_uuid", username);
+
+            if(!user_res.empty())
+            {
+                auto user_row = user_res[0];
+
+                // Turn this into a boost UUID.
+                std::string uuid_str = user_row["user_id"].as<std::string>();
+
+                boost::uuids::string_generator gen;
+                boost::uuids::uuid user_id = gen(uuid_str);
+
+                uuid_strands_.post(user_id,
+                    [this,
+                     ban_id]() mutable {
+// START LAMBDA FOR UUID BASED STRAND
+                prepares();
+
+                pqxx::work txn{*conn_};
+
+                txn.exec_prepared("unban_user", ban_id);
+
+                txn.commit();
+
+                });
+// END LAMBDA FOR UUID BASED STRAND
+            }
+            // No user found, exit.
+            else
+            {
+                // TODO: log to console
+                std::cerr << "no user in do unban user\n";
+            }
+            txn.commit();
+        }
+        catch (const std::exception & e)
+        {
+            std::cerr << "Exception in do_ban_user: " << e.what() << "\n";
+        }
+
+    });
+}
+
+void Database::do_send_friend_request(boost::uuids::uuid user,
+                                      std::string friend_username,
+                                      std::shared_ptr<Session> session)
+{
+    asio::post(thread_pool_,
+        [this,
+        user,
+        friend_username = std::move(friend_username),
+        s = std::move(session)]{
+
+        try
+        {
+            prepares();
+
+            pqxx::work txn{*conn_};
+
+            // Find the uuid for this username
+
+            auto user_res = txn.exec_prepared("find_uuid", friend_username);
+
+            if(!user_res.empty())
+            {
+                auto user_row = user_res[0];
+
+                // Turn this into a boost UUID.
+                std::string uuid_str = user_row["user_id"].as<std::string>();
+
+                boost::uuids::string_generator gen;
+                boost::uuids::uuid friend_id = gen(uuid_str);
+
+                uuid_strands_.post(friend_id,
+                    [this,
+                    user = std::move(user),
+                    friend_id = std::move(friend_id),
+                    s = std::move(s)]() mutable {
+// START LAMBDA FOR UUID BASED STRAND
+                prepares();
+
+                pqxx::work txn{*conn_};
+
+                txn.exec_prepared("friend_request",
+                                  boost::uuids::to_string(user),
+                                  boost::uuids::to_string(friend_id));
+
+                txn.commit();
+
+                });
+// END LAMBDA FOR UUID BASED STRAND
+            }
+            // No user found, exit.
+            else
+            {
+                // TODO: log to console
+                std::cerr << "no user in do unban user\n";
+            }
+            txn.commit();
+        }
+        catch (const std::exception & e)
+        {
+            std::cerr << "Exception in do_ban_user: " << e.what() << "\n";
+        }
+
+    });
+}
+
+void Database::do_respond_friend_request(boost::uuids::uuid user,
+                                         boost::uuids::uuid sender,
+                                         bool decision,
+                                         std::shared_ptr<Session> session)
+{
+
+    uuid_strands_.post(user,
+        [this,
+        user = std::move(user),
+        sender = std::move(sender),
+        decision,
+        s = std::move(s)]() mutable {
+// START LAMBDA FOR UUID BASED STRAND
+        prepares();
+
+        pqxx::work txn{*conn_};
+
+        // TODO: Logic for handling friend requests
+
+        txn.commit();
+
+                });
+// END LAMBDA FOR UUID BASED STRAND
+            }
+            // No user found, exit.
+            else
+            {
+                // TODO: log to console
+                std::cerr << "no user in do unban user\n";
+            }
+            txn.commit();
+        }
+        catch (const std::exception & e)
+        {
+            std::cerr << "Exception in do_ban_user: " << e.what() << "\n";
+        }
+
+    });
+}
+
 void Database::prepares()
 {
     if (!conn_)
@@ -694,17 +882,19 @@ void Database::prepares()
             "INSERT INTO Users (user_id, username, hash, salt, last_ip) "
             "VALUES ($1, $2, $3, $4, $5)");
         conn_->prepare("ban_ip",
-            "INSERT INTO BannedIPs (ip, banned_until) "
-            "VALUES ($1, $2) "
+            "INSERT INTO BannedIPs (ip, banned_until, original_expiration) "
+            "VALUES ($1, $2, $2) "
             "ON CONFLICT (ip) DO UPDATE "
-            "  SET banned_until = EXCLUDED.banned_until"
+            "  SET banned_until = EXCLUDED.banned_until, "
+            "  original_expiration = EXCLUDED.original_expiration"
             );
         conn_->prepare("unban_ip",
-            "DELETE FROM BannedIPs "
+            "UPDATE BannedIPs "
+            "SET banned_until = now() "
             "WHERE ip = $1"
             );
         conn_->prepare("update_user_logins",
-            "UPDATE USERS "
+            "UPDATE Users "
             "SET last_login = now(), "
             "last_ip = $1 "
             "WHERE user_id = $2");
@@ -723,7 +913,14 @@ void Database::prepares()
             "FROM Users "
             "WHERE username = $1");
         conn_->prepare("ban_user",
-            "INSERT INTO UserBans (user_id, banned_until, reason) "
-            "VALUES ($1, $2, $3)");
+            "INSERT INTO UserBans (user_id, banned_until, original_expiration, reason) "
+            "VALUES ($1, $2, $2, $3)");
+        conn_->prepare("unban_user",
+            "UPDATE UserBans "
+            "SET banned_until = now() "
+            "WHERE ban_id = $1");
+        conn_->prepare("friend_request",
+            "INSERT INTO FriendRequests (sender, receiver) "
+            "VALUES ($1, $2)");
     }
 }

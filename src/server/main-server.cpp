@@ -81,6 +81,8 @@ int main()
 
         std::cout << "\n";
 
+        std::cout << "    Reason: " << banned.reason << "\n";
+
         return;
     }
 
@@ -238,14 +240,11 @@ int main()
         s1->deliver(msg);
     }
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-
     {
         Message msg;
         msg.create_serialized(u1_login);
         s1->deliver(msg);
     }
-
 
     std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
@@ -294,6 +293,19 @@ int main()
         s2->deliver(msg2);
 
     }
+
+    // Test console ban
+    server.CONSOLE_ban_user("oranges",
+                            std::chrono::system_clock::now() + std::chrono::seconds(30),
+                            std::string("test ban console")
+                            );
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+
+    server.CONSOLE_ban_user("bananas",
+                            std::chrono::system_clock::now() + std::chrono::seconds(30),
+                            std::string("test ban console")
+                            );
 
     std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 

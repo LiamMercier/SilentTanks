@@ -31,6 +31,10 @@ public:
     void notify_match_start(boost::uuids::uuid user_id,
                             std::shared_ptr<MatchInstance> inst);
 
+    void on_ban_user(boost::uuids::uuid user_id,
+                     std::chrono::system_clock::time_point banned_until,
+                     std::string reason);
+
 private:
 
     asio::strand<asio::io_context::executor_type> strand_;

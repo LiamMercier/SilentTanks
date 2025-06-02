@@ -17,6 +17,10 @@ public:
     Server(asio::io_context & cntx,
            tcp::endpoint endpoint);
 
+    void CONSOLE_ban_user(std::string username,
+                          std::chrono::system_clock::time_point banned_until,
+                          std::string reason);
+
     void do_accept();
 
 private:
@@ -28,6 +32,13 @@ private:
     void on_message(const ptr & session, Message msg);
 
     void on_auth(UserData data, std::shared_ptr<Session> session);
+
+    void on_ban_user(boost::uuids::uuid user_id,
+                     std::chrono::system_clock::time_point banned_until,
+                     std::string reason);
+
+    void send_banned(std::chrono::system_clock::time_point banned_until,
+                     tcp::socket socket);
 
 private:
     // Strand to prevent race conditions on session removal and addition.
@@ -51,17 +62,20 @@ private:
     std::unordered_map<uint64_t, ptr> sessions_;
 
     // We would prefer to hand off login requests to a login manager
-    // just like we did with match making requests.
+    // just like we do with match making requests.
     std::shared_ptr<UserManager> user_manager_;
 
-    // Class to handle matching players who want to play against one another
+    // Class to handle matching players who want to play against one another.
     MatchMaker matcher_;
 
+    // Class to post calls to the postgreSQL database.
     Database db_;
 
     // Hash map of banned IPs and their unban times.
     std::unordered_map<std::string,
                         std::chrono::system_clock::time_point> bans_;
+
+    std::mutex bans_mutex_;
 
     // Increasing counter for the next session ID.
     uint64_t next_session_id_{1};

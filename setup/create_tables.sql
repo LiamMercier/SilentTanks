@@ -13,6 +13,9 @@ CREATE TABLE Users(
     last_ip INET NOT NULL
 );
 
+-- Enforce case insensitive uniqueness of usernames.
+CREATE UNIQUE INDEX idx_users_username_lower ON Users(LOWER(username));
+
 -- Stores ban history for users.
 CREATE TABLE UserBans(
     ban_id BIGSERIAL PRIMARY KEY,

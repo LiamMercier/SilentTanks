@@ -30,6 +30,12 @@ db_(cntx,
     [this](UserData data, std::shared_ptr<Session> session)
     {
         this->on_auth(data, session);
+    },
+    [this](boost::uuids::uuid user_id,
+           std::chrono::system_clock::time_point banned_until,
+           std::string reason)
+    {
+        this->on_ban_user(user_id, banned_until, reason);
     }
 )
 {
@@ -40,6 +46,19 @@ db_(cntx,
 
     // Accept connections in a loop.
     do_accept();
+}
+
+void Server::CONSOLE_ban_user(std::string username,
+                      std::chrono::system_clock::time_point banned_until,
+                      std::string reason)
+{
+    // Call the database to ban the user by username.
+    //
+    // The database must callback to the server with the UUID
+    // after it is done to evict the user from the user manager.
+    db_.ban_user(std::move(username),
+                 std::move(banned_until),
+                 std::move(reason));
 }
 
 void Server::do_accept()
@@ -66,36 +85,9 @@ void Server::handle_accept(const boost::system::error_code & ec,
         // Drop connections of banned players.
         if(ip_itr != bans_.end() && now < ip_itr->second)
         {
-            // Send a banned message and close the socket.
-            BanMessage banned;
-            banned.time_till_unban = ip_itr->second;
-
-            auto banned_msg_ptr = std::make_shared<Message>();
-            banned_msg_ptr->create_serialized(banned);
-
-            // Buffer over header and payload.
-            const std::array<asio::const_buffer, 2> & bufs
-            {
-                {
-                    asio::buffer(&banned_msg_ptr->header, sizeof(Header)),
-                    asio::buffer(banned_msg_ptr->payload)
-                }
-            };
-
-            // Keep data alive until socket is fully closed.
-            auto socket_ptr = std::make_shared<tcp::socket>(std::move(socket));
-
-            // Close the session after sending.
-            asio::async_write(*socket_ptr, bufs,
-                    [socket_ptr, banned_msg_ptr]
-                    (boost::system::error_code ec, std::size_t){
-                        boost::system::error_code ignored_ec;
-
-                        socket_ptr->shutdown(tcp::socket::shutdown_both,
-                                             ignored_ec);
-
-                        socket_ptr->close(ignored_ec);
-            });
+            // Send ban message.
+            auto ban_expiration = ip_itr->second;
+            send_banned(ban_expiration, std::move(socket));
 
             do_accept();
             return;
@@ -201,6 +193,33 @@ void Server::on_message(const ptr & session, Message msg)
                 client_ip = "0.0.0.0";
             }
 
+            // Check if the user is banned.
+            //
+            // Necessary if this person's user was banned
+            // before they authenticated and thus their IP
+            // was not filtered by the accept loop.
+
+            // First, grab the server's ban map mutex.
+            std::lock_guard<std::mutex> lock(bans_mutex_);
+
+            auto ip_itr = bans_.find(client_ip);
+            auto now = std::chrono::system_clock::now();
+
+            if(ip_itr != bans_.end() && now < ip_itr->second)
+            {
+                // Send a banned message and close the session.
+                auto ban_expiration = ip_itr->second;
+
+                BanMessage banned;
+                banned.time_till_unban = ban_expiration;
+
+                Message banned_msg;
+                banned_msg.create_serialized(banned);
+
+                session->deliver(banned_msg);
+                session->close_session();
+            }
+
             db_.authenticate(msg, session, client_ip);
             break;
         }
@@ -228,6 +247,33 @@ void Server::on_message(const ptr & session, Message msg)
             {
                 // Set to null IP on error.
                 client_ip = "0.0.0.0";
+            }
+
+            // Check if the user is banned.
+            //
+            // Necessary if this person's user was banned
+            // before they authenticated and thus their IP
+            // was not filtered by the accept loop.
+
+            // First, grab the server's ban map mutex.
+            std::lock_guard<std::mutex> lock(bans_mutex_);
+
+            auto ip_itr = bans_.find(client_ip);
+            auto now = std::chrono::system_clock::now();
+
+            if(ip_itr != bans_.end() && now < ip_itr->second)
+            {
+                // Send a banned message and close the session.
+                auto ban_expiration = ip_itr->second;
+
+                BanMessage banned;
+                banned.time_till_unban = ban_expiration;
+
+                Message banned_msg;
+                banned_msg.create_serialized(banned);
+
+                session->deliver(banned_msg);
+                session->close_session();
             }
 
             db_.register_account(msg, session, client_ip);
@@ -352,6 +398,54 @@ void Server::on_auth(UserData data, std::shared_ptr<Session> session)
         good_auth_msg.create_serialized(HeaderType::GoodAuth);
         s->deliver(good_auth_msg);
 
+    });
+}
+
+void Server::on_ban_user(boost::uuids::uuid user_id,
+                     std::chrono::system_clock::time_point banned_until,
+                     std::string reason)
+{
+    asio::post(server_strand_,
+               [this,
+               user_id = std::move(user_id),
+               banned_until = std::move(banned_until),
+               reason = std::move(reason)]{
+
+        user_manager_->on_ban_user(user_id, banned_until, reason);
+    });
+}
+
+void Server::send_banned(std::chrono::system_clock::time_point banned_until,
+                         tcp::socket socket)
+{
+    // Send a banned message and close the socket.
+    BanMessage banned;
+    banned.time_till_unban = banned_until;
+
+    auto banned_msg_ptr = std::make_shared<Message>();
+    banned_msg_ptr->create_serialized(banned);
+
+    // Buffer over header and payload.
+    const std::array<asio::const_buffer, 2> & bufs
+    {
+        {
+            asio::buffer(&banned_msg_ptr->header, sizeof(Header)),
+            asio::buffer(banned_msg_ptr->payload)
+        }
+    };
+
+    // Keep data alive until socket is fully closed.
+    auto socket_ptr = std::make_shared<tcp::socket>(std::move(socket));
+
+    // Close the session after sending.
+    asio::async_write(*socket_ptr, bufs,
+            [socket_ptr, banned_msg_ptr]
+            (boost::system::error_code ec, std::size_t){
+                boost::system::error_code ignored_ec;
+
+                socket_ptr->shutdown(tcp::socket::shutdown_both, ignored_ec);
+
+                socket_ptr->close(ignored_ec);
     });
 }
 

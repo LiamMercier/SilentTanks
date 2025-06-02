@@ -131,7 +131,8 @@ void UserManager::notify_match_finished(boost::uuids::uuid user_id)
 
 }
 
-void UserManager::notify_match_start(boost::uuids::uuid user_id, std::shared_ptr<MatchInstance> inst){
+void UserManager::notify_match_start(boost::uuids::uuid user_id,
+                                     std::shared_ptr<MatchInstance> inst){
 
     boost::asio::post(strand_,
     [this, user_id, inst]{
@@ -154,4 +155,51 @@ void UserManager::notify_match_start(boost::uuids::uuid user_id, std::shared_ptr
 
     });
 
+}
+
+void UserManager::on_ban_user(boost::uuids::uuid user_id,
+                        std::chrono::system_clock::time_point banned_until,
+                        std::string reason)
+{
+    boost::asio::post(strand_,
+        [this,
+         uuid = std::move(user_id),
+         banned_until = std::move(banned_until),
+         reason = std::move(reason)]{
+
+            // Find the user data.
+            auto user_itr = users_.find(uuid);
+            if (user_itr == users_.end())
+            {
+                // If there is no data, the user is not currently
+                // logged in. We can simply stop here.
+                return;
+            }
+
+            // Otherwise, grab the user.
+            auto user = user_itr->second;
+
+            // Delete the UUID to user mapping.
+            users_.erase(user_itr);
+
+            // Now call the session to close.
+            if ((user->current_session))
+            {
+                // Send a banned message.
+                BanMessage ban_msg;
+                ban_msg.time_till_unban = banned_until;
+                ban_msg.reason = reason;
+
+                Message banned;
+                banned.create_serialized(ban_msg);
+                (user->current_session)->deliver(banned);
+
+                // The server will get a callback from the
+                // session after it closes the socket, which
+                // will call the user manager to disconnect
+                // the mapping from sesssion id -> uuid for us.
+                (user->current_session)->close_session();
+            }
+
+        });
 }

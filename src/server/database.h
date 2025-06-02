@@ -3,6 +3,7 @@
 #include "message.h"
 #include "user.h"
 #include "match-result.h"
+#include "keyed-executor.h"
 
 #include <array>
 #include <cstdint>
@@ -37,8 +38,13 @@ public:
     using AuthCallback = std::function<void(UserData data,
                                             std::shared_ptr<Session> session)>;
 
+    using BanCallback = std::function<void(boost::uuids::uuid,
+                                        std::chrono::system_clock::time_point,
+                                        std::string)>;
+
     Database(asio::io_context & io,
-             AuthCallback auth_callback);
+             AuthCallback auth_callback,
+             BanCallback ban_callback);
 
     void authenticate(Message msg,
                       std::shared_ptr<Session> session,
@@ -54,6 +60,10 @@ public:
                 std::chrono::system_clock::time_point banned_until);
 
     void unban_ip(std::string ip);
+
+    void ban_user(std::string username,
+                  std::chrono::system_clock::time_point banned_until,
+                  std::string reason);
 
     std::unordered_map<std::string, std::chrono::system_clock::time_point>
     load_bans();
@@ -78,6 +88,10 @@ private:
 
     void do_unban_ip(std::string ip);
 
+    void do_ban_user(std::string username,
+                     std::chrono::system_clock::time_point banned_until,
+                     std::string reason);
+
     void prepares();
 
 private:
@@ -87,6 +101,14 @@ private:
     // Small number of threads for this pool to stop our main
     // threads from blocking.
     asio::thread_pool thread_pool_;
+
+    // Callbacks
     AuthCallback auth_callback_;
+    BanCallback ban_callback_;
+
+    // Thread safe map of mutex's for user keys.
+    KeyedExecutor<boost::uuids::uuid,
+                  boost::hash<boost::uuids::uuid>>
+                  uuid_strands_;
 
 };

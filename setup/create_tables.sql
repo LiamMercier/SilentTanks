@@ -17,11 +17,11 @@ CREATE TABLE Users(
 CREATE UNIQUE INDEX idx_users_username_lower ON Users(LOWER(username));
 
 CREATE TABLE Friends(
-    user_id UUID NOT NULL REFERENCES Users(user_id) ON DELETE CASCADE,
-    friend_id UUID NOT NULL REFERENCES Users(user_id) ON DELETE CASCADE,
+    user_a UUID NOT NULL REFERENCES Users(user_id) ON DELETE CASCADE,
+    user_b UUID NOT NULL REFERENCES Users(user_id) ON DELETE CASCADE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    PRIMARY KEY (user_id, friend_id),
-    CHECK (user_id <> friend_id)
+    PRIMARY KEY (user_a, user_b),
+    CHECK (user_a < user_b)
 );
 
 CREATE TABLE FriendRequests(

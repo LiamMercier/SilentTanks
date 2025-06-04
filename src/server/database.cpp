@@ -183,6 +183,51 @@ void Database::respond_friend_request(boost::uuids::uuid user,
                               std::move(session));
 }
 
+void Database::block_user(boost::uuids::uuid blocker,
+                          std::string blocked,
+                          std::shared_ptr<Session> session)
+{
+    do_block_user(std::move(blocker),
+                  std::move(blocked),
+                  std::move(session));
+}
+
+void Database::unblock_user(boost::uuids::uuid blocker,
+                            boost::uuids::uuid blocked,
+                            std::shared_ptr<Session> session)
+{
+    do_unblock_user(std::move(blocker),
+                    std::move(blocked),
+                    std::move(session));
+}
+
+void Database::remove_friend(boost::uuids::uuid user,
+                             boost::uuids::uuid friend_id,
+                             std::shared_ptr<Session> session)
+{
+    do_remove_friend(std::move(user),
+                     std::move(friend_id),
+                     std::move(session));
+}
+
+void Database::fetch_blocks(boost::uuids::uuid user,
+                            std::shared_ptr<Session> session)
+{
+    do_fetch_blocks(std::move(user), std::move(session));
+}
+
+void Database::fetch_friends(boost::uuids::uuid user,
+                             std::shared_ptr<Session> session)
+{
+    do_fetch_friends(std::move(user), std::move(session));
+}
+
+void Database::fetch_friend_requests(boost::uuids::uuid user,
+                                     std::shared_ptr<Session> session)
+{
+    do_fetch_friend_requests(std::move(user), std::move(session));
+}
+
 std::unordered_map<std::string, std::chrono::system_clock::time_point>
 Database::load_bans()
 {
@@ -754,7 +799,7 @@ void Database::do_unban_user(std::string username, uint64_t ban_id)
         }
         catch (const std::exception & e)
         {
-            std::cerr << "Exception in do_ban_user: " << e.what() << "\n";
+            std::cerr << "Exception in do_unban_user: " << e.what() << "\n";
         }
 
     });
@@ -796,16 +841,35 @@ void Database::do_send_friend_request(boost::uuids::uuid user,
                     friend_id = std::move(friend_id),
                     s = std::move(s)]() mutable {
 // START LAMBDA FOR UUID BASED STRAND
-                prepares();
+                try
+                {
+                    prepares();
 
-                pqxx::work txn{*conn_};
+                    pqxx::work txn{*conn_};
 
-                txn.exec_prepared("friend_request",
-                                  boost::uuids::to_string(user),
-                                  boost::uuids::to_string(friend_id));
+                    // Check if the sender is blocked
+                    // by the receiver.
+                    auto blocked_res = txn.exec_prepared("check_blocked",
+                                      boost::uuids::to_string(user),
+                                      boost::uuids::to_string(friend_id));
 
-                txn.commit();
+                    // If blocked, finish transaction and close.
+                    if (!blocked_res.empty())
+                    {
+                        txn.commit();
+                        return;
+                    }
 
+                    txn.exec_prepared("friend_request",
+                                      boost::uuids::to_string(user),
+                                      boost::uuids::to_string(friend_id));
+
+                    txn.commit();
+                }
+                catch (const std::exception & e)
+                {
+                    std::cerr << "Exception in do_send_friend_request: " << e.what() << "\n";
+                }
                 });
 // END LAMBDA FOR UUID BASED STRAND
             }
@@ -813,13 +877,13 @@ void Database::do_send_friend_request(boost::uuids::uuid user,
             else
             {
                 // TODO: log to console
-                std::cerr << "no user in do unban user\n";
+                std::cerr << "no user in do_send_friend_request\n";
             }
             txn.commit();
         }
         catch (const std::exception & e)
         {
-            std::cerr << "Exception in do_ban_user: " << e.what() << "\n";
+            std::cerr << "Exception in do_send_friend_request: " << e.what() << "\n";
         }
 
     });
@@ -836,16 +900,121 @@ void Database::do_respond_friend_request(boost::uuids::uuid user,
         user = std::move(user),
         sender = std::move(sender),
         decision,
-        s = std::move(s)]() mutable {
+        s = std::move(session)]() mutable {
 // START LAMBDA FOR UUID BASED STRAND
+    try
+    {
         prepares();
 
         pqxx::work txn{*conn_};
 
-        // TODO: Logic for handling friend requests
+        if (decision == ACCEPT_REQUEST)
+        {
+            // Check if this uuid maps to a valid user.
+            auto req_res = txn.exec_prepared(
+                                    "find_friend_request",
+                                    boost::uuids::to_string(user),
+                                    boost::uuids::to_string(sender));
+
+            if(!req_res.empty())
+            {
+                txn.exec_prepared("accept_friend",
+                              boost::uuids::to_string(user),
+                              boost::uuids::to_string(sender));
+
+                txn.exec_prepared("delete_friend_request",
+                              boost::uuids::to_string(sender),
+                              boost::uuids::to_string(user));
+            }
+            else
+            {
+                // Request never existed!
+            }
+        }
+        else
+        {
+            txn.exec_prepared("delete_friend_request",
+                              boost::uuids::to_string(sender),
+                              boost::uuids::to_string(user));
+        }
 
         txn.commit();
+    }
+    catch (const std::exception & e)
+    {
+        std::cerr << "Exception in do_respond_friend_request: " << e.what() << "\n";
+    }
+    });
+// END LAMBDA FOR UUID BASED STRAND
+}
 
+void Database::do_block_user(boost::uuids::uuid blocker,
+                             std::string blocked,
+                             std::shared_ptr<Session> session)
+{
+    asio::post(thread_pool_,
+        [this,
+        blocker,
+        blocked = std::move(blocked),
+        s = std::move(session)]{
+
+        try
+        {
+            prepares();
+
+            pqxx::work txn{*conn_};
+
+            // Find the uuid for this username
+
+            auto user_res = txn.exec_prepared("find_uuid", blocked);
+
+            if(!user_res.empty())
+            {
+                auto user_row = user_res[0];
+
+                // Turn this into a boost UUID.
+                std::string uuid_str = user_row["user_id"].as<std::string>();
+
+                boost::uuids::string_generator gen;
+                boost::uuids::uuid blocked_id = gen(uuid_str);
+
+                uuid_strands_.post(blocked_id,
+                    [this,
+                    blocker = std::move(blocker),
+                    blocked_id = std::move(blocked_id),
+                    s = std::move(s)]() mutable {
+// START LAMBDA FOR UUID BASED STRAND
+            try
+            {
+                prepares();
+
+                pqxx::work txn{*conn_};
+
+                txn.exec_prepared("block_user",
+                                  boost::uuids::to_string(blocker),
+                                  boost::uuids::to_string(blocked_id));
+
+                // Remove any friend requests that might exist.
+                txn.exec_prepared("delete_friend_request",
+                              boost::uuids::to_string(blocked_id),
+                              boost::uuids::to_string(blocker));
+
+                txn.exec_prepared("delete_friend_request",
+                              boost::uuids::to_string(blocker),
+                              boost::uuids::to_string(blocked_id));
+
+                // Remove any friendships that exist between
+                // the two users.
+                txn.exec_prepared("remove_friend",
+                                  boost::uuids::to_string(blocker),
+                                  boost::uuids::to_string(blocked_id));
+
+                txn.commit();
+            }
+            catch (const std::exception & e)
+            {
+                std::cerr << "Exception in do_block_user: " << e.what() << "\n";
+            }
                 });
 // END LAMBDA FOR UUID BASED STRAND
             }
@@ -853,16 +1022,94 @@ void Database::do_respond_friend_request(boost::uuids::uuid user,
             else
             {
                 // TODO: log to console
-                std::cerr << "no user in do unban user\n";
+                std::cerr << "no user in do_block_user\n";
             }
             txn.commit();
         }
         catch (const std::exception & e)
         {
-            std::cerr << "Exception in do_ban_user: " << e.what() << "\n";
+            std::cerr << "Exception in do_block_user: " << e.what() << "\n";
         }
 
     });
+}
+
+void Database::do_unblock_user(boost::uuids::uuid blocker,
+                               boost::uuids::uuid blocked_id,
+                               std::shared_ptr<Session> session)
+{
+    uuid_strands_.post(blocked_id,
+        [this,
+        blocker = std::move(blocker),
+        blocked_id = std::move(blocked_id),
+        s = std::move(s)]() mutable {
+// START LAMBDA FOR UUID BASED STRAND
+    try
+    {
+        prepares();
+
+        pqxx::work txn{*conn_};
+
+        txn.exec_prepared("unblock_user",
+                          boost::uuids::to_string(blocker),
+                          boost::uuids::to_string(blocked_id));
+
+        txn.commit();
+    }
+    catch (const std::exception & e)
+    {
+        std::cerr << "Exception in do_unblock_user: " << e.what() << "\n";
+            }
+    });
+// END LAMBDA FOR UUID BASED STRAND
+}
+
+void Database::do_remove_friend(boost::uuids::uuid user,
+                                boost::uuids::uuid friend_id,
+                                std::shared_ptr<Session> session)
+{
+    uuid_strands_.post(friend_id,
+        [this,
+        user = std::move(user),
+        friend_id = std::move(friend_id),
+        s = std::move(session)]() mutable {
+// START LAMBDA FOR UUID BASED STRAND
+    try
+    {
+        prepares();
+
+        pqxx::work txn{*conn_};
+
+        txn.exec_prepared("remove_friend",
+                          boost::uuids::to_string(user),
+                          boost::uuids::to_string(friend_id));
+
+        txn.commit();
+    }
+    catch (const std::exception & e)
+    {
+        std::cerr << "Exception in do_remove_friend: " << e.what() << "\n";
+    }
+    });
+// END LAMBDA FOR UUID BASED STRAND
+}
+
+void Database::do_fetch_blocks(boost::uuids::uuid user,
+                               std::shared_ptr<Session> session)
+{
+
+}
+
+void Database::do_fetch_friends(boost::uuids::uuid user,
+                                std::shared_ptr<Session> session)
+{
+
+}
+
+void Database::do_fetch_friend_requests(boost::uuids::uuid user,
+                                        std::shared_ptr<Session> session)
+{
+
 }
 
 void Database::prepares()
@@ -921,6 +1168,49 @@ void Database::prepares()
             "WHERE ban_id = $1");
         conn_->prepare("friend_request",
             "INSERT INTO FriendRequests (sender, receiver) "
+            "VALUES ($1, $2) "
+            "ON CONFLICT DO NOTHING");
+        conn_->prepare("delete_friend_request",
+            "DELETE FROM FriendRequests "
+            "WHERE sender = $1 "
+            " AND receiver = $2");
+        conn_->prepare("accept_friend",
+            "INSERT INTO Friends (user_a, user_b) "
+            "VALUES (LEAST($1, $2), GREATEST($1, $2)) "
+            "ON CONFLICT DO NOTHING");
+        conn_->prepare("find_friend_request",
+            "SELECT 1 "
+            "FROM FriendRequests "
+            "WHERE receiver = $1 AND sender = $2 "
+            "LIMIT 1");
+        conn_->prepare("block_user",
+            "INSERT INTO BlockedUsers (blocker, blocked) "
             "VALUES ($1, $2)");
+        conn_->prepare("check_blocked",
+            "SELECT 1 "
+            "FROM BlockedUsers "
+            "WHERE blocker = $1 AND blocked = $2 "
+            "LIMIT 1");
+        conn_->prepare("remove_friend",
+            "DELETE FROM Friends "
+            "WHERE (user_a = LEAST($1, $2) AND user_b = GREATEST($1, $2))");
+        conn_->prepare("unblock_user",
+            "DELETE FROM BlockedUsers "
+            "WHERE blocker = $1 AND blocked = $2");
+        conn_->prepare("fetch_blocks",
+            "SELECT blocked "
+            "FROM BlockedUsers "
+            "WHERE blocker = $1");
+        conn_->prepare("fetch_friends",
+            "SELECT CASE "
+            "WHEN user_a = $1 THEN user_b "
+            "ELSE user a "
+            "END AS friend_id "
+            "FROM Friends "
+            "WHERE user_a = $1 OR user_b = $1");
+        conn_->prepare("fetch_friend_requests",
+            "SELECT sender "
+            "FROM FriendRequests "
+            "WHERE receiver = $1");
     }
 }

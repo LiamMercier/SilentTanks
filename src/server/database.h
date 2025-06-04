@@ -30,6 +30,8 @@ constexpr size_t MAX_CONCURRENT_AUTHS = 3;
 // Default elo on table insert
 constexpr int DEFAULT_ELO = 1000;
 
+constexpr bool ACCEPT_REQUEST = true;
+
 namespace asio = boost::asio;
 
 class Database
@@ -71,10 +73,35 @@ public:
                              std::string friend_username,
                              std::shared_ptr<Session> session);
 
+    // TODO: get friend requests
+
     void respond_friend_request(boost::uuids::uuid user,
                                 boost::uuids::uuid sender,
                                 bool decision,
                                 std::shared_ptr<Session> session);
+
+    void block_user(boost::uuids::uuid blocker,
+                    std::string blocked,
+                    std::shared_ptr<Session> session);
+
+    // TODO: get blocked users
+
+    void unblock_user(boost::uuids::uuid blocker,
+                      boost::uuids::uuid blocked_id,
+                      std::shared_ptr<Session> session);
+
+    void remove_friend(boost::uuids::uuid user,
+                       boost::uuids::uuid friend_id,
+                       std::shared_ptr<Session> session);
+
+    void fetch_blocks(boost::uuids::uuid user,
+                      std::shared_ptr<Session> session);
+
+    void fetch_friends(boost::uuids::uuid user,
+                       std::shared_ptr<Session> session);
+
+    void fetch_friend_requests(boost::uuids::uuid user,
+                               std::shared_ptr<Session> session);
 
     std::unordered_map<std::string, std::chrono::system_clock::time_point>
     load_bans();
@@ -113,6 +140,27 @@ private:
                                    boost::uuids::uuid sender,
                                    bool decision,
                                    std::shared_ptr<Session> session);
+
+    void do_block_user(boost::uuids::uuid blocker,
+                       std::string blocked,
+                       std::shared_ptr<Session> session);
+
+    void do_unblock_user(boost::uuids::uuid blocker,
+                         boost::uuids::uuid blocked_id,
+                         std::shared_ptr<Session> session);
+
+    void do_remove_friend(boost::uuids::uuid user,
+                          boost::uuids::uuid friend_id,
+                          std::shared_ptr<Session> session);
+
+    void do_fetch_blocks(boost::uuids::uuid user,
+                         std::shared_ptr<Session> session);
+
+    void do_fetch_friends(boost::uuids::uuid user,
+                          std::shared_ptr<Session> session);
+
+    void do_fetch_friend_requests(boost::uuids::uuid user,
+                                  std::shared_ptr<Session> session);
 
     void prepares();
 

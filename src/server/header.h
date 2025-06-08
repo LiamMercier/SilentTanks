@@ -11,34 +11,60 @@ enum class HeaderType : uint8_t
 {
     LoginRequest,
     RegistrationRequest,
+    // Server messages to client for auth/register.
     Unauthorized,
     AlreadyAuthorized,
     GoodRegistration,
     BadRegistration,
     BadAuth,
     GoodAuth,
+
+    // Fetch requests when the client connects.
+    FetchFriends,
+    FetchFriendRequests,
+    FetchBlocks,
+
+    // Server list callback headers.
+    FriendList,
+    FriendRequestList,
+    BlockList,
+
+    // User requests for friending/blocking.
+    SendFriendRequest,
+    RespondFriendRequest,
+    UnfriendUser,
+    BlockUser,
+    UnblockUser,
+
+    // Queue related requests.
     QueueMatch,
     BadQueue,
     CancelMatch,
     ForfeitMatch,
     BadCancel,
     QueueDropped,
+
+    // Game related headers
     MatchStarting,
     NoMatchFound,
     MatchInProgress,
     SendCommand,
     PlayerView,
-    Text,
     FailedMove,
     StaleMove,
     Eliminated,
     TimedOut,
     Victory,
+
+    // Client server management headers.
     BadMessage,
     Ping,
     PingResponse,
     PingTimeout,
     Banned,
+
+    // Communication.
+    Text,
     MAX_TYPE
 };
 

@@ -4,6 +4,7 @@
 #include "environment.h"
 #include "player-view.h"
 #include "command.h"
+#include "external-user.h"
 
 #include <type_traits>
 #include <vector>
@@ -15,7 +16,7 @@
 
 constexpr size_t HASH_LENGTH = 32;
 
-constexpr size_t MAX_USERNAME_LENGTH = 20;
+constexpr size_t MAX_USERNAME_LENGTH = 30;
 
 // This must be ordered so that all ranked modes are together.
 enum class GameMode : uint8_t
@@ -88,6 +89,11 @@ struct BanMessage
 {
     std::chrono::system_clock::time_point time_till_unban;
     std::string reason;
+};
+
+struct UserList
+{
+    std::vector<ExternalUser> users;
 };
 
 struct Message

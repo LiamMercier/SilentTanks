@@ -24,12 +24,16 @@ CREATE TABLE Friends(
     CHECK (user_a < user_b)
 );
 
+CREATE INDEX idx_friends_user_b ON Friends(user_b);
+
 CREATE TABLE FriendRequests(
     sender UUID NOT NULL REFERENCES Users(user_id) ON DELETE CASCADE,
     receiver UUID NOT NULL REFERENCES Users(user_id) ON DELETE CASCADE,
     PRIMARY KEY (sender, receiver),
     CHECK (sender <> receiver)
 );
+
+CREATE INDEX idx_friend_requests_receiver ON FriendRequests(receiver);
 
 CREATE TABLE BlockedUsers(
     blocker UUID NOT NULL REFERENCES Users(user_id) ON DELETE CASCADE,

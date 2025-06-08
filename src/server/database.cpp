@@ -1042,7 +1042,7 @@ void Database::do_unblock_user(boost::uuids::uuid blocker,
         [this,
         blocker = std::move(blocker),
         blocked_id = std::move(blocked_id),
-        s = std::move(s)]() mutable {
+        s = std::move(session)]() mutable {
 // START LAMBDA FOR UUID BASED STRAND
     try
     {
@@ -1097,21 +1097,160 @@ void Database::do_remove_friend(boost::uuids::uuid user,
 void Database::do_fetch_blocks(boost::uuids::uuid user,
                                std::shared_ptr<Session> session)
 {
+    uuid_strands_.post(user,
+        [this,
+        user = std::move(user),
+        s = std::move(session)]() mutable {
 
+    try
+    {
+        prepares();
+
+        pqxx::work txn{*conn_};
+
+        auto blocks_res = txn.exec_prepared("fetch_blocks",
+                                            boost::uuids::to_string(user));
+
+        // This transaction is read only. Commit now.
+        txn.commit();
+
+        UserList blocked_users;
+
+        // Go through the blocked user list if it exists.
+        if(!blocks_res.empty())
+        {
+            boost::uuids::string_generator gen;
+
+            for (const auto & row : blocks_res)
+            {
+                ExternalUser blocked_user;
+
+                blocked_user.user_id = gen(row["user_id"].c_str());
+                blocked_user.username = row["username"].as<std::string>();
+
+                blocked_users.users.push_back(blocked_user);
+            }
+        }
+
+        // Turn the data into a message and send it to the client.
+        Message blocks_msg;
+        blocks_msg.header.type_ = HeaderType::BlockList;
+        blocks_msg.create_serialized(blocked_users);
+        s->deliver(blocks_msg);
+
+    }
+    catch (const std::exception & e)
+    {
+        std::cerr << "Exception in do_fetch_blocks: " << e.what() << "\n";
+    }
+    });
 }
 
 void Database::do_fetch_friends(boost::uuids::uuid user,
                                 std::shared_ptr<Session> session)
 {
+    uuid_strands_.post(user,
+        [this,
+        user = std::move(user),
+        s = std::move(session)]() mutable {
 
+    try
+    {
+        prepares();
+
+        pqxx::work txn{*conn_};
+
+        auto friends_res = txn.exec_prepared("fetch_friends",
+                                             boost::uuids::to_string(user));
+
+        // This transaction is read only. Commit now.
+        txn.commit();
+
+        UserList friends;
+
+        // Go through the friends list if it exists.
+        if(!friends_res.empty())
+        {
+            boost::uuids::string_generator gen;
+
+            for (const auto & row : friends_res)
+            {
+                ExternalUser curr_friend;
+
+                curr_friend.user_id = gen(row["user_id"].c_str());
+                curr_friend.username = row["username"].as<std::string>();
+
+                friends.users.push_back(curr_friend);
+            }
+        }
+
+        // Turn the data into a message and send it to the client.
+        Message friends_msg;
+        friends_msg.header.type_ = HeaderType::FriendList;
+        friends_msg.create_serialized(friends);
+        s->deliver(friends_msg);
+
+    }
+    catch (const std::exception & e)
+    {
+        std::cerr << "Exception in do_fetch_friends: " << e.what() << "\n";
+    }
+    });
 }
 
 void Database::do_fetch_friend_requests(boost::uuids::uuid user,
                                         std::shared_ptr<Session> session)
 {
+    uuid_strands_.post(user,
+        [this,
+        user = std::move(user),
+        s = std::move(session)]() mutable {
 
+    try
+    {
+        prepares();
+
+        pqxx::work txn{*conn_};
+
+        auto friends_req_res = txn.exec_prepared("fetch_friend_requests",
+                                             boost::uuids::to_string(user));
+
+        // This transaction is read only. Commit now.
+        txn.commit();
+
+        UserList friend_requests;
+
+        // Go through the friends list if it exists.
+        if(!friends_req_res.empty())
+        {
+            boost::uuids::string_generator gen;
+
+            for (const auto & row : friends_req_res)
+            {
+                ExternalUser curr_req;
+
+                curr_req.user_id = gen(row["user_id"].c_str());
+                curr_req.username = row["username"].as<std::string>();
+
+                friend_requests.users.push_back(curr_req);
+            }
+        }
+
+        // Turn the data into a message and send it to the client.
+        Message friends_req_msg;
+        friends_req_msg.header.type_ = HeaderType::FriendRequestList;
+        friends_req_msg.create_serialized(friend_requests);
+        s->deliver(friends_req_msg);
+
+    }
+    catch (const std::exception & e)
+    {
+        std::cerr << "Exception in do_fetch_friend_requests: " << e.what() << "\n";
+    }
+    });
 }
 
+// TODO: limit friend requests to some constant
 void Database::prepares()
 {
     if (!conn_)
@@ -1154,7 +1293,8 @@ void Database::prepares()
             "LIMIT 1");
         conn_->prepare("add_user_elos",
             "INSERT INTO UserElos (user_id, game_mode, current_elo) "
-            "VALUES ($1, $2, $3)");
+            "VALUES ($1, $2, $3) "
+            "ON CONFLICT DO NOTHING");
         conn_->prepare("find_uuid",
             "SELECT user_id "
             "FROM Users "
@@ -1185,7 +1325,8 @@ void Database::prepares()
             "LIMIT 1");
         conn_->prepare("block_user",
             "INSERT INTO BlockedUsers (blocker, blocked) "
-            "VALUES ($1, $2)");
+            "VALUES ($1, $2) "
+            "ON CONFLICT DO NOTHING");
         conn_->prepare("check_blocked",
             "SELECT 1 "
             "FROM BlockedUsers "
@@ -1198,19 +1339,22 @@ void Database::prepares()
             "DELETE FROM BlockedUsers "
             "WHERE blocker = $1 AND blocked = $2");
         conn_->prepare("fetch_blocks",
-            "SELECT blocked "
-            "FROM BlockedUsers "
-            "WHERE blocker = $1");
+            "SELECT b.blocked AS user_id, u.username AS username "
+            "FROM BlockedUsers b JOIN Users u ON u.user_id = b.blocked "
+            "WHERE b.blocker = $1");
         conn_->prepare("fetch_friends",
-            "SELECT CASE "
-            "WHEN user_a = $1 THEN user_b "
-            "ELSE user a "
-            "END AS friend_id "
-            "FROM Friends "
+            "SELECT (CASE "
+            "WHEN f.user_a = $1 THEN f.user_b "
+            "ELSE f.user_a "
+            "END) AS friend_id, u.username AS username "
+            "FROM Friends f "
+            "JOIN Users u "
+            "ON u.user_id = (CASE WHEN f.user_a = $1 THEN f.user_b "
+            "ELSE f.user_a END) "
             "WHERE user_a = $1 OR user_b = $1");
         conn_->prepare("fetch_friend_requests",
-            "SELECT sender "
-            "FROM FriendRequests "
+            "SELECT fr.sender AS user_id, u.username AS username "
+            "FROM FriendRequests fr JOIN Users u ON u.user_id = fr.sender "
             "WHERE receiver = $1");
     }
 }

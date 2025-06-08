@@ -39,6 +39,8 @@ template void Message::create_serialized<RegisterRequest>(RegisterRequest const&
 
 template void Message::create_serialized<BanMessage>(BanMessage const&);
 
+template void Message::create_serialized<UserList>(UserList const&);
+
 LoginRequest Message::to_login_request() const
 {
     LoginRequest request;
@@ -291,6 +293,31 @@ void Message::create_serialized(const mType & req)
         payload_buffer.insert(payload_buffer.end(),
                               req.username.begin(),
                               req.username.end());
+    }
+    else if constexpr (std::is_same_v<mType, UserList>)
+    {
+        // Loop over the users list and add it to the buffer.
+        for (const auto & user : req.users)
+        {
+            // UUIDs are 16 byte arrays, so we can just memcpy this.
+            payload_buffer.insert(
+                payload_buffer.end(),
+                user.user_id.data(),
+                user.user_id.data() + user.user_id.size());
+
+            // Usernames are not allowed to surpass uint8_t in length.
+            //
+            // We need to give this to the client so they know when the
+            // username ends.
+            uint8_t username_len = static_cast<uint8_t>(user.username.size());
+            payload_buffer.push_back(username_len);
+
+            // Copy the username.
+            payload_buffer.insert(
+                payload_buffer.end(),
+                reinterpret_cast<const uint8_t*>(user.username.data()),
+                reinterpret_cast<const uint8_t*>(user.username.data()) + user.username.size());
+        }
     }
     // Create a ban message to send to a banned user/IP.
     else if constexpr (std::is_same_v<mType, BanMessage>)

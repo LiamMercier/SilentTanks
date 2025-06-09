@@ -13,10 +13,32 @@
 #include <algorithm>
 #include <chrono>
 #include <bit>
+#include <boost/uuid/uuid.hpp>
 
 constexpr size_t HASH_LENGTH = 32;
 
-constexpr size_t MAX_USERNAME_LENGTH = 30;
+// Construct a lookup table of valid username characters.
+constexpr std::array<bool, 256> allowed_username_characters = []
+{
+    std::array<bool, 256> a{};
+    for (char c = '0'; c <= '9'; c++)
+    {
+        a[static_cast<unsigned char>(c)] = true;
+    }
+    for (char c = 'A'; c <= 'Z'; c++)
+    {
+        a[static_cast<unsigned char>(c)] = true;
+    }
+    for (char c = 'a'; c <= 'z'; c++)
+    {
+        a[static_cast<unsigned char>(c)] = true;
+    }
+
+    a['_'] = true;
+    a['-'] = true;
+
+    return a;
+}();
 
 // This must be ordered so that all ranked modes are together.
 enum class GameMode : uint8_t
@@ -96,6 +118,12 @@ struct UserList
     std::vector<ExternalUser> users;
 };
 
+struct FriendDecision
+{
+    boost::uuids::uuid user_id;
+    bool decision;
+};
+
 struct Message
 {
 public:
@@ -109,6 +137,10 @@ public:
     PlayerView to_player_view(bool & op_status);
 
     BanMessage to_ban_message();
+
+    std::string to_username();
+
+    boost::uuids::uuid to_uuid();
 
     template <typename mType>
     void create_serialized(const mType & req);

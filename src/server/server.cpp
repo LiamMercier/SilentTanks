@@ -279,6 +279,132 @@ void Server::on_message(const ptr & session, Message msg)
             db_.register_account(msg, session, client_ip);
             break;
         }
+        case HeaderType::FetchFriends
+        {
+            // Prevent actions before login.
+            if (!session->is_authenticated())
+            {
+                Message not_authorized;
+                not_authorized.create_serialized(HeaderType::Unauthorized);
+                session->deliver(not_authorized);
+                break;
+            }
+            boost::uuids::uuid user_id = (session->get_user_data()).user_id;
+            db_.fetch_friends(user_id, session)
+            break;
+        }
+        case HeaderType::FetchFriendRequests
+        {
+            // Prevent actions before login.
+            if (!session->is_authenticated())
+            {
+                Message not_authorized;
+                not_authorized.create_serialized(HeaderType::Unauthorized);
+                session->deliver(not_authorized);
+                break;
+            }
+            boost::uuids::uuid user_id = (session->get_user_data()).user_id;
+            db_.fetch_friend_requests(user_id, session)
+            break;
+        }
+        case HeaderType::FetchBlocks
+        {
+            // Prevent actions before login.
+            if (!session->is_authenticated())
+            {
+                Message not_authorized;
+                not_authorized.create_serialized(HeaderType::Unauthorized);
+                session->deliver(not_authorized);
+                break;
+            }
+            boost::uuids::uuid user_id = (session->get_user_data()).user_id;
+            db_.fetch_blocks(user_id, session)
+            break;
+        }
+        case HeaderType::SendFriendRequest
+        {
+            // Prevent actions before login.
+            if (!session->is_authenticated())
+            {
+                Message not_authorized;
+                not_authorized.create_serialized(HeaderType::Unauthorized);
+                session->deliver(not_authorized);
+                break;
+            }
+            boost::uuids::uuid user_id = (session->get_user_data()).user_id;
+            db_.send_friend_request(user_id, msg, session)
+            break;
+        }
+        case HeaderType::RespondFriendRequest
+        {
+            // Prevent actions before login.
+            if (!session->is_authenticated())
+            {
+                Message not_authorized;
+                not_authorized.create_serialized(HeaderType::Unauthorized);
+                session->deliver(not_authorized);
+                break;
+            }
+            boost::uuids::uuid user_id = (session->get_user_data()).user_id;
+            db_.respond_friend_request(user_id, msg, session)
+            break;
+        }
+        case HeaderType::RemoveFriend
+        {
+            // Prevent actions before login.
+            if (!session->is_authenticated())
+            {
+                Message not_authorized;
+                not_authorized.create_serialized(HeaderType::Unauthorized);
+                session->deliver(not_authorized);
+                break;
+            }
+            boost::uuids::uuid user_id = (session->get_user_data()).user_id;
+            db_.remove_friend(user_id, msg, session)
+            break;
+        }
+        case HeaderType::BlockUser
+        {
+            // Prevent actions before login.
+            if (!session->is_authenticated())
+            {
+                Message not_authorized;
+                not_authorized.create_serialized(HeaderType::Unauthorized);
+                session->deliver(not_authorized);
+                break;
+            }
+            boost::uuids::uuid user_id = (session->get_user_data()).user_id;
+            db_.block_user(user_id, msg, session)
+            break;
+        }
+        case HeaderType::UnblockUser
+        {
+            // Prevent actions before login.
+            if (!session->is_authenticated())
+            {
+                Message not_authorized;
+                not_authorized.create_serialized(HeaderType::Unauthorized);
+                session->deliver(not_authorized);
+                break;
+            }
+            boost::uuids::uuid user_id = (session->get_user_data()).user_id;
+            db_.unblock_user(user_id, msg, session)
+            break;
+        }
+        case HeaderType::Text:
+        {
+            // Prevent actions before login.
+            if (!session->is_authenticated())
+            {
+                Message not_authorized;
+                not_authorized.create_serialized(HeaderType::Unauthorized);
+                session->deliver(not_authorized);
+                break;
+            }
+
+            // not implemented for now
+            break;
+        }
         case HeaderType::QueueMatch:
         {
 
@@ -329,7 +455,7 @@ void Server::on_message(const ptr & session, Message msg)
             break;
         }
         case HeaderType::SendCommand:
-
+        {
             // Prevent actions before login.
             if (!session->is_authenticated())
             {
@@ -342,21 +468,9 @@ void Server::on_message(const ptr & session, Message msg)
             // Route to match deals with message validation.
             matcher_.route_to_match(session, msg);
             break;
-        case HeaderType::Text:
-
-            // Prevent actions before login.
-            if (!session->is_authenticated())
-            {
-                Message not_authorized;
-                not_authorized.create_serialized(HeaderType::Unauthorized);
-                session->deliver(not_authorized);
-                break;
-            }
-
-            // not implemented for now
-            break;
+        }
         case HeaderType::ForfeitMatch:
-
+        {
             // Prevent actions before login.
             if (!session->is_authenticated())
             {
@@ -368,6 +482,7 @@ void Server::on_message(const ptr & session, Message msg)
 
             matcher_.forfeit(session);
             break;
+        }
         default:
             // do nothing, should never happen
             break;

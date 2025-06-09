@@ -66,6 +66,8 @@ LoginRequest Message::to_login_request() const
     // copy the hash bytes
     std::copy(payload.begin(), payload.begin() + HASH_LENGTH, request.hash.begin());
 
+    // TODO: check that the username has valid characters
+
     idx += HASH_LENGTH;
     // copy the rest into the username
     request.username.assign(payload.begin() + idx, payload.end());
@@ -237,6 +239,142 @@ BanMessage Message::to_ban_message()
     }
 
     return ban_message;
+}
+
+UserList Message::to_user_list(bool & op_status)
+{
+    size_t offset = 0;
+    size_t total = payload.size();
+
+    UserList user_list;
+
+    // While we still have more users to go through.
+    while (offset < total)
+    {
+        // If we can't read another 17 bytes, stop.
+        if (offset + 16 + 1 > total)
+        {
+            op_status = false;
+            return {};
+        }
+
+        ExternalUser user;
+
+        // Copy this user's uuid bytes from the buffer.
+        std::memcpy(user.user_id.data(),
+                    payload.data() + offset,
+                    16);
+
+        // Update offset, get the username length. We store this
+        // as a uint8_t since usernames lengths are less than 256.
+        offset += 16;
+        uint8_t username_len = payload[offset++];
+
+        // If invalid username length.
+        if (username_len > MAX_USERNAME_LENGTH)
+        {
+            op_status = false;
+            return {};
+        }
+
+        // If not enough data.
+        if (username_len + offset > total)
+        {
+            op_status = false;
+            return {};
+        }
+
+        // Copy while ensuring valid username.
+        std::string username;
+        for (int i = 0; i < username_len; i++)
+        {
+            unsigned char c = static_cast<unsigned char>(payload[offset + i]);
+            if (!allowed_username_characters[c])
+            {
+                op_status = false;
+                return {};
+            }
+            username.push_back(c);
+        }
+
+        user.username = std::move(username);
+        user_list.users.push_back(std::move(user));
+
+        offset += username_len;
+    }
+
+    op_status = true;
+    return user_list;
+}
+
+std::string Message::to_username()
+{
+    // Create empty string on bad data. Should never happen if we
+    // reject headers of incorrect size.
+    if (payload.size() < 1 || payload.size() > MAX_USERNAME_LENGTH)
+    {
+        return {};
+    }
+
+    // Otherwise, the whole payload is the username. Check it for
+    // valid characters and construct the string.
+    std::string username;
+    username.reserve(payload.size());
+
+    for (uint8_t byte : payload)
+    {
+        unsigned char c = static_cast<unsigned char>(byte);
+        if (!allowed_username_characters[c])
+        {
+            return {};
+        }
+        username.push_back(c);
+    }
+
+    return username;
+}
+
+boost::uuids::uuid Message::to_uuid()
+{
+    boost::uuids::uuid user_id;
+
+    // Return nil ID on bad message.
+    if (payload.size() != 16)
+    {
+        return user_id;
+    }
+
+    // Otherwise, construct from bytes.
+    std::copy(
+        payload.begin(),
+        payload.begin + 16,
+        user_id.begin()
+    );
+
+    return user_id;
+}
+
+FriendDecision Message::to_uuid()
+{
+    FriendDecision friend_decision;
+
+    // Return nil ID on bad message.
+    if (payload.size() != 17)
+    {
+        return friend_decision;
+    }
+
+    // Copy uuid bytes.
+    std::copy(
+        payload.begin(),
+        payload.begin() + 16,
+        friend_decision.user_id.begin()
+    );
+
+    // Add the decision.
+    friend_decision.decision = static_cast<bool>(payload[16]);
+
+    return friend_decision;
 }
 
 // Function to create a network serialized message for a message type.

@@ -32,7 +32,7 @@ enum class HeaderType : uint8_t
     // User requests for friending/blocking.
     SendFriendRequest,
     RespondFriendRequest,
-    UnfriendUser,
+    RemoveFriend,
     BlockUser,
     UnblockUser,
 
@@ -69,6 +69,8 @@ enum class HeaderType : uint8_t
 };
 
 static constexpr uint32_t MAX_PAYLOAD_LEN = 3000;
+
+constexpr size_t MAX_USERNAME_LENGTH = 30;
 
 struct Header
 {

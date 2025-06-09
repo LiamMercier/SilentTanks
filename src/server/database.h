@@ -70,28 +70,23 @@ public:
     void unban_user(std::string username, uint64_t ban_id);
 
     void send_friend_request(boost::uuids::uuid user,
-                             std::string friend_username,
+                             Message msg,
                              std::shared_ptr<Session> session);
 
-    // TODO: get friend requests
-
     void respond_friend_request(boost::uuids::uuid user,
-                                boost::uuids::uuid sender,
-                                bool decision,
+                                Message msg,
                                 std::shared_ptr<Session> session);
 
     void block_user(boost::uuids::uuid blocker,
-                    std::string blocked,
+                    Message msg,
                     std::shared_ptr<Session> session);
 
-    // TODO: get blocked users
-
     void unblock_user(boost::uuids::uuid blocker,
-                      boost::uuids::uuid blocked_id,
+                      Message msg,
                       std::shared_ptr<Session> session);
 
     void remove_friend(boost::uuids::uuid user,
-                       boost::uuids::uuid friend_id,
+                       Message msg,
                        std::shared_ptr<Session> session);
 
     void fetch_blocks(boost::uuids::uuid user,

@@ -8,7 +8,6 @@
 
 class MatchInstance;
 
-// TODO: friends
 struct User
 {
     User()

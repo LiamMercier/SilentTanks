@@ -50,7 +50,8 @@ CREATE TABLE UserBans(
     banned_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     banned_until TIMESTAMPTZ NOT NULL,
     original_expiration TIMESTAMPTZ NOT NULL,
-    reason TEXT NOT NULL DEFAULT ''
+    reason TEXT NOT NULL DEFAULT '',
+    CHECK (banned_until > now())
 );
 
 -- And index on the username since we frequently look up users like this.

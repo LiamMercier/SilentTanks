@@ -53,13 +53,13 @@ void Database::authenticate(Message msg,
                 ip = std::move(client_ip)]
     {
 
-        // First, turn the message into an authentication attempt
+        // First, turn the message into an authentication attempt.
         LoginRequest request = m.to_login_request();
 
         // If the username has length zero, we should stop now.
         if (request.username.length() == 0)
         {
-            // Callback to server with null uuid
+            // Callback to server with null uuid.
             UserData nil_data;
             if (auth_callback_)
             {
@@ -128,6 +128,8 @@ void Database::record_match(MatchResult result)
         std::string moves_json = glz::write_json(result.move_history).value_or("error");
         std::string settings_json = glz::write_json(result.settings).value_or("error");
 
+        // TODO: handle errors.
+
         // post database work to the database thread pool.
         do_record(result.user_ids,
                   result.elimination_order,
@@ -164,49 +166,84 @@ void Database::unban_user(std::string username, uint64_t ban_id)
 }
 
 void Database::send_friend_request(boost::uuids::uuid user,
-                                   std::string friend_username,
+                                   Message msg,
                                    std::shared_ptr<Session> session)
 {
+
+    std::string friend_username = msg.to_username();
+
+    if (friend_username.size() < 1)
+    {
+        return;
+    }
+
     do_send_friend_request(std::move(user),
                            std::move(friend_username),
                            std::move(session));
 }
 
 void Database::respond_friend_request(boost::uuids::uuid user,
-                                      boost::uuids::uuid sender,
-                                      bool decision,
+                                      Message msg
                                       std::shared_ptr<Session> session)
 {
+    FriendDecision friend_decision = msg.to_friend_decision();
+
+    if (friend_decision.user_id == boost::uuids::nil_uuid())
+    {
+        return;
+    }
+
     do_respond_friend_request(std::move(user),
-                              std::move(sender),
-                              decision,
+                              std::move(friend_decision.user_id),
+                              std::move(friend_decision.decision),
                               std::move(session));
 }
 
 void Database::block_user(boost::uuids::uuid blocker,
-                          std::string blocked,
+                          Message msg,
                           std::shared_ptr<Session> session)
 {
+    std::string blocked = msg.to_username();
+
+    if (blocked.size() < 1)
+    {
+        return;
+    }
+
     do_block_user(std::move(blocker),
                   std::move(blocked),
                   std::move(session));
 }
 
 void Database::unblock_user(boost::uuids::uuid blocker,
-                            boost::uuids::uuid blocked,
+                            Message msg,
                             std::shared_ptr<Session> session)
 {
+    boost::uuids::uuid unblocked_uuid = msg.to_uuid();
+
+    if (unblocked_uuid == boost::uuids::nil_uuid())
+    {
+        return;
+    }
+
     do_unblock_user(std::move(blocker),
-                    std::move(blocked),
+                    std::move(unblocked_uuid),
                     std::move(session));
 }
 
 void Database::remove_friend(boost::uuids::uuid user,
-                             boost::uuids::uuid friend_id,
+                             Message msg,
                              std::shared_ptr<Session> session)
 {
+    boost::uuids::uuid friend_uuid = msg.to_uuid();
+
+    if (friend_uuid == boost::uuids::nil_uuid())
+    {
+        return;
+    }
+
     do_remove_friend(std::move(user),
-                     std::move(friend_id),
+                     std::move(friend_uuid),
                      std::move(session));
 }
 
@@ -402,7 +439,7 @@ void Database::do_auth(LoginRequest request,
                     data.user_id = user_id;
                     data.username = req.username;
 
-                    // Update the user's login history
+                    // Update the user's login history.
                     txn.exec_prepared("update_user_logins",
                                       ip,
                                       boost::uuids::to_string(user_id));
@@ -454,7 +491,6 @@ void Database::do_auth(LoginRequest request,
     });
 }
 
-// TODO: avoid try, catch for uniqueness violations
 void Database::do_register(LoginRequest request,
                            std::shared_ptr<Session> session,
                            std::string client_ip)
@@ -642,6 +678,7 @@ void Database::do_ban_ip(std::string ip,
             std::string banned_until_str = timepoint_to_string(banned_until);
 
             txn.exec_prepared("ban_ip", ip, banned_until_str);
+
             txn.commit();
         }
         catch (const std::exception & e)
@@ -662,6 +699,7 @@ void Database::do_unban_ip(std::string ip)
             pqxx::work txn{*conn_};
 
             txn.exec_prepared("unban_ip", ip);
+
             txn.commit();
         }
         catch (const std::exception & e)
@@ -811,10 +849,9 @@ void Database::do_send_friend_request(boost::uuids::uuid user,
 {
     asio::post(thread_pool_,
         [this,
-        user,
+        user = std::move(user),
         friend_username = std::move(friend_username),
         s = std::move(session)]{
-
         try
         {
             prepares();
@@ -834,6 +871,13 @@ void Database::do_send_friend_request(boost::uuids::uuid user,
 
                 boost::uuids::string_generator gen;
                 boost::uuids::uuid friend_id = gen(uuid_str);
+
+                // Drop this work if user is trying to friend themselves.
+                if (user == friend_id)
+                {
+                    txn.commit();
+                    return;
+                }
 
                 uuid_strands_.post(friend_id,
                     [this,
@@ -860,6 +904,20 @@ void Database::do_send_friend_request(boost::uuids::uuid user,
                         return;
                     }
 
+                    // Check if they are already friends.
+                    auto friends_res = txn.exec_prepared("check_friends",
+                                        boost::uuids::to_string(user),
+                                        boost::uuids::to_string(friend_id));
+
+                    // If already friends, stop now.
+                    if (!friends_res.empty())
+                    {
+                        txn.commit();
+                        return;
+                    }
+
+                    // If a friend request already exists, this will
+                    // simply do nothing.
                     txn.exec_prepared("friend_request",
                                       boost::uuids::to_string(user),
                                       boost::uuids::to_string(friend_id));
@@ -910,7 +968,7 @@ void Database::do_respond_friend_request(boost::uuids::uuid user,
 
         if (decision == ACCEPT_REQUEST)
         {
-            // Check if this uuid maps to a valid user.
+            // Check if this friend request exists.
             auto req_res = txn.exec_prepared(
                                     "find_friend_request",
                                     boost::uuids::to_string(user),
@@ -990,6 +1048,7 @@ void Database::do_block_user(boost::uuids::uuid blocker,
 
                 pqxx::work txn{*conn_};
 
+                // Block the user, idempotent.
                 txn.exec_prepared("block_user",
                                   boost::uuids::to_string(blocker),
                                   boost::uuids::to_string(blocked_id));
@@ -1331,6 +1390,11 @@ void Database::prepares()
             "SELECT 1 "
             "FROM BlockedUsers "
             "WHERE blocker = $1 AND blocked = $2 "
+            "LIMIT 1");
+        conn_->prepare("check_friends",
+            "SELECT 1 "
+            "FROM Friends "
+            "WHERE user_a = LEAST($1, $2) AND user_b = GREATEST($1, $2) "
             "LIMIT 1");
         conn_->prepare("remove_friend",
             "DELETE FROM Friends "

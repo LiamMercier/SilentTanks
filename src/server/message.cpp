@@ -354,7 +354,7 @@ boost::uuids::uuid Message::to_uuid()
     return user_id;
 }
 
-FriendDecision Message::to_uuid()
+FriendDecision Message::to_friend_decision()
 {
     FriendDecision friend_decision;
 
@@ -456,6 +456,52 @@ void Message::create_serialized(const mType & req)
                 reinterpret_cast<const uint8_t*>(user.username.data()),
                 reinterpret_cast<const uint8_t*>(user.username.data()) + user.username.size());
         }
+    }
+    else if constexpr (std::is_same_v<mType, FriendRequest>)
+    {
+        header.type_ = HeaderType::SendFriendRequest;
+
+        payload_buffer.insert(payload_buffer.end(),
+                              req.username.begin(),
+                              req.username.end());
+    }
+    else if constexpr (std::is_same_v<mType, FriendDecision>)
+    {
+        header.type_ = HeaderType::RespondFriendRequest;
+
+        // Insert UUID.
+        payload_buffer.insert(payload_buffer.end(),
+                              req.user_id.data(),
+                              req.user_id.data() + 16);
+
+        // Cast from bool to uint8_t.
+        payload_buffer.push_back(static_cast<uint8_t>(req.decision));
+    }
+    else if constexpr (std::is_same_v<mType, UnfriendRequest>)
+    {
+        header.type_ = HeaderType::RemoveFriend;
+
+        // Insert UUID.
+        payload_buffer.insert(payload_buffer.end(),
+                              req.user_id.data(),
+                              req.user_id.data() + 16);
+    }
+    else if constexpr (std::is_same_v<mType, BlockRequest>)
+    {
+        header.type_ = HeaderType::BlockUser;
+
+        payload_buffer.insert(payload_buffer.end(),
+                              req.username.begin(),
+                              req.username.end());
+    }
+    else if constexpr (std::is_same_v<mType, UnblockRequest>)
+    {
+        header.type_ = HeaderType::UnblockUser;
+
+        // Insert UUID.
+        payload_buffer.insert(payload_buffer.end(),
+                              req.user_id.data(),
+                              req.user_id.data() + 16);
     }
     // Create a ban message to send to a banned user/IP.
     else if constexpr (std::is_same_v<mType, BanMessage>)

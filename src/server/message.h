@@ -118,10 +118,30 @@ struct UserList
     std::vector<ExternalUser> users;
 };
 
+struct FriendRequest
+{
+    std::string username;
+};
+
 struct FriendDecision
 {
     boost::uuids::uuid user_id;
     bool decision;
+};
+
+struct UnfriendRequest
+{
+    boost::uuids::uuid user_id;
+};
+
+struct BlockRequest
+{
+    std::string username;
+};
+
+struct UnblockRequest
+{
+    boost::uuids::uuid user_id;
 };
 
 struct Message

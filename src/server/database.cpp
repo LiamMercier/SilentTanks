@@ -1318,14 +1318,17 @@ void Database::prepares()
             "host=127.0.0.1 "
             "port=5432 "
             "dbname=SilentTanksDB "
-            "user=SilentTanksOperator");
+            "user=SilentTanksOperator"
+            );
         conn_->prepare("auth",
             "SELECT user_id, hash, salt "
             "FROM Users "
-            "WHERE username = $1");
+            "WHERE LOWER(username) = LOWER($1)"
+            );
         conn_->prepare("reg",
             "INSERT INTO Users (user_id, username, hash, salt, last_ip) "
-            "VALUES ($1, $2, $3, $4, $5)");
+            "VALUES ($1, $2, $3, $4, $5)"
+            );
         conn_->prepare("ban_ip",
             "INSERT INTO BannedIPs (ip, banned_until, original_expiration) "
             "VALUES ($1, $2, $2) "
@@ -1342,70 +1345,86 @@ void Database::prepares()
             "UPDATE Users "
             "SET last_login = now(), "
             "last_ip = $1 "
-            "WHERE user_id = $2");
+            "WHERE user_id = $2"
+            );
         conn_->prepare("check_bans",
             "SELECT banned_at, (extract(epoch FROM banned_until)*1000)::bigint AS banned_ms, reason "
             "FROM UserBans "
             "WHERE user_id = $1 "
             " AND banned_until > now() "
             "ORDER BY banned_at DESC "
-            "LIMIT 1");
+            "LIMIT 1"
+            );
         conn_->prepare("add_user_elos",
             "INSERT INTO UserElos (user_id, game_mode, current_elo) "
             "VALUES ($1, $2, $3) "
-            "ON CONFLICT DO NOTHING");
+            "ON CONFLICT DO NOTHING"
+            );
         conn_->prepare("find_uuid",
             "SELECT user_id "
             "FROM Users "
-            "WHERE username = $1");
+            "WHERE LOWER(username) = LOWER($1)"
+            );
         conn_->prepare("ban_user",
             "INSERT INTO UserBans (user_id, banned_until, original_expiration, reason) "
-            "VALUES ($1, $2, $2, $3)");
+            "VALUES ($1, $2, $2, $3)"
+            );
         conn_->prepare("unban_user",
             "UPDATE UserBans "
             "SET banned_until = now() "
-            "WHERE ban_id = $1");
+            "WHERE ban_id = $1"
+            );
         conn_->prepare("friend_request",
             "INSERT INTO FriendRequests (sender, receiver) "
             "VALUES ($1, $2) "
-            "ON CONFLICT DO NOTHING");
+            "ON CONFLICT DO NOTHING"
+            );
         conn_->prepare("delete_friend_request",
             "DELETE FROM FriendRequests "
             "WHERE sender = $1 "
-            " AND receiver = $2");
+            " AND receiver = $2"
+            );
         conn_->prepare("accept_friend",
             "INSERT INTO Friends (user_a, user_b) "
             "VALUES (LEAST($1, $2), GREATEST($1, $2)) "
-            "ON CONFLICT DO NOTHING");
+            "ON CONFLICT DO NOTHING"
+            );
         conn_->prepare("find_friend_request",
             "SELECT 1 "
             "FROM FriendRequests "
             "WHERE receiver = $1 AND sender = $2 "
-            "LIMIT 1");
+            "LIMIT 1"
+            );
         conn_->prepare("block_user",
             "INSERT INTO BlockedUsers (blocker, blocked) "
             "VALUES ($1, $2) "
-            "ON CONFLICT DO NOTHING");
+            "ON CONFLICT DO NOTHING"
+            );
         conn_->prepare("check_blocked",
             "SELECT 1 "
             "FROM BlockedUsers "
             "WHERE blocker = $1 AND blocked = $2 "
-            "LIMIT 1");
+            "LIMIT 1"
+            );
         conn_->prepare("check_friends",
             "SELECT 1 "
             "FROM Friends "
             "WHERE user_a = LEAST($1, $2) AND user_b = GREATEST($1, $2) "
-            "LIMIT 1");
+            "LIMIT 1"
+            );
         conn_->prepare("remove_friend",
             "DELETE FROM Friends "
-            "WHERE (user_a = LEAST($1, $2) AND user_b = GREATEST($1, $2))");
+            "WHERE (user_a = LEAST($1, $2) AND user_b = GREATEST($1, $2))"
+            );
         conn_->prepare("unblock_user",
             "DELETE FROM BlockedUsers "
-            "WHERE blocker = $1 AND blocked = $2");
+            "WHERE blocker = $1 AND blocked = $2"
+            );
         conn_->prepare("fetch_blocks",
             "SELECT b.blocked AS user_id, u.username AS username "
             "FROM BlockedUsers b JOIN Users u ON u.user_id = b.blocked "
-            "WHERE b.blocker = $1");
+            "WHERE b.blocker = $1"
+            );
         conn_->prepare("fetch_friends",
             "SELECT (CASE "
             "WHEN f.user_a = $1 THEN f.user_b "
@@ -1415,10 +1434,12 @@ void Database::prepares()
             "JOIN Users u "
             "ON u.user_id = (CASE WHEN f.user_a = $1 THEN f.user_b "
             "ELSE f.user_a END) "
-            "WHERE user_a = $1 OR user_b = $1");
+            "WHERE user_a = $1 OR user_b = $1"
+            );
         conn_->prepare("fetch_friend_requests",
             "SELECT fr.sender AS user_id, u.username AS username "
             "FROM FriendRequests fr JOIN Users u ON u.user_id = fr.sender "
-            "WHERE receiver = $1");
+            "WHERE receiver = $1"
+            );
     }
 }

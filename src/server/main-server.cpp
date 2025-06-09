@@ -295,6 +295,7 @@ int main()
     }
 
     // Test console ban
+    /*
     server.CONSOLE_ban_user("oranges",
                             std::chrono::system_clock::now() + std::chrono::seconds(30),
                             std::string("test ban console")
@@ -306,8 +307,18 @@ int main()
                             std::chrono::system_clock::now() + std::chrono::seconds(30),
                             std::string("test ban console")
                             );
+    */
+
+    // Send friend request from bananas to oranges
+    {
+        Message msg;
+        std::string friend_username;
+        msg.create_serialized()
+    }
 
     std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+
+    /*
 
     {
         Message msg2;
@@ -737,6 +748,8 @@ int main()
     }
 
     std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+
+    */
 
     client_io.stop();
 

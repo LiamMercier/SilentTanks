@@ -158,9 +158,15 @@ public:
 
     BanMessage to_ban_message();
 
+    UserList to_user_list(bool & op_status);
+
     std::string to_username();
 
     boost::uuids::uuid to_uuid();
+
+    FriendDecision to_friend_decision();
+
+
 
     template <typename mType>
     void create_serialized(const mType & req);

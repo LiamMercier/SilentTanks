@@ -183,7 +183,7 @@ void Database::send_friend_request(boost::uuids::uuid user,
 }
 
 void Database::respond_friend_request(boost::uuids::uuid user,
-                                      Message msg
+                                      Message msg,
                                       std::shared_ptr<Session> session)
 {
     FriendDecision friend_decision = msg.to_friend_decision();
@@ -1386,7 +1386,7 @@ void Database::prepares()
             );
         conn_->prepare("accept_friend",
             "INSERT INTO Friends (user_a, user_b) "
-            "VALUES (LEAST($1, $2), GREATEST($1, $2)) "
+            "VALUES (LEAST($1::uuid, $2::uuid), GREATEST($1::uuid, $2::uuid)) "
             "ON CONFLICT DO NOTHING"
             );
         conn_->prepare("find_friend_request",
@@ -1403,22 +1403,24 @@ void Database::prepares()
         conn_->prepare("check_blocked",
             "SELECT 1 "
             "FROM BlockedUsers "
-            "WHERE blocker = $1 AND blocked = $2 "
+            "WHERE blocker = $1::uuid AND blocked = $2::uuid "
             "LIMIT 1"
             );
         conn_->prepare("check_friends",
             "SELECT 1 "
             "FROM Friends "
-            "WHERE user_a = LEAST($1, $2) AND user_b = GREATEST($1, $2) "
+            "WHERE user_a = LEAST($1::uuid, $2::uuid) "
+            "AND user_b = GREATEST($1::uuid, $2::uuid) "
             "LIMIT 1"
             );
         conn_->prepare("remove_friend",
             "DELETE FROM Friends "
-            "WHERE (user_a = LEAST($1, $2) AND user_b = GREATEST($1, $2))"
+            "WHERE (user_a = LEAST($1::uuid, $2::uuid) "
+            "AND user_b = GREATEST($1::uuid, $2::uuid))"
             );
         conn_->prepare("unblock_user",
             "DELETE FROM BlockedUsers "
-            "WHERE blocker = $1 AND blocked = $2"
+            "WHERE blocker = $1::uuid AND blocked = $2::uuid"
             );
         conn_->prepare("fetch_blocks",
             "SELECT b.blocked AS user_id, u.username AS username "

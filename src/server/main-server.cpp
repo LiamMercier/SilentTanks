@@ -92,6 +92,12 @@ int main()
         return;
     }
 
+    if (m.header.type_ == HeaderType::BadAuth)
+    {
+        std::cout << "[" << s->id() << "] " << "Bad auth! \n";
+        return;
+    }
+
     if (m.header.type_ == HeaderType::GoodAuth)
     {
         std::cout << "[" << s->id() << "] " << "Good auth! \n";
@@ -237,7 +243,7 @@ int main()
     {
         Message msg;
         msg.create_serialized(u1_req);
-        s1->deliver(msg);
+        //s1->deliver(msg);
     }
 
     {
@@ -284,7 +290,7 @@ int main()
 
         Message msg;
         msg.create_serialized(u2_req);
-        s2->deliver(msg);
+        //s2->deliver(msg);
 
         std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
@@ -309,11 +315,99 @@ int main()
                             );
     */
 
-    // Send friend request from bananas to oranges
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+
+    // Send friend request from bananas to apples (does not exist).
     {
         Message msg;
-        std::string friend_username;
-        msg.create_serialized()
+        FriendRequest request;
+        request.username = "APPLES";
+        msg.create_serialized(request);
+
+        s2->deliver(msg);
+    }
+
+    // Send friend request from bananas to oranges.
+    {
+        Message msg;
+        FriendRequest request;
+        request.username = "ORANGES";
+        msg.create_serialized(request);
+
+        s2->deliver(msg);
+    }
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+
+    // Accept the friend request
+    {
+        Message msg;
+        FriendDecision request;
+        boost::uuids::string_generator gen;
+        request.user_id = gen("b98c81fe-1da8-4d95-b823-7f65d660fd6c");
+        request.decision = true;
+
+        msg.create_serialized(request);
+
+        s1->deliver(msg);
+    }
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+
+    // Unfriend the user from s2's side.
+    {
+        Message msg;
+        UnfriendRequest request;
+        boost::uuids::string_generator gen;
+        request.user_id = gen("d96fc731-ecc6-4e77-a113-da914302fa30");
+        msg.create_serialized(request);
+        s2->deliver(msg);
+    }
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+
+    // Block "test" from "oranges" (does not exist).
+    {
+        Message msg;
+        BlockRequest request;
+        request.username = "test";
+        msg.create_serialized(request);
+        s1->deliver(msg);
+    }
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+
+    // Block "bananas" from "oranges"
+    {
+        Message msg;
+        BlockRequest request;
+        request.username = "BANANAS";
+        msg.create_serialized(request);
+        s1->deliver(msg);
+    }
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+
+    // Try to unblock from "bananas" (should not happen)
+    {
+        Message msg;
+        UnblockRequest request;
+        boost::uuids::string_generator gen;
+        request.user_id = gen("d96fc731-ecc6-4e77-a113-da914302fa30");
+        msg.create_serialized(request);
+        s2->deliver(msg);
+    }
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+
+    // Unblock "bananas" from "oranges"
+    {
+        Message msg;
+        UnblockRequest request;
+        boost::uuids::string_generator gen;
+        request.user_id = gen("b98c81fe-1da8-4d95-b823-7f65d660fd6c");
+        msg.create_serialized(request);
+        s1->deliver(msg);
     }
 
     std::this_thread::sleep_for(std::chrono::milliseconds(1000));

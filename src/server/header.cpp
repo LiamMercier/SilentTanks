@@ -55,40 +55,45 @@ bool Header::valid()
             }
             break;
         }
-        case HeaderType::SendFriendRequest
+        case HeaderType::SendFriendRequest:
         {
             if (payload_len < 1 || payload_len > MAX_USERNAME_LENGTH)
             {
                 return false;
             }
+            break;
         }
-        case HeaderType::BlockUser
+        case HeaderType::BlockUser:
         {
             if (payload_len < 1 || payload_len > MAX_USERNAME_LENGTH)
             {
                 return false;
             }
+            break;
         }
-        case HeaderType::RespondFriendRequest
+        case HeaderType::RespondFriendRequest:
+        {
+            if (payload_len != 17)
+            {
+                return false;
+            }
+            break;
+        }
+        case HeaderType::RemoveFriend:
         {
             if (payload_len != 16)
             {
                 return false;
             }
+            break;
         }
-        case HeaderType::RemoveFriend
+        case HeaderType::UnblockUser:
         {
             if (payload_len != 16)
             {
                 return false;
             }
-        }
-        case HeaderType::UnblockUser
-        {
-            if (payload_len != 16)
-            {
-                return false;
-            }
+            break;
         }
         default:
         {

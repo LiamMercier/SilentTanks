@@ -41,6 +41,16 @@ template void Message::create_serialized<BanMessage>(BanMessage const&);
 
 template void Message::create_serialized<UserList>(UserList const&);
 
+template void Message::create_serialized<FriendRequest>(FriendRequest const&);
+
+template void Message::create_serialized<FriendDecision>(FriendDecision const&);
+
+template void Message::create_serialized<UnfriendRequest>(UnfriendRequest const&);
+
+template void Message::create_serialized<BlockRequest>(BlockRequest const&);
+
+template void Message::create_serialized<UnblockRequest>(UnblockRequest const&);
+
 LoginRequest Message::to_login_request() const
 {
     LoginRequest request;
@@ -261,7 +271,7 @@ UserList Message::to_user_list(bool & op_status)
         ExternalUser user;
 
         // Copy this user's uuid bytes from the buffer.
-        std::memcpy(user.user_id.data(),
+        std::memcpy(user.user_id.data,
                     payload.data() + offset,
                     16);
 
@@ -347,7 +357,7 @@ boost::uuids::uuid Message::to_uuid()
     // Otherwise, construct from bytes.
     std::copy(
         payload.begin(),
-        payload.begin + 16,
+        payload.begin() + 16,
         user_id.begin()
     );
 
@@ -440,8 +450,8 @@ void Message::create_serialized(const mType & req)
             // UUIDs are 16 byte arrays, so we can just memcpy this.
             payload_buffer.insert(
                 payload_buffer.end(),
-                user.user_id.data(),
-                user.user_id.data() + user.user_id.size());
+                user.user_id.data,
+                user.user_id.data + user.user_id.size());
 
             // Usernames are not allowed to surpass uint8_t in length.
             //
@@ -454,7 +464,7 @@ void Message::create_serialized(const mType & req)
             payload_buffer.insert(
                 payload_buffer.end(),
                 reinterpret_cast<const uint8_t*>(user.username.data()),
-                reinterpret_cast<const uint8_t*>(user.username.data()) + user.username.size());
+                reinterpret_cast<const uint8_t*>(user.username.data()) + 16);
         }
     }
     else if constexpr (std::is_same_v<mType, FriendRequest>)
@@ -471,8 +481,8 @@ void Message::create_serialized(const mType & req)
 
         // Insert UUID.
         payload_buffer.insert(payload_buffer.end(),
-                              req.user_id.data(),
-                              req.user_id.data() + 16);
+                              req.user_id.data,
+                              req.user_id.data + 16);
 
         // Cast from bool to uint8_t.
         payload_buffer.push_back(static_cast<uint8_t>(req.decision));
@@ -483,8 +493,8 @@ void Message::create_serialized(const mType & req)
 
         // Insert UUID.
         payload_buffer.insert(payload_buffer.end(),
-                              req.user_id.data(),
-                              req.user_id.data() + 16);
+                              req.user_id.data,
+                              req.user_id.data + 16);
     }
     else if constexpr (std::is_same_v<mType, BlockRequest>)
     {
@@ -500,8 +510,8 @@ void Message::create_serialized(const mType & req)
 
         // Insert UUID.
         payload_buffer.insert(payload_buffer.end(),
-                              req.user_id.data(),
-                              req.user_id.data() + 16);
+                              req.user_id.data,
+                              req.user_id.data + 16);
     }
     // Create a ban message to send to a banned user/IP.
     else if constexpr (std::is_same_v<mType, BanMessage>)

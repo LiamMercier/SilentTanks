@@ -279,7 +279,7 @@ void Server::on_message(const ptr & session, Message msg)
             db_.register_account(msg, session, client_ip);
             break;
         }
-        case HeaderType::FetchFriends
+        case HeaderType::FetchFriends:
         {
             // Prevent actions before login.
             if (!session->is_authenticated())
@@ -290,10 +290,10 @@ void Server::on_message(const ptr & session, Message msg)
                 break;
             }
             boost::uuids::uuid user_id = (session->get_user_data()).user_id;
-            db_.fetch_friends(user_id, session)
+            db_.fetch_friends(user_id, session);
             break;
         }
-        case HeaderType::FetchFriendRequests
+        case HeaderType::FetchFriendRequests:
         {
             // Prevent actions before login.
             if (!session->is_authenticated())
@@ -304,10 +304,10 @@ void Server::on_message(const ptr & session, Message msg)
                 break;
             }
             boost::uuids::uuid user_id = (session->get_user_data()).user_id;
-            db_.fetch_friend_requests(user_id, session)
+            db_.fetch_friend_requests(user_id, session);
             break;
         }
-        case HeaderType::FetchBlocks
+        case HeaderType::FetchBlocks:
         {
             // Prevent actions before login.
             if (!session->is_authenticated())
@@ -318,10 +318,10 @@ void Server::on_message(const ptr & session, Message msg)
                 break;
             }
             boost::uuids::uuid user_id = (session->get_user_data()).user_id;
-            db_.fetch_blocks(user_id, session)
+            db_.fetch_blocks(user_id, session);
             break;
         }
-        case HeaderType::SendFriendRequest
+        case HeaderType::SendFriendRequest:
         {
             // Prevent actions before login.
             if (!session->is_authenticated())
@@ -332,10 +332,10 @@ void Server::on_message(const ptr & session, Message msg)
                 break;
             }
             boost::uuids::uuid user_id = (session->get_user_data()).user_id;
-            db_.send_friend_request(user_id, msg, session)
+            db_.send_friend_request(user_id, msg, session);
             break;
         }
-        case HeaderType::RespondFriendRequest
+        case HeaderType::RespondFriendRequest:
         {
             // Prevent actions before login.
             if (!session->is_authenticated())
@@ -346,10 +346,10 @@ void Server::on_message(const ptr & session, Message msg)
                 break;
             }
             boost::uuids::uuid user_id = (session->get_user_data()).user_id;
-            db_.respond_friend_request(user_id, msg, session)
+            db_.respond_friend_request(user_id, msg, session);
             break;
         }
-        case HeaderType::RemoveFriend
+        case HeaderType::RemoveFriend:
         {
             // Prevent actions before login.
             if (!session->is_authenticated())
@@ -360,10 +360,10 @@ void Server::on_message(const ptr & session, Message msg)
                 break;
             }
             boost::uuids::uuid user_id = (session->get_user_data()).user_id;
-            db_.remove_friend(user_id, msg, session)
+            db_.remove_friend(user_id, msg, session);
             break;
         }
-        case HeaderType::BlockUser
+        case HeaderType::BlockUser:
         {
             // Prevent actions before login.
             if (!session->is_authenticated())
@@ -374,10 +374,10 @@ void Server::on_message(const ptr & session, Message msg)
                 break;
             }
             boost::uuids::uuid user_id = (session->get_user_data()).user_id;
-            db_.block_user(user_id, msg, session)
+            db_.block_user(user_id, msg, session);
             break;
         }
-        case HeaderType::UnblockUser
+        case HeaderType::UnblockUser:
         {
             // Prevent actions before login.
             if (!session->is_authenticated())
@@ -388,7 +388,7 @@ void Server::on_message(const ptr & session, Message msg)
                 break;
             }
             boost::uuids::uuid user_id = (session->get_user_data()).user_id;
-            db_.unblock_user(user_id, msg, session)
+            db_.unblock_user(user_id, msg, session);
             break;
         }
         case HeaderType::Text:

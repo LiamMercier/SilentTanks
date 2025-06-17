@@ -144,6 +144,24 @@ struct UnblockRequest
     boost::uuids::uuid user_id;
 };
 
+struct NotifyRelationUpdate
+{
+    ExternalUser user;
+};
+
+struct ServerDirectMessage
+{
+    boost::uuids::uuid receiver;
+    std::string text;
+};
+
+struct ClientDirectMessage
+{
+    boost::uuids::uuid sender;
+    boost::uuids::uuid receiver;
+    std::string text;
+};
+
 struct Message
 {
 public:
@@ -166,7 +184,11 @@ public:
 
     FriendDecision to_friend_decision();
 
+    ExternalUser to_user();
 
+    ServerDirectMessage to_server_direct_message();
+
+    ClientDirectMessage to_client_direct_message();
 
     template <typename mType>
     void create_serialized(const mType & req);

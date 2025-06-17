@@ -1,8 +1,6 @@
 BEGIN;
 
 -- Create the users table
---
--- status tracks if the account is in good standing.
 CREATE TABLE Users(
     user_id UUID PRIMARY KEY NOT NULL,
     username TEXT UNIQUE NOT NULL,

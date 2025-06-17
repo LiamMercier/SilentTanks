@@ -36,6 +36,12 @@ enum class HeaderType : uint8_t
     BlockUser,
     UnblockUser,
 
+    // Notifications for friending/blocking.
+    NotifyFriendAdded,
+    NotifyFriendRemoved,
+    NotifyBlocked,
+    NotifyUnblocked,
+
     // Queue related requests.
     QueueMatch,
     BadQueue,
@@ -64,7 +70,8 @@ enum class HeaderType : uint8_t
     Banned,
 
     // Communication.
-    Text,
+    DirectTextMessage,
+    MatchTextMessage,
     MAX_TYPE
 };
 

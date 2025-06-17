@@ -2,7 +2,6 @@
 
 #include "match-strategy.h"
 #include "match-instance.h"
-#include "user-manager.h"
 
 #include <boost/functional/hash.hpp>
 

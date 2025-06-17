@@ -7,10 +7,14 @@ UserManager::UserManager(boost::asio::io_context & cntx)
 }
 
 void UserManager::on_login(UserData data,
+                           UUIDHashSet friends,
+                           UUIDHashSet blocked_users,
                            std::shared_ptr<Session> session)
 {
     boost::asio::post(strand_, [this,
                                 user_data = std::move(data),
+                                friends = std::move(friends),
+                                blocked = std::move(blocked_users),
                                 session = session]{
 
         auto & user = (this->users_)[user_data.user_id];
@@ -19,8 +23,12 @@ void UserManager::on_login(UserData data,
         if (!user)
         {
             // Construct from the user data.
-            user = std::make_shared<User>(user_data);
+            user = std::make_shared<User>(user_data,
+                                          friends,
+                                          blocked);
         }
+
+        // TODO: swap friends, blocked
 
         // Handle double sessions by closing the oldest
         // one and setting the new one as the current session.
@@ -202,4 +210,167 @@ void UserManager::on_ban_user(boost::uuids::uuid user_id,
             }
 
         });
+}
+
+void UserManager::on_block_user(boost::uuids::uuid blocker,
+                                boost::uuids::uuid blocked)
+{
+    boost::asio::post(strand_,
+        [this,
+        blocker = std::move(blocker),
+        blocked = std::move(blocked)]{
+
+        auto user_it = this->users_.find(blocker);
+
+        // Do work if the user exists.
+        if (user_it != this->users_.end() && user_it->second)
+        {
+            // Add the blocked user to the list.
+            user_it->second->blocked_users.emplace(std::move(blocked));
+        }
+
+    });
+}
+
+void UserManager::on_unblock_user(boost::uuids::uuid blocker,
+                                  boost::uuids::uuid blocked)
+{
+    boost::asio::post(strand_,
+        [this,
+         blocker = std::move(blocker),
+         blocked = std::move(blocked)]{
+
+        auto user_it = this->users_.find(blocker);
+
+        // Do work if the user exists.
+        if (user_it != this->users_.end() && user_it->second)
+        {
+            // Remove the blocked user from the list.
+            user_it->second->blocked_users.erase(std::move(blocked));
+        }
+
+    });
+}
+
+void UserManager::on_friend_user(boost::uuids::uuid user_id,
+                                 std::string user_username,
+                                 boost::uuids::uuid friend_uuid)
+{
+    boost::asio::post(strand_,
+        [this,
+        user_id = std::move(user_id),
+        user_username = std::move(user_username),
+        friend_uuid = std::move(friend_uuid)]{
+
+        auto user_it = this->users_.find(user_id);
+
+        // Do work if the user exists.
+        if (user_it != this->users_.end() && user_it->second)
+        {
+            // Add the friend to user's friends list.
+            user_it->second->friends.emplace(friend_uuid);
+        }
+
+        // Notify other user of friend added and update the list.
+        auto friend_it = this->users_.find(friend_uuid);
+
+        if (friend_it != this->users_.end() &&
+            friend_it->second &&
+            friend_it->second->current_session)
+        {
+            friend_it->second->friends.emplace(user_id);
+
+            NotifyRelationUpdate notification;
+            notification.user.user_id = std::move(user_id);
+            notification.user.username = std::move(user_username);
+
+            Message notify_friend;
+            notify_friend.header.type_ = HeaderType::NotifyFriendAdded;
+            notify_friend.create_serialized(notification);
+
+            friend_it->second->current_session->deliver(notify_friend);
+
+        }
+
+    });
+}
+
+void UserManager::on_unfriend_user(boost::uuids::uuid user_id,
+                                   boost::uuids::uuid friend_uuid)
+{
+    boost::asio::post(strand_,
+        [this,
+         user_id = std::move(user_id),
+         friend_uuid = std::move(friend_uuid)]{
+
+        auto user_it = this->users_.find(user_id);
+
+        // Do work if the user exists.
+        if (user_it != this->users_.end() && user_it->second)
+        {
+            // Remove the friend from user's friends list.
+            user_it->second->friends.erase(friend_uuid);
+        }
+
+        // Notify other user of friend removed.
+        auto friend_it = this->users_.find(friend_uuid);
+
+        if (friend_it != this->users_.end() &&
+            friend_it->second &&
+            friend_it->second->current_session)
+        {
+            friend_it->second->friends.erase(user_id);
+
+            NotifyRelationUpdate notification;
+            notification.user.user_id = std::move(user_id);
+
+            // Username is not required.
+            notification.user.username.clear();
+
+            Message notify_friend;
+            notify_friend.header.type_ = HeaderType::NotifyFriendRemoved;
+            notify_friend.create_serialized(notification);
+
+            friend_it->second->current_session->deliver(notify_friend);
+
+        }
+
+    });
+}
+
+void UserManager::direct_message_user(boost::uuids::uuid sender,
+                                      ServerDirectMessage dm)
+{
+    boost::asio::post(strand_,
+        [this,
+         sender = std::move(sender),
+         dm = std::move(dm)]{
+
+        // If the user isn't online, drop the message.
+        auto user_it = this->users_.find(dm.receiver);
+        if (user_it == this->users_.end() || !user_it->second)
+        {
+            return;
+        }
+
+        // Check if the receiver is friends with the sender.
+        // If not, drop the message.
+        auto user = (user_it->second);
+
+        if (user->friends.find(sender) == user->friends.end())
+        {
+            return;
+        }
+
+        // Otherwise, relay the message.
+        ClientDirectMessage client_dm;
+        client_dm.sender = sender;
+        client_dm.receiver = dm.receiver;
+        client_dm.text = dm.text;
+
+        Message dm_msg;
+        dm_msg.create_serialized(client_dm);
+        (user->current_session)->deliver(dm_msg);
+
+    });
 }

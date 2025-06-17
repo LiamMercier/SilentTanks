@@ -22,21 +22,29 @@ matcher_(cntx,
                 // Hand this off to the results recorder.
                 db_.record_match(result);
             },
-         // Pass a reference to the user manager
+         // Pass a reference to the user manager.
          user_manager_
          ),
 db_(cntx,
     // Database callback for authentication
-    [this](UserData data, std::shared_ptr<Session> session)
+    [this](UserData data,
+           UserManager::UUIDHashSet friends,
+           UserManager::UUIDHashSet blocked_users,
+           std::shared_ptr<Session> session)
     {
-        this->on_auth(data, session);
+        this->on_auth(data,
+                      friends,
+                      blocked_users,
+                      session);
     },
     [this](boost::uuids::uuid user_id,
            std::chrono::system_clock::time_point banned_until,
            std::string reason)
     {
         this->on_ban_user(user_id, banned_until, reason);
-    }
+    },
+    // Pass a reference to the user manager.
+    user_manager_
 )
 {
     // Load bans into the server's map on startup.
@@ -391,7 +399,7 @@ void Server::on_message(const ptr & session, Message msg)
             db_.unblock_user(user_id, msg, session);
             break;
         }
-        case HeaderType::Text:
+        case HeaderType::DirectTextMessage:
         {
             // Prevent actions before login.
             if (!session->is_authenticated())
@@ -402,7 +410,14 @@ void Server::on_message(const ptr & session, Message msg)
                 break;
             }
 
-            // not implemented for now
+            // Convert to text and forward.
+            ServerDirectMessage dm = msg.to_server_direct_message();
+
+            user_manager_->direct_message_user
+                            (
+                                session->get_user_data().user_id,
+                                dm
+                            );
             break;
         }
         case HeaderType::QueueMatch:
@@ -489,9 +504,17 @@ void Server::on_message(const ptr & session, Message msg)
     }
 }
 
-void Server::on_auth(UserData data, std::shared_ptr<Session> session)
+void Server::on_auth(UserData data,
+                     UserManager::UUIDHashSet friends,
+                     UserManager::UUIDHashSet blocked_users,
+                     std::shared_ptr<Session> session)
 {
-    asio::post(server_strand_, [this, user_data = std::move(data), s = std::move(session)]{
+    asio::post(server_strand_,
+               [this,
+               user_data = std::move(data),
+               friends = std::move(friends),
+               blocks = std::move(blocked_users),
+               s = std::move(session)]{
 
         // First, check if the uuid is nil, if so then auth failed
         // and we should tell the client to try again.
@@ -506,7 +529,10 @@ void Server::on_auth(UserData data, std::shared_ptr<Session> session)
 
         // Otherwise, we authenticated correctly, lets add this user
         // to the user manager.
-        user_manager_->on_login(std::move(user_data), s);
+        user_manager_->on_login(std::move(user_data),
+                                std::move(friends),
+                                std::move(blocks),
+                                s);
 
         // Notify session of good auth
         Message good_auth_msg;

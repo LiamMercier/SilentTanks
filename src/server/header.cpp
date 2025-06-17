@@ -39,9 +39,9 @@ bool Header::valid()
             }
             break;
         }
-        case HeaderType::Text:
+        case HeaderType::DirectTextMessage:
         {
-            if (!(payload_len >= 1))
+            if (payload_len < 33)
             {
                 return false;
             }

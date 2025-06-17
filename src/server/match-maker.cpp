@@ -1,4 +1,5 @@
 #include "match-maker.h"
+#include "user-manager.h"
 
 MatchMaker::MatchMaker(asio::io_context & cntx,
                        SendCallback send_callback,

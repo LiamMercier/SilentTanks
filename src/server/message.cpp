@@ -51,6 +51,12 @@ template void Message::create_serialized<BlockRequest>(BlockRequest const&);
 
 template void Message::create_serialized<UnblockRequest>(UnblockRequest const&);
 
+template void Message::create_serialized<NotifyRelationUpdate>(NotifyRelationUpdate const&);
+
+template void Message::create_serialized<ServerDirectMessage>(ServerDirectMessage const&);
+
+template void Message::create_serialized<ClientDirectMessage>(ClientDirectMessage const&);
+
 LoginRequest Message::to_login_request() const
 {
     LoginRequest request;
@@ -346,7 +352,7 @@ std::string Message::to_username()
 
 boost::uuids::uuid Message::to_uuid()
 {
-    boost::uuids::uuid user_id;
+    boost::uuids::uuid user_id{};
 
     // Return nil ID on bad message.
     if (payload.size() != 16)
@@ -366,7 +372,7 @@ boost::uuids::uuid Message::to_uuid()
 
 FriendDecision Message::to_friend_decision()
 {
-    FriendDecision friend_decision;
+    FriendDecision friend_decision{};
 
     // Return nil ID on bad message.
     if (payload.size() != 17)
@@ -385,6 +391,78 @@ FriendDecision Message::to_friend_decision()
     friend_decision.decision = static_cast<bool>(payload[16]);
 
     return friend_decision;
+}
+
+ExternalUser Message::to_user()
+{
+    ExternalUser user{};
+    if (payload.size() < 16)
+    {
+        return user;
+    }
+
+    // Copy the UUID.
+    std::copy(
+        payload.begin(),
+        payload.begin() + 16,
+        user.user_id.begin()
+    );
+
+    // Copy username bytes, if any.
+    user.username = std::string(payload.begin() + 16, payload.end());
+
+    return user;
+}
+
+// TODO: update header validation for direct messages
+ServerDirectMessage Message::to_server_direct_message()
+{
+    ServerDirectMessage dm{};
+
+    if (payload.size() < 17)
+    {
+        return dm;
+    }
+
+    // Copy the UUID.
+    std::copy(
+        payload.begin(),
+        payload.begin() + 16,
+        dm.receiver.begin()
+    );
+
+    // Construct the text in place.
+    dm.text = std::string(payload.begin() + 16, payload.end());
+
+    return dm;
+}
+
+ClientDirectMessage Message::to_client_direct_message()
+{
+    ClientDirectMessage dm{};
+
+    if (payload.size() < 33)
+    {
+        return dm;
+    }
+
+    // Copy the UUIDs.
+    std::copy(
+        payload.begin(),
+        payload.begin() + 16,
+        dm.sender.begin()
+    );
+
+    std::copy(
+        payload.begin() + 16,
+        payload.begin() + 32,
+        dm.receiver.begin()
+    );
+
+    // Construct the text in place.
+    dm.text = std::string(payload.begin() + 32, payload.end());
+
+    return dm;
 }
 
 // Function to create a network serialized message for a message type.
@@ -512,6 +590,50 @@ void Message::create_serialized(const mType & req)
         payload_buffer.insert(payload_buffer.end(),
                               req.user_id.data,
                               req.user_id.data + 16);
+    }
+    else if constexpr (std::is_same_v<mType, NotifyRelationUpdate>)
+    {
+        // Insert UUID.
+        payload_buffer.insert(payload_buffer.end(),
+                              req.user.user_id.data,
+                              req.user.user_id.data + 16);
+
+        // Insert username.
+        payload_buffer.insert(payload_buffer.end(),
+                              req.user.username.begin(),
+                              req.user.username.end());
+    }
+    else if constexpr (std::is_same_v<mType, ServerDirectMessage>)
+    {
+        header.type_ = HeaderType::DirectTextMessage;
+
+        // Insert UUID.
+        payload_buffer.insert(payload_buffer.end(),
+                              req.receiver.data,
+                              req.receiver.data + 16);
+
+        // Insert text.
+        payload_buffer.insert(payload_buffer.end(),
+                              req.text.begin(),
+                              req.text.end());
+    }
+    else if constexpr (std::is_same_v<mType, ClientDirectMessage>)
+    {
+        header.type_ = HeaderType::DirectTextMessage;
+
+        // Insert UUIDs.
+        payload_buffer.insert(payload_buffer.end(),
+                              req.sender.data,
+                              req.sender.data + 16);
+
+        payload_buffer.insert(payload_buffer.end(),
+                              req.receiver.data,
+                              req.receiver.data + 16);
+
+        // Insert text.
+        payload_buffer.insert(payload_buffer.end(),
+                              req.text.begin(),
+                              req.text.end());
     }
     // Create a ban message to send to a banned user/IP.
     else if constexpr (std::is_same_v<mType, BanMessage>)

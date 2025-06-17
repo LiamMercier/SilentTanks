@@ -31,7 +31,10 @@ private:
 
     void on_message(const ptr & session, Message msg);
 
-    void on_auth(UserData data, std::shared_ptr<Session> session);
+    void on_auth(UserData data,
+                 UserManager::UUIDHashSet friends,
+                 UserManager::UUIDHashSet blocked_users,
+                 std::shared_ptr<Session> session);
 
     void on_ban_user(boost::uuids::uuid user_id,
                      std::chrono::system_clock::time_point banned_until,

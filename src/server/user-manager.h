@@ -12,6 +12,9 @@ namespace asio = boost::asio;
 class UserManager : public std::enable_shared_from_this<UserManager>
 {
 public:
+    using UUIDHashSet = std::unordered_set<boost::uuids::uuid,
+                                           boost::hash<boost::uuids::uuid>>;
+
     UserManager(boost::asio::io_context & cntx);
 
     // Adds a user on login
@@ -19,6 +22,8 @@ public:
     // This function is not responsible for handling logic related to user
     // authentication, only adding them to the list of logged in users.
     void on_login(UserData data,
+                  UUIDHashSet friends,
+                  UUIDHashSet blocked_users,
                   std::shared_ptr<Session> session);
 
     // Called from the server after a session disconnects.
@@ -27,13 +32,31 @@ public:
     // Notify of forfeit or match end
     void notify_match_finished(boost::uuids::uuid user_id);
 
-    // Notify match start
+    // Notify match start.
     void notify_match_start(boost::uuids::uuid user_id,
                             std::shared_ptr<MatchInstance> inst);
 
     void on_ban_user(boost::uuids::uuid user_id,
                      std::chrono::system_clock::time_point banned_until,
                      std::string reason);
+
+    // Update the user's block list for message passing.
+    void on_block_user(boost::uuids::uuid blocker,
+                       boost::uuids::uuid blocked);
+
+    void on_unblock_user(boost::uuids::uuid blocker,
+                         boost::uuids::uuid blocked);
+
+    // Update the user's friend list for message passing.
+    void on_friend_user(boost::uuids::uuid user_id,
+                        std::string user_username,
+                        boost::uuids::uuid friend_uuid);
+
+    void on_unfriend_user(boost::uuids::uuid user_id,
+                          boost::uuids::uuid friend_uuid);
+
+    void direct_message_user(boost::uuids::uuid sender,
+                             ServerDirectMessage dm);
 
 private:
 

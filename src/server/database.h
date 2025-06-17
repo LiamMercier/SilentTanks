@@ -19,6 +19,8 @@
 #include <argon2.h>
 #include <sodium.h>
 
+class UserManager;
+
 constexpr size_t SALT_LENGTH = 16;
 
 constexpr uint32_t ARGON2_TIME = 4;
@@ -35,11 +37,18 @@ constexpr bool ACCEPT_REQUEST = true;
 
 namespace asio = boost::asio;
 
+// TODO: pipeline everything that can be pipelined.
 class Database
 {
 public:
-    using AuthCallback = std::function<void(UserData data,
-                                            std::shared_ptr<Session> session)>;
+    using UUIDHashSet = std::unordered_set<boost::uuids::uuid,
+                                           boost::hash<boost::uuids::uuid>>;
+
+    using AuthCallback = std::function<void
+                            (UserData data,
+                             UUIDHashSet friends,
+                             UUIDHashSet blocked_users,
+                             std::shared_ptr<Session> session)>;
 
     using BanCallback = std::function<void(boost::uuids::uuid,
                                         std::chrono::system_clock::time_point,
@@ -47,7 +56,8 @@ public:
 
     Database(asio::io_context & io,
              AuthCallback auth_callback,
-             BanCallback ban_callback);
+             BanCallback ban_callback,
+             std::shared_ptr<UserManager> user_manager);
 
     void authenticate(Message msg,
                       std::shared_ptr<Session> session,
@@ -172,9 +182,10 @@ private:
     AuthCallback auth_callback_;
     BanCallback ban_callback_;
 
+    std::shared_ptr<UserManager> user_manager_;
+
     // Thread safe map of mutex's for user keys.
     KeyedExecutor<boost::uuids::uuid,
                   boost::hash<boost::uuids::uuid>>
                   uuid_strands_;
-
 };

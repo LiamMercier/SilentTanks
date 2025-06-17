@@ -64,6 +64,40 @@ int main()
         std::cout << "[" << s->id() << "] " << "Ping Timed Out \n";
         return;
     }
+    if (m.header.type_ == HeaderType::DirectTextMessage)
+    {
+        ClientDirectMessage dm = m.to_client_direct_message();
+        std::cout << "[" << s->id() << "] " << "Message from user " << dm.sender << "\n" << dm.text << "\n";
+        return;
+    }
+
+    if (m.header.type_ == HeaderType::NotifyFriendAdded)
+    {
+        ExternalUser new_friend = m.to_user();
+        std::cout << "[" << s->id() << "] " << "Added friend: " << new_friend.user_id << "\n" << new_friend.username << "\n";
+        return;
+    }
+
+    if (m.header.type_ == HeaderType::NotifyFriendRemoved)
+    {
+        ExternalUser new_friend = m.to_user();
+        std::cout << "[" << s->id() << "] " << "Removed friend: " << new_friend.user_id << "\n" << new_friend.username << "\n";
+        return;
+    }
+
+    if (m.header.type_ == HeaderType::NotifyBlocked)
+    {
+        ExternalUser new_friend = m.to_user();
+        std::cout << "[" << s->id() << "] " << "Blocked user: " << new_friend.user_id << "\n" << new_friend.username << "\n";
+        return;
+    }
+
+    if (m.header.type_ == HeaderType::NotifyUnblocked)
+    {
+        ExternalUser new_friend = m.to_user();
+        std::cout << "[" << s->id() << "] " << "Unblocked user: " << new_friend.user_id << "\n" << new_friend.username << "\n";
+        return;
+    }
 
     if (m.header.type_ == HeaderType::Banned)
     {
@@ -354,6 +388,42 @@ int main()
 
     std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
+    // send msg from s1 to s2
+    {
+        Message msg;
+        ServerDirectMessage dm;
+        boost::uuids::string_generator gen;
+        dm.receiver = gen("b98c81fe-1da8-4d95-b823-7f65d660fd6c");
+        dm.text = "Direct message from s1 (oranges) to s2 (bananas)";
+        msg.create_serialized(dm);
+        s1->deliver(msg);
+    }
+
+    // send msg from s2 to s1
+    {
+        Message msg;
+        ServerDirectMessage dm;
+        boost::uuids::string_generator gen;
+        dm.receiver = gen("d96fc731-ecc6-4e77-a113-da914302fa30");
+        dm.text = "Direct message from s2 (bananas) to s1 (oranges)";
+        msg.create_serialized(dm);
+        s2->deliver(msg);
+    }
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+
+    {
+        Message msg;
+        ServerDirectMessage dm;
+        boost::uuids::string_generator gen;
+        dm.receiver = gen("d96fc731-ecc6-4e77-a113-da914302fa30");
+        dm.text = "s2 is going to unfriend s1";
+        msg.create_serialized(dm);
+        s2->deliver(msg);
+    }
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+
     // Unfriend the user from s2's side.
     {
         Message msg;
@@ -363,6 +433,20 @@ int main()
         msg.create_serialized(request);
         s2->deliver(msg);
     }
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+
+    {
+        Message msg;
+        ServerDirectMessage dm;
+        boost::uuids::string_generator gen;
+        dm.receiver = gen("b98c81fe-1da8-4d95-b823-7f65d660fd6c");
+        dm.text = "s1 should not be able to send this to s2, but can you see it? Hello there.";
+        msg.create_serialized(dm);
+        s1->deliver(msg);
+    }
+
+    /*
 
     std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
@@ -409,6 +493,8 @@ int main()
         msg.create_serialized(request);
         s1->deliver(msg);
     }
+
+    */
 
     std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 

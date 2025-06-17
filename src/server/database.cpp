@@ -1,5 +1,7 @@
 #include "database.h"
 #include "message.h"
+#include "user-manager.h"
+
 #include <boost/uuid/uuid_io.hpp>
 
 // One connection to the database per thread in the thread pool.
@@ -33,11 +35,13 @@ std::string timepoint_to_string(std::chrono::system_clock::time_point banned_unt
 // We expect that a file exists at ~/.pgpass
 Database::Database(asio::io_context& io,
                    AuthCallback auth_callback,
-                   BanCallback ban_callback)
+                   BanCallback ban_callback,
+                   std::shared_ptr<UserManager> user_manager)
 : strand_(io.get_executor()),
 thread_pool_(MAX_CONCURRENT_AUTHS),
 auth_callback_(std::move(auth_callback)),
 ban_callback_(std::move(ban_callback)),
+user_manager_(user_manager),
 // Isolate per username work on the same thread pool.
 uuid_strands_(thread_pool_.get_executor())
 {}
@@ -61,9 +65,15 @@ void Database::authenticate(Message msg,
         {
             // Callback to server with null uuid.
             UserData nil_data;
+            UUIDHashSet friends;
+            UUIDHashSet blocked_users;
+
             if (auth_callback_)
             {
-                auth_callback_(nil_data, s);
+                auth_callback_(nil_data,
+                               friends,
+                               blocked_users,
+                               s);
             }
             else
             {
@@ -340,6 +350,8 @@ void Database::do_auth(LoginRequest request,
                      ]() mutable {
 // START LAMBDA FOR UUID BASED STRAND
     UserData data;
+    UUIDHashSet friends;
+    UUIDHashSet blocks;
     try {
             prepares();
 
@@ -376,7 +388,7 @@ void Database::do_auth(LoginRequest request,
 
                 if(auth_callback_)
                 {
-                    auth_callback_(data, s);
+                    auth_callback_(data, friends, blocks, s);
                 }
                 else
                 {
@@ -443,6 +455,34 @@ void Database::do_auth(LoginRequest request,
                     txn.exec_prepared("update_user_logins",
                                       ip,
                                       boost::uuids::to_string(user_id));
+
+                    // Grab user relations.
+                    boost::uuids::string_generator gen;
+
+                    auto f_res = txn.exec_prepared("INTERNAL_fetch_friends",
+                                      boost::uuids::to_string(user_id));
+
+                    friends.clear();
+                    friends.reserve(f_res.size());
+
+                    for (const auto & row : f_res)
+                    {
+                        friends.insert(
+                            gen(row["friend_id"].as<std::string>()));
+                    }
+
+                    auto b_res = txn.exec_prepared("INTERNAL_fetch_blocks",
+                                      boost::uuids::to_string(user_id));
+
+                    blocks.clear();
+                    blocks.reserve(b_res.size());
+
+                    for (const auto & row : b_res)
+                    {
+                        blocks.insert(
+                            gen(row["blocked"].as<std::string>()));
+                    }
+
                 }
             }
             // Handle bad function calls.
@@ -457,11 +497,10 @@ void Database::do_auth(LoginRequest request,
     {
         std::cerr << "Unexpected exception occured during auth " << e.what() << "\n";
     }
-
     // Send callback to server once we've done our work.
     if(auth_callback_)
     {
-        auth_callback_(data, s);
+        auth_callback_(data, friends, blocks, s);
     }
     else
     {
@@ -952,7 +991,6 @@ void Database::do_respond_friend_request(boost::uuids::uuid user,
                                          bool decision,
                                          std::shared_ptr<Session> session)
 {
-
     uuid_strands_.post(user,
         [this,
         user = std::move(user),
@@ -977,12 +1015,42 @@ void Database::do_respond_friend_request(boost::uuids::uuid user,
             if(!req_res.empty())
             {
                 txn.exec_prepared("accept_friend",
-                              boost::uuids::to_string(user),
-                              boost::uuids::to_string(sender));
+                                  boost::uuids::to_string(user),
+                                  boost::uuids::to_string(sender));
 
                 txn.exec_prepared("delete_friend_request",
-                              boost::uuids::to_string(sender),
-                              boost::uuids::to_string(user));
+                                  boost::uuids::to_string(sender),
+                                  boost::uuids::to_string(user));
+
+                auto f_res = txn.exec_prepared("find_username",
+                                            boost::uuids::to_string(sender));
+
+                // Send notification to caller on friend accepted.
+                NotifyRelationUpdate notification;
+                notification.user.user_id = sender;
+
+                if (!f_res.empty())
+                {
+                    notification.user.username = f_res[0]["username"].
+                                                    as<std::string>();
+                }
+                else
+                {
+                    notification.user.username.clear();
+                }
+
+                Message notify_friend;
+                notify_friend.header.type_ = HeaderType::NotifyFriendAdded;
+                notify_friend.create_serialized(notification);
+
+                s->deliver(notify_friend);
+
+                // Call user manager to update blocks.
+                std::string user_username = s->get_user_data().username;
+
+                user_manager_->on_friend_user(user,
+                                              std::move(user_username),
+                                              sender);
             }
             else
             {
@@ -1039,6 +1107,7 @@ void Database::do_block_user(boost::uuids::uuid blocker,
                 uuid_strands_.post(blocked_id,
                     [this,
                     blocker = std::move(blocker),
+                    blocked = std::move(blocked),
                     blocked_id = std::move(blocked_id),
                     s = std::move(s)]() mutable {
 // START LAMBDA FOR UUID BASED STRAND
@@ -1055,12 +1124,12 @@ void Database::do_block_user(boost::uuids::uuid blocker,
 
                 // Remove any friend requests that might exist.
                 txn.exec_prepared("delete_friend_request",
-                              boost::uuids::to_string(blocked_id),
-                              boost::uuids::to_string(blocker));
+                                  boost::uuids::to_string(blocked_id),
+                                  boost::uuids::to_string(blocker));
 
                 txn.exec_prepared("delete_friend_request",
-                              boost::uuids::to_string(blocker),
-                              boost::uuids::to_string(blocked_id));
+                                  boost::uuids::to_string(blocker),
+                                  boost::uuids::to_string(blocked_id));
 
                 // Remove any friendships that exist between
                 // the two users.
@@ -1069,6 +1138,22 @@ void Database::do_block_user(boost::uuids::uuid blocker,
                                   boost::uuids::to_string(blocked_id));
 
                 txn.commit();
+
+                // TODO: call user manager to update friend.
+
+                // Send notification to caller that user is blocked.
+                NotifyRelationUpdate notification;
+                notification.user.user_id = blocked_id;
+                notification.user.username = blocked;
+
+                Message notify_block;
+                notify_block.header.type_ = HeaderType::NotifyBlocked;
+                notify_block.create_serialized(notification);
+
+                s->deliver(notify_block);
+
+                // Call user manager to update blocks.
+                user_manager_->on_block_user(blocker, blocked_id);
             }
             catch (const std::exception & e)
             {
@@ -1114,11 +1199,27 @@ void Database::do_unblock_user(boost::uuids::uuid blocker,
                           boost::uuids::to_string(blocked_id));
 
         txn.commit();
+
+        // Send notification to caller that user is unblocked.
+        NotifyRelationUpdate notification;
+        notification.user.user_id = blocked_id;
+
+        // Username is unnecessary
+        notification.user.username.clear();
+
+        Message notify_unblock;
+        notify_unblock.header.type_ = HeaderType::NotifyUnblocked;
+        notify_unblock.create_serialized(notification);
+
+        s->deliver(notify_unblock);
+
+        // Call user manager to update blocks.
+        user_manager_->on_unblock_user(blocker, blocked_id);
     }
     catch (const std::exception & e)
     {
         std::cerr << "Exception in do_unblock_user: " << e.what() << "\n";
-            }
+    }
     });
 // END LAMBDA FOR UUID BASED STRAND
 }
@@ -1144,6 +1245,22 @@ void Database::do_remove_friend(boost::uuids::uuid user,
                           boost::uuids::to_string(friend_id));
 
         txn.commit();
+
+        // Send notification to caller that user is unblocked.
+        NotifyRelationUpdate notification;
+        notification.user.user_id = friend_id;
+
+        // Username is unnecessary
+        notification.user.username.clear();
+
+        Message notify_unfriend;
+        notify_unfriend.header.type_ = HeaderType::NotifyFriendRemoved;
+        notify_unfriend.create_serialized(notification);
+
+        s->deliver(notify_unfriend);
+
+        // Call user manager to update blocks.
+        user_manager_->on_unfriend_user(user, friend_id);
     }
     catch (const std::exception & e)
     {
@@ -1309,6 +1426,8 @@ void Database::do_fetch_friend_requests(boost::uuids::uuid user,
     });
 }
 
+// TODO: fetch all blocks/friends in one query for use on user login.
+
 // TODO: limit friend requests to some constant
 void Database::prepares()
 {
@@ -1364,6 +1483,11 @@ void Database::prepares()
             "SELECT user_id "
             "FROM Users "
             "WHERE LOWER(username) = LOWER($1)"
+            );
+        conn_->prepare("find_username",
+            "SELECT username "
+            "FROM Users "
+            "WHERE user_id = $1"
             );
         conn_->prepare("ban_user",
             "INSERT INTO UserBans (user_id, banned_until, original_expiration, reason) "
@@ -1442,6 +1566,19 @@ void Database::prepares()
             "SELECT fr.sender AS user_id, u.username AS username "
             "FROM FriendRequests fr JOIN Users u ON u.user_id = fr.sender "
             "WHERE receiver = $1"
+            );
+        conn_->prepare("INTERNAL_fetch_friends",
+            "SELECT (CASE "
+            "WHEN f.user_a = $1 THEN f.user_b "
+            "ELSE f.user_a "
+            "END) AS friend_id "
+            "FROM Friends f "
+            "WHERE f.user_a = $1 OR f.user_b = $1"
+            );
+        conn_->prepare("INTERNAL_fetch_blocks",
+            "SELECT b.blocked as blocked "
+            "FROM BlockedUsers b "
+            "WHERE b.blocker = $1"
             );
     }
 }

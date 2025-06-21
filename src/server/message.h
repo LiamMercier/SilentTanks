@@ -149,16 +149,25 @@ struct NotifyRelationUpdate
     ExternalUser user;
 };
 
-struct ServerDirectMessage
+struct TextMessage
 {
-    boost::uuids::uuid receiver;
+    // Sender/receiver based on context.
+    boost::uuids::uuid user_id;
     std::string text;
 };
 
-struct ClientDirectMessage
+struct InternalMatchMessage
 {
-    boost::uuids::uuid sender;
-    boost::uuids::uuid receiver;
+    boost::uuids::uuid user_id;
+    std::string sender_username;
+    std::string text;
+};
+
+struct ExternalMatchMessage
+{
+    boost::uuids::uuid user_id;
+    uint8_t username_length;
+    std::string sender_username;
     std::string text;
 };
 
@@ -186,9 +195,9 @@ public:
 
     ExternalUser to_user();
 
-    ServerDirectMessage to_server_direct_message();
+    TextMessage to_text_message();
 
-    ClientDirectMessage to_client_direct_message();
+    InternalMatchMessage to_match_message();
 
     template <typename mType>
     void create_serialized(const mType & req);

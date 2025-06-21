@@ -23,12 +23,16 @@ void UserManager::on_login(UserData data,
         if (!user)
         {
             // Construct from the user data.
-            user = std::make_shared<User>(user_data,
-                                          friends,
-                                          blocked);
+            user = std::make_shared<User>(std::move(user_data),
+                                          std::move(friends),
+                                          std::move(blocked));
         }
-
-        // TODO: swap friends, blocked
+        else
+        {
+            // Put the most current blocks/friends into the user data.
+            user->friends = std::move(friends);
+            user->blocked_users = std::move(blocked);
+        }
 
         // Handle double sessions by closing the oldest
         // one and setting the new one as the current session.
@@ -338,8 +342,9 @@ void UserManager::on_unfriend_user(boost::uuids::uuid user_id,
     });
 }
 
+// TODO: consider message delivery thread pool?
 void UserManager::direct_message_user(boost::uuids::uuid sender,
-                                      ServerDirectMessage dm)
+                                      TextMessage dm)
 {
     boost::asio::post(strand_,
         [this,
@@ -347,7 +352,7 @@ void UserManager::direct_message_user(boost::uuids::uuid sender,
          dm = std::move(dm)]{
 
         // If the user isn't online, drop the message.
-        auto user_it = this->users_.find(dm.receiver);
+        auto user_it = this->users_.find(dm.user_id);
         if (user_it == this->users_.end() || !user_it->second)
         {
             return;
@@ -363,14 +368,64 @@ void UserManager::direct_message_user(boost::uuids::uuid sender,
         }
 
         // Otherwise, relay the message.
-        ClientDirectMessage client_dm;
-        client_dm.sender = sender;
-        client_dm.receiver = dm.receiver;
-        client_dm.text = dm.text;
+        if (user->current_session)
+        {
+            TextMessage client_dm;
+            client_dm.user_id = sender;
+            client_dm.text = std::move(dm.text);
 
-        Message dm_msg;
-        dm_msg.create_serialized(client_dm);
-        (user->current_session)->deliver(dm_msg);
+            Message dm_msg;
+            dm_msg.header.type_ = HeaderType::DirectTextMessage;
+            dm_msg.create_serialized(client_dm);
+            (user->current_session)->deliver(dm_msg);
+        }
 
     });
 }
+
+void UserManager::match_message_user(boost::uuids::uuid sender,
+                                     InternalMatchMessage msg)
+{
+    boost::asio::post(strand_,
+        [this,
+         sender = std::move(sender),
+         msg = std::move(msg)]{
+
+        // If the user isn't online, drop the message.
+        auto user_it = this->users_.find(msg.user_id);
+        if (user_it == this->users_.end() || !user_it->second)
+        {
+            return;
+        }
+
+        // Check if the receiver has blocked the sender.
+        // If so, drop the message.
+        auto user = (user_it->second);
+
+        if (user->blocked_users.find(sender) != user->blocked_users.end())
+        {
+            return;
+        }
+
+        // Otherwise, relay the message.
+        if (user->current_session)
+        {
+            ExternalMatchMessage client_text;
+            // Tell the client who is sending the message.
+            client_text.user_id = sender;
+            client_text.username_length = static_cast<uint8_t>
+                                        (
+                                            msg.sender_username.length()
+                                        );
+            client_text.sender_username = std::move(msg.sender_username);
+            client_text.text = std::move(msg.text);
+
+            Message match_msg;
+            match_msg.header.type_ = HeaderType::MatchTextMessage;
+            match_msg.create_serialized(client_text);
+            (user->current_session)->deliver(match_msg);
+        }
+
+    });
+}
+

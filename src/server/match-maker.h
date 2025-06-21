@@ -29,6 +29,9 @@ public:
 
     void forfeit(const Session::ptr & p);
 
+    void send_match_message(boost::uuids::uuid sender,
+                            InternalMatchMessage msg);
+
 private:
     void make_match_on_strand(std::vector<Session::ptr> players,
                               MatchSettings settings);

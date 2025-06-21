@@ -11,8 +11,9 @@ MatchInstance::MatchInstance(asio::io_context & cntx,
                              const MatchSettings & settings,
                              std::vector<PlayerInfo> player_list,
                              uint8_t num_players,
-                             SendCallback send_callback)
-    : // initializer list
+                             SendCallback send_callback,
+                             GameMessageCallback game_message)
+    :
     current_player(0),
     remaining_players(num_players),
     current_fuel(TURN_PLAYER_FUEL),
@@ -29,9 +30,9 @@ MatchInstance::MatchInstance(asio::io_context & cntx,
     time_left_(num_players, std::chrono::milliseconds(settings.initial_time_ms)),
     results_(num_players, settings),
     send_callback_(send_callback),
-    results_callback_(nullptr)
+    results_callback_(nullptr),
+    game_message_(game_message)
 {
-    // reserve and emplace_back into player_views_
     player_views_.reserve(num_players);
     for (int i = 0; i < num_players; i++)
     {
@@ -45,6 +46,7 @@ void MatchInstance::set_results_callback(ResultsCallback cb)
 }
 
 // Function to add a command to the queue (routed by the server)
+// TODO: change from session_id to uuid
 void MatchInstance::receive_command(uint64_t session_id, Command cmd)
 {
     asio::post(strand_,
@@ -160,7 +162,8 @@ void MatchInstance::sync_player(uint64_t session_id,
             // If we couldn't find the player, return
             if (correct_id == UINT8_MAX)
             {
-                    return;
+                // TODO: match not found/ended message to client.
+                return;
             }
 
             self->players_[correct_id].session_id = s_id;
@@ -179,6 +182,36 @@ void MatchInstance::sync_player(uint64_t session_id,
             view_message.create_serialized(self->player_views_[correct_id]);
             self->send_callback_(s_id, std::move(view_message));
 
+    });
+}
+
+void MatchInstance::match_message(boost::uuids::uuid sender,
+                                 InternalMatchMessage msg)
+{
+    asio::post(strand_,
+               [wp = weak_from_this(),
+               sender = std::move(sender),
+               msg = std::move(msg)]{
+
+        // Only do work if game is still in progress.
+        if (auto self = wp.lock())
+        {
+            // Deliver messages to all users, using the user manager.
+            for (uint8_t i = 0; i < self->n_players_; i++)
+            {
+                if (self->players_[i].user_id != sender)
+                {
+                    InternalMatchMessage dm;
+                    dm.user_id = self->players_[i].user_id;
+                    dm.sender_username = msg.sender_username;
+                    dm.text = msg.text;
+
+                    self->game_message_(sender, dm);
+                }
+            }
+        }
+
+        return;
     });
 }
 

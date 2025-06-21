@@ -52,6 +52,8 @@ using steady_timer = asio::steady_timer;
 using steady_clock = std::chrono::steady_clock;
 using SendCallback = std::function<void(uint64_t s_id, Message msg)>;
 using ResultsCallback = std::function<void(MatchResult result)>;
+using GameMessageCallback = std::function<void(boost::uuids::uuid sender,
+                                               InternalMatchMessage msg)>;
 
 public:
     MatchInstance() = delete;
@@ -61,7 +63,8 @@ public:
                   const MatchSettings & settings,
                   std::vector<PlayerInfo> player_list,
                   uint8_t num_players,
-                  SendCallback send_callback);
+                  SendCallback send_callback,
+                  GameMessageCallback game_message);
 
     // To be called before the instance starts async operations.
     void set_results_callback(ResultsCallback cb);
@@ -73,6 +76,8 @@ public:
 
     // To be used when a reconnecting client needs to sync state.
     void sync_player(uint64_t session_id, boost::uuids::uuid user_id);
+
+    void match_message(boost::uuids::uuid sender, InternalMatchMessage msg);
 
     // Initialization function to start a match.
     void start();
@@ -173,5 +178,7 @@ private:
 
     // Callback to return the match result.
     ResultsCallback results_callback_;
+
+    GameMessageCallback game_message_;
 
 };

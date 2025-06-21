@@ -53,9 +53,9 @@ template void Message::create_serialized<UnblockRequest>(UnblockRequest const&);
 
 template void Message::create_serialized<NotifyRelationUpdate>(NotifyRelationUpdate const&);
 
-template void Message::create_serialized<ServerDirectMessage>(ServerDirectMessage const&);
+template void Message::create_serialized<TextMessage>(TextMessage const&);
 
-template void Message::create_serialized<ClientDirectMessage>(ClientDirectMessage const&);
+template void Message::create_serialized<ExternalMatchMessage>(ExternalMatchMessage const&);
 
 LoginRequest Message::to_login_request() const
 {
@@ -414,10 +414,9 @@ ExternalUser Message::to_user()
     return user;
 }
 
-// TODO: update header validation for direct messages
-ServerDirectMessage Message::to_server_direct_message()
+TextMessage Message::to_text_message()
 {
-    ServerDirectMessage dm{};
+    TextMessage dm{};
 
     if (payload.size() < 17)
     {
@@ -428,39 +427,11 @@ ServerDirectMessage Message::to_server_direct_message()
     std::copy(
         payload.begin(),
         payload.begin() + 16,
-        dm.receiver.begin()
+        dm.user_id.begin()
     );
 
     // Construct the text in place.
     dm.text = std::string(payload.begin() + 16, payload.end());
-
-    return dm;
-}
-
-ClientDirectMessage Message::to_client_direct_message()
-{
-    ClientDirectMessage dm{};
-
-    if (payload.size() < 33)
-    {
-        return dm;
-    }
-
-    // Copy the UUIDs.
-    std::copy(
-        payload.begin(),
-        payload.begin() + 16,
-        dm.sender.begin()
-    );
-
-    std::copy(
-        payload.begin() + 16,
-        payload.begin() + 32,
-        dm.receiver.begin()
-    );
-
-    // Construct the text in place.
-    dm.text = std::string(payload.begin() + 32, payload.end());
 
     return dm;
 }
@@ -603,32 +574,31 @@ void Message::create_serialized(const mType & req)
                               req.user.username.begin(),
                               req.user.username.end());
     }
-    else if constexpr (std::is_same_v<mType, ServerDirectMessage>)
+    else if constexpr (std::is_same_v<mType, TextMessage>)
     {
-        header.type_ = HeaderType::DirectTextMessage;
-
         // Insert UUID.
         payload_buffer.insert(payload_buffer.end(),
-                              req.receiver.data,
-                              req.receiver.data + 16);
+                              req.user_id.data,
+                              req.user_id.data + 16);
 
         // Insert text.
         payload_buffer.insert(payload_buffer.end(),
                               req.text.begin(),
                               req.text.end());
     }
-    else if constexpr (std::is_same_v<mType, ClientDirectMessage>)
+    else if constexpr (std::is_same_v<mType, ExternalMatchMessage>)
     {
-        header.type_ = HeaderType::DirectTextMessage;
-
-        // Insert UUIDs.
+        // Insert UUID.
         payload_buffer.insert(payload_buffer.end(),
-                              req.sender.data,
-                              req.sender.data + 16);
+                              req.user_id.data,
+                              req.user_id.data + 16);
+
+        // Insert the username with its length.
+        payload_buffer.push_back(req.username_length);
 
         payload_buffer.insert(payload_buffer.end(),
-                              req.receiver.data,
-                              req.receiver.data + 16);
+                              req.sender_username.begin(),
+                              req.sender_username.end());
 
         // Insert text.
         payload_buffer.insert(payload_buffer.end(),

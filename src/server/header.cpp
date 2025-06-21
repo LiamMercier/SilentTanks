@@ -41,7 +41,7 @@ bool Header::valid()
         }
         case HeaderType::DirectTextMessage:
         {
-            if (payload_len < 33)
+            if (payload_len < 17)
             {
                 return false;
             }

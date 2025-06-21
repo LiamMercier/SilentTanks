@@ -411,12 +411,40 @@ void Server::on_message(const ptr & session, Message msg)
             }
 
             // Convert to text and forward.
-            ServerDirectMessage dm = msg.to_server_direct_message();
+            TextMessage dm = msg.to_text_message();
 
             user_manager_->direct_message_user
                             (
                                 session->get_user_data().user_id,
                                 dm
+                            );
+            break;
+        }
+        case HeaderType::MatchTextMessage:
+        {
+            // Prevent actions before login.
+            if (!session->is_authenticated())
+            {
+                Message not_authorized;
+                not_authorized.create_serialized(HeaderType::Unauthorized);
+                session->deliver(not_authorized);
+                break;
+            }
+
+            // Convert to match text and forward.
+            TextMessage raw_msg = msg.to_text_message();
+
+            UserData data = session->get_user_data();
+
+            // Other fields are filled later.
+            InternalMatchMessage msg{};
+            msg.sender_username = data.username;
+            msg.text = std::move(raw_msg.text);
+
+            matcher_.send_match_message
+                            (
+                                data.user_id,
+                                msg
                             );
             break;
         }

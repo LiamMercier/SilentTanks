@@ -56,7 +56,10 @@ public:
                           boost::uuids::uuid friend_uuid);
 
     void direct_message_user(boost::uuids::uuid sender,
-                             ServerDirectMessage dm);
+                             TextMessage dm);
+
+    void match_message_user(boost::uuids::uuid sender,
+                            InternalMatchMessage msg);
 
 private:
 

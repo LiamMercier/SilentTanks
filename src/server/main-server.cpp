@@ -66,8 +66,8 @@ int main()
     }
     if (m.header.type_ == HeaderType::DirectTextMessage)
     {
-        ClientDirectMessage dm = m.to_client_direct_message();
-        std::cout << "[" << s->id() << "] " << "Message from user " << dm.sender << "\n" << dm.text << "\n";
+        TextMessage dm = m.to_text_message();
+        std::cout << "[" << s->id() << "] " << "Message from user " << dm.user_id << "\n" << dm.text << "\n";
         return;
     }
 
@@ -391,9 +391,9 @@ int main()
     // send msg from s1 to s2
     {
         Message msg;
-        ServerDirectMessage dm;
+        TextMessage dm;
         boost::uuids::string_generator gen;
-        dm.receiver = gen("b98c81fe-1da8-4d95-b823-7f65d660fd6c");
+        dm.user_id = gen("b98c81fe-1da8-4d95-b823-7f65d660fd6c");
         dm.text = "Direct message from s1 (oranges) to s2 (bananas)";
         msg.create_serialized(dm);
         s1->deliver(msg);
@@ -402,9 +402,9 @@ int main()
     // send msg from s2 to s1
     {
         Message msg;
-        ServerDirectMessage dm;
+        TextMessage dm;
         boost::uuids::string_generator gen;
-        dm.receiver = gen("d96fc731-ecc6-4e77-a113-da914302fa30");
+        dm.user_id = gen("d96fc731-ecc6-4e77-a113-da914302fa30");
         dm.text = "Direct message from s2 (bananas) to s1 (oranges)";
         msg.create_serialized(dm);
         s2->deliver(msg);
@@ -414,9 +414,9 @@ int main()
 
     {
         Message msg;
-        ServerDirectMessage dm;
+        TextMessage dm;
         boost::uuids::string_generator gen;
-        dm.receiver = gen("d96fc731-ecc6-4e77-a113-da914302fa30");
+        dm.user_id = gen("d96fc731-ecc6-4e77-a113-da914302fa30");
         dm.text = "s2 is going to unfriend s1";
         msg.create_serialized(dm);
         s2->deliver(msg);
@@ -438,9 +438,9 @@ int main()
 
     {
         Message msg;
-        ServerDirectMessage dm;
+        TextMessage dm;
         boost::uuids::string_generator gen;
-        dm.receiver = gen("b98c81fe-1da8-4d95-b823-7f65d660fd6c");
+        dm.user_id = gen("b98c81fe-1da8-4d95-b823-7f65d660fd6c");
         dm.text = "s1 should not be able to send this to s2, but can you see it? Hello there.";
         msg.create_serialized(dm);
         s1->deliver(msg);

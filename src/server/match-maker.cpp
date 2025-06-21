@@ -103,6 +103,30 @@ void MatchMaker::forfeit(const Session::ptr & p)
     });
 }
 
+void MatchMaker::send_match_message(boost::uuids::uuid sender,
+                                    InternalMatchMessage msg)
+{
+    asio::post(global_strand_,
+            [this,
+            sender,
+            msg = std::move(msg)]{
+
+        // Find the sender's match.
+        auto match = uuid_to_match_.find(sender);
+
+        if (match != uuid_to_match_.end())
+        {
+            // Route to found match instance
+            match->second->match_message(sender, std::move(msg));
+        }
+        else
+        {
+            // TODO: Can't find match to send message to, notify user.
+        }
+
+    });
+}
+
 void MatchMaker::make_match_on_strand(std::vector<Session::ptr> players,
                                       MatchSettings settings)
 {
@@ -172,11 +196,19 @@ void MatchMaker::make_match_on_strand(std::vector<Session::ptr> players,
             send_callback_(player_list[p_id].session_id, notify_match);
         }
 
+        // Setup message callback.
+        auto game_message_cb = [this](boost::uuids::uuid user_id,
+                                      InternalMatchMessage msg)
+        {
+            this->user_manager_->match_message_user(user_id, msg);
+        };
+
         auto new_inst = std::make_shared<MatchInstance>(io_cntx_,
                                                         settings,
                                                         player_list,
                                                         player_list.size(),
-                                                        send_callback_);
+                                                        send_callback_,
+                                                        game_message_cb);
         next_match_id_++;
 
         // Setup the results callback to handle deletion.

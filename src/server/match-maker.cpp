@@ -31,7 +31,6 @@ MatchMaker::MatchMaker(asio::io_context & cntx,
 
 }
 
-// TODO: stop match making twice.
 void MatchMaker::enqueue(const ptr & p, GameMode queued_mode)
 {
     // queue up player for the given game mode

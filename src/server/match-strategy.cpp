@@ -15,10 +15,13 @@ void CasualTwoPlayerStrategy::enqueue(Session::ptr p)
     asio::post(strand_,
                [this, p] {
 
+            boost::uuids::uuid user_id = p->get_user_data().user_id;
+
             // if the lookup does not find this session enqueued already
-            if (lookup_.find(p) == lookup_.end())
+            if (lookup_.find(user_id) == lookup_.end())
             {
                 queue_.push_back(p);
+                lookup_.insert(user_id);
                 try_form_match();
             }
 
@@ -28,12 +31,22 @@ void CasualTwoPlayerStrategy::enqueue(Session::ptr p)
 void CasualTwoPlayerStrategy::cancel(Session::ptr p)
 {
     asio::post(strand_, [this, p]{
-        if (lookup_.erase(p))
+
+        boost::uuids::uuid user_id = p->get_user_data().user_id;
+
+        if (lookup_.erase(user_id))
         {
             // remove if lookup found a queued player
             //
             // this might be from the middle of the deque
-            queue_.erase(std::remove(queue_.begin(), queue_.end(), p), queue_.end());
+            queue_.erase(std::remove_if(
+                            queue_.begin(),
+                            queue_.end(),
+                            [&](const Session::ptr & s)
+                            {
+                                return s->get_user_data().user_id == user_id;
+                            }),
+                            queue_.end());
         }
 
     });
@@ -52,8 +65,8 @@ void CasualTwoPlayerStrategy::try_form_match()
         queue_.pop_front();
 
         // erase both from lookups
-        lookup_.erase(p1);
-        lookup_.erase(p2);
+        lookup_.erase(p1->get_user_data().user_id);
+        lookup_.erase(p2->get_user_data().user_id);
 
         // get match settings
         // TODO: evaluate how to handle this properly

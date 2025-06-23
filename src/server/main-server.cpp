@@ -460,6 +460,24 @@ int main()
     std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
     {
+        Message msg;
+        msg.create_serialized(CancelMatchRequest(GameMode::ClassicTwoPlayer));
+
+        s1->deliver(msg);
+    }
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+
+    {
+        Message msg;
+        msg.create_serialized(QueueMatchRequest(GameMode::ClassicTwoPlayer));
+
+        s1->deliver(msg);
+    }
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+
+    {
         Message msg2;
         msg2.create_serialized(QueueMatchRequest(GameMode::ClassicTwoPlayer));
 

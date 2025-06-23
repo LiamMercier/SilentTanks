@@ -5,6 +5,7 @@
 #include <utility>
 
 #include <boost/asio.hpp>
+#include <boost/functional/hash.hpp>
 
 #include "session.h"
 #include "message.h"
@@ -70,7 +71,8 @@ private:
     std::deque<Session::ptr> queue_;
 
     // lookup to see if player is queued
-    std::unordered_set<Session::ptr> lookup_;
+    std::unordered_set<boost::uuids::uuid,
+                       boost::hash<boost::uuids::uuid>> lookup_;
 
     // map repository
     const MapRepository & map_repo_;

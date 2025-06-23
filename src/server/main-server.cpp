@@ -71,6 +71,13 @@ int main()
         return;
     }
 
+    if (m.header.type_ == HeaderType::MatchTextMessage)
+    {
+        InternalMatchMessage msg = m.to_match_message();
+        std::cout << "[" << s->id() << "] " << "Match message from: " << msg.user_id << "\n" << msg.sender_username << "\n" << msg.text << "\n";
+        return;
+    }
+
     if (m.header.type_ == HeaderType::NotifyFriendAdded)
     {
         ExternalUser new_friend = m.to_user();
@@ -395,6 +402,7 @@ int main()
         boost::uuids::string_generator gen;
         dm.user_id = gen("b98c81fe-1da8-4d95-b823-7f65d660fd6c");
         dm.text = "Direct message from s1 (oranges) to s2 (bananas)";
+        msg.header.type_ = HeaderType::DirectTextMessage;
         msg.create_serialized(dm);
         s1->deliver(msg);
     }
@@ -406,6 +414,7 @@ int main()
         boost::uuids::string_generator gen;
         dm.user_id = gen("d96fc731-ecc6-4e77-a113-da914302fa30");
         dm.text = "Direct message from s2 (bananas) to s1 (oranges)";
+        msg.header.type_ = HeaderType::DirectTextMessage;
         msg.create_serialized(dm);
         s2->deliver(msg);
     }
@@ -418,6 +427,7 @@ int main()
         boost::uuids::string_generator gen;
         dm.user_id = gen("d96fc731-ecc6-4e77-a113-da914302fa30");
         dm.text = "s2 is going to unfriend s1";
+        msg.header.type_ = HeaderType::DirectTextMessage;
         msg.create_serialized(dm);
         s2->deliver(msg);
     }
@@ -442,8 +452,73 @@ int main()
         boost::uuids::string_generator gen;
         dm.user_id = gen("b98c81fe-1da8-4d95-b823-7f65d660fd6c");
         dm.text = "s1 should not be able to send this to s2, but can you see it? Hello there.";
+        msg.header.type_ = HeaderType::DirectTextMessage;
         msg.create_serialized(dm);
         s1->deliver(msg);
+    }
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+
+    {
+        Message msg2;
+        msg2.create_serialized(QueueMatchRequest(GameMode::ClassicTwoPlayer));
+
+        s2->deliver(msg2);
+    }
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+
+    {
+        Message msg;
+        TextMessage mm;
+        mm.text = "Lets have a good match!";
+        msg.header.type_ = HeaderType::MatchTextMessage;
+        msg.create_serialized(mm);
+        s1->deliver(msg);
+    }
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+
+    {
+        Message msg;
+        TextMessage mm;
+        mm.text = "Good luck!";
+        msg.header.type_ = HeaderType::MatchTextMessage;
+        msg.create_serialized(mm);
+        s2->deliver(msg);
+    }
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+
+    // Test blocking mid game and see that it doesn't prevent messages.
+    {
+        Message msg;
+        BlockRequest request;
+        request.username = "BANANAS";
+        msg.create_serialized(request);
+        s1->deliver(msg);
+    }
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+
+    {
+        Message msg;
+        TextMessage mm;
+        mm.text = "You should see this, but I blocked you.";
+        msg.header.type_ = HeaderType::MatchTextMessage;
+        msg.create_serialized(mm);
+        s1->deliver(msg);
+    }
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+
+    {
+        Message msg;
+        TextMessage mm;
+        mm.text = "Message should not be shown, is it?";
+        msg.header.type_ = HeaderType::MatchTextMessage;
+        msg.create_serialized(mm);
+        s2->deliver(msg);
     }
 
     /*
@@ -499,13 +574,6 @@ int main()
     std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
     /*
-
-    {
-        Message msg2;
-        msg2.create_serialized(QueueMatchRequest(GameMode::ClassicTwoPlayer));
-
-        s2->deliver(msg2);
-    }
 
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
 

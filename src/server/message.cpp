@@ -409,7 +409,10 @@ ExternalUser Message::to_user()
     );
 
     // Copy username bytes, if any.
-    user.username = std::string(payload.begin() + 16, payload.end());
+    size_t start = 16;
+    size_t len = payload.size() - start;
+
+    user.username.assign(reinterpret_cast<const char*>(&payload[start]), len);
 
     return user;
 }
@@ -430,10 +433,61 @@ TextMessage Message::to_text_message()
         dm.user_id.begin()
     );
 
-    // Construct the text in place.
-    dm.text = std::string(payload.begin() + 16, payload.end());
+    // Construct the text.
+    size_t start = 16;
+    size_t len = payload.size() - start;
+
+    dm.text.assign(reinterpret_cast<const char*>(&payload[start]), len);
 
     return dm;
+}
+
+InternalMatchMessage Message::to_match_message()
+{
+    InternalMatchMessage msg;
+
+    size_t offset = 0;
+
+    // If we are not holding a UUID, username size (1 byte),
+    // username (at least 1 byte), and at least some text,
+    // then stop now.
+    if (payload.size() < 16 + 1 + 1 + 1)
+    {
+        return {};
+    }
+
+    std::copy(
+        payload.begin(),
+        payload.begin() + 16,
+        msg.user_id.begin()
+    );
+
+    offset += 16;
+
+    uint8_t username_len = payload[offset];
+
+    offset += 1;
+
+    // If not enough bytes, close now.
+    if (payload.size() < offset + username_len + 1)
+    {
+        return {};
+    }
+
+    // Otherwise, grab the username.
+    msg.sender_username.assign
+                        (
+                            reinterpret_cast<const char*>(&payload[offset]),
+                            username_len
+                        );
+
+    offset += username_len;
+
+    // Grab the text.
+    msg.text.assign(reinterpret_cast<const char*>(&payload[offset]),
+                    payload.size() - offset);
+
+    return msg;
 }
 
 // Function to create a network serialized message for a message type.

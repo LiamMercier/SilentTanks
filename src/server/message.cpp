@@ -59,10 +59,7 @@ template void Message::create_serialized<ExternalMatchMessage>(ExternalMatchMess
 
 LoginRequest Message::to_login_request() const
 {
-    LoginRequest request;
-
-    request.hash.fill(0);
-    request.username.clear();
+    LoginRequest request{};
 
     size_t idx = 0;
 
@@ -70,23 +67,36 @@ LoginRequest Message::to_login_request() const
     // plus one for the username then we have an invalid attempt.
     if (payload.size() < HASH_LENGTH + 1)
     {
-        return request;
+        return {};
     }
 
     // If the username is too long, invalid.
     if (payload.size() > HASH_LENGTH + MAX_USERNAME_LENGTH)
     {
-        return request;
+        return {};
     }
 
     // copy the hash bytes
     std::copy(payload.begin(), payload.begin() + HASH_LENGTH, request.hash.begin());
 
-    // TODO: check that the username has valid characters
-
     idx += HASH_LENGTH;
-    // copy the rest into the username
-    request.username.assign(payload.begin() + idx, payload.end());
+
+    // Copy while ensuring valid username.
+    std::string username;
+    size_t username_len = (payload.size() - idx);
+    username.reserve(username_len);
+
+    for (size_t i = 0; i < username_len; i++)
+    {
+        unsigned char c = static_cast<unsigned char>(payload[idx + i]);
+        if (!allowed_username_characters[c])
+        {
+            return {};
+        }
+        username.push_back(c);
+    }
+
+    request.username = std::move(username);
 
     return request;
 }

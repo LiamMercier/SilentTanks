@@ -61,6 +61,7 @@ enum class HeaderType : uint8_t
     Eliminated,
     TimedOut,
     Victory,
+    GameEnded,
 
     // Client server management headers.
     BadMessage,

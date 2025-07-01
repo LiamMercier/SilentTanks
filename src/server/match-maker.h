@@ -29,7 +29,8 @@ public:
 
     void forfeit(const Session::ptr & p);
 
-    void send_match_message(boost::uuids::uuid sender,
+    void send_match_message(const Session::ptr & p,
+                            boost::uuids::uuid user_id,
                             InternalMatchMessage msg);
 
 private:

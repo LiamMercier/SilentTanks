@@ -46,28 +46,15 @@ void MatchInstance::set_results_callback(ResultsCallback cb)
 }
 
 // Function to add a command to the queue (routed by the server)
-// TODO: change from session_id to uuid
-void MatchInstance::receive_command(uint64_t session_id, Command cmd)
+void MatchInstance::receive_command(boost::uuids::uuid user_id, Command cmd)
 {
     asio::post(strand_,
         [self = shared_from_this(),
          m_cmd = std::move(cmd),
          t_id = turn_ID_,
-         s_id = session_id]() mutable {
+         user_id = user_id]() mutable {
 
-            // stale move due to strand ordering, cancel
-            if (t_id != self->turn_ID_)
-            {
-                Message failed_move_msg;
-                failed_move_msg.create_serialized(HeaderType::StaleMove);
-
-                self->send_callback_(s_id, std::move(failed_move_msg));
-
-                return;
-            }
-
-            // Otherwise, valid move, lets find the correct
-            // player ID and then add this to the queue.
+            // Lets find the correct player ID and then add this to the queue.
             //
             // We do this by scanning the vector to search for the ID.
             //
@@ -75,7 +62,7 @@ void MatchInstance::receive_command(uint64_t session_id, Command cmd)
             uint8_t correct_id = UINT8_MAX;
             for (uint8_t p_id = 0; p_id < self->n_players_; p_id++)
             {
-                if (self->players_[p_id].session_id == s_id)
+                if (self->players_[p_id].user_id == user_id)
                 {
                     correct_id = p_id;
                     break;
@@ -88,7 +75,30 @@ void MatchInstance::receive_command(uint64_t session_id, Command cmd)
                 return;
             }
 
-            // Override the sender field
+            // Check if game is over.
+            if (self->current_state == GameState::Concluded)
+            {
+                Message match_over;
+                match_over.create_serialized(HeaderType::GameEnded);
+
+                self->send_callback_(self->players_[correct_id].session_id,
+                                     std::move(match_over));
+                return;
+            }
+
+            // stale move due to strand ordering, cancel
+            if (t_id != self->turn_ID_)
+            {
+                Message failed_move_msg;
+                failed_move_msg.create_serialized(HeaderType::StaleMove);
+
+                self->send_callback_(self->players_[correct_id].session_id,
+                                     std::move(failed_move_msg));
+
+                return;
+            }
+
+            // Override the sender field.
             m_cmd.sender = correct_id;
 
             // Enqueue the command if there is room. Otherwise, drop.
@@ -132,6 +142,17 @@ void MatchInstance::forfeit(boost::uuids::uuid user_id)
                 return;
         }
 
+        // Check if game is over.
+        if (self->current_state == GameState::Concluded)
+        {
+            Message match_over;
+            match_over.create_serialized(HeaderType::GameEnded);
+
+            self->send_callback_(self->players_[correct_id].session_id,
+                                 std::move(match_over));
+            return;
+        }
+
         // Now, if we got a player, we do regular elimination logic.
         //
         // We can just do the usual elimination logic.
@@ -148,6 +169,16 @@ void MatchInstance::sync_player(uint64_t session_id,
                s_id = session_id,
                u_id = user_id]{
 
+            // Check if game is over.
+            if (self->current_state == GameState::Concluded)
+            {
+                Message match_over;
+                match_over.create_serialized(HeaderType::GameEnded);
+
+                self->send_callback_(s_id, std::move(match_over));
+                return;
+            }
+
             // Get the player ID for this user.
             uint8_t correct_id = UINT8_MAX;
             for (uint8_t p_id = 0; p_id < self->n_players_; p_id++)
@@ -162,7 +193,10 @@ void MatchInstance::sync_player(uint64_t session_id,
             // If we couldn't find the player, return
             if (correct_id == UINT8_MAX)
             {
-                // TODO: match not found/ended message to client.
+                Message match_over;
+                match_over.create_serialized(HeaderType::GameEnded);
+
+                self->send_callback_(s_id, std::move(match_over));
                 return;
             }
 
@@ -505,18 +539,19 @@ ApplyResult MatchInstance::apply_command(const Command & cmd)
         case CommandType::Move:
         {
             Tank & this_tank = game_instance_.get_tank(cmd.tank_id);
-            if (this_tank.health_ == 0)
+            if (this_tank.health_ == 0 || this_tank.owner_ != current_player)
             {
                 res.valid_move = false;
                 break;
             }
-            res.op_status = game_instance_.move_tank(cmd.tank_id, cmd.payload_first);
+            res.op_status = game_instance_.move_tank(cmd.tank_id,
+                                                     cmd.payload_first);
             break;
         }
         case CommandType::RotateTank:
         {
             Tank & this_tank = game_instance_.get_tank(cmd.tank_id);
-            if (this_tank.health_ == 0)
+            if (this_tank.health_ == 0 || this_tank.owner_ != current_player)
             {
                 res.valid_move = false;
                 break;
@@ -528,7 +563,7 @@ ApplyResult MatchInstance::apply_command(const Command & cmd)
         case CommandType::RotateBarrel:
         {
             Tank & this_tank = game_instance_.get_tank(cmd.tank_id);
-            if (this_tank.health_ == 0)
+            if (this_tank.health_ == 0 || this_tank.owner_ != current_player)
             {
                 res.valid_move = false;
                 break;
@@ -542,7 +577,7 @@ ApplyResult MatchInstance::apply_command(const Command & cmd)
             Tank & this_tank = game_instance_.get_tank(cmd.tank_id);
 
             // check that the tank is alive
-            if (this_tank.health_ == 0)
+            if (this_tank.health_ == 0 || this_tank.owner_ != current_player)
             {
                 res.valid_move = false;
                 break;
@@ -562,7 +597,8 @@ ApplyResult MatchInstance::apply_command(const Command & cmd)
         case CommandType::Load:
         {
             Tank & this_tank = game_instance_.get_tank(cmd.tank_id);
-            if (this_tank.loaded_ == true)
+            if (this_tank.loaded_ == true
+                || this_tank.owner_ != current_player)
             {
                 res.valid_move = false;
                 break;
@@ -665,9 +701,12 @@ void MatchInstance::conclude_game()
 
     // Tell winner that they won, everyone else has already
     // been told that they lost.
-    Message inform_winner;
-    inform_winner.create_serialized(HeaderType::Victory);
-    send_callback_(players_[winner].session_id, inform_winner);
+    if (winner < n_players_)
+    {
+        Message inform_winner;
+        inform_winner.create_serialized(HeaderType::Victory);
+        send_callback_(players_[winner].session_id, inform_winner);
+    }
 
     // Call back to the server to write results to the database
     // and handle any updates

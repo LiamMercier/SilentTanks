@@ -31,7 +31,7 @@ MatchMaker::MatchMaker(asio::io_context & cntx,
 
 }
 
-void MatchMaker::enqueue(const ptr & p, GameMode queued_mode)
+void MatchMaker::enqueue(const Session::ptr & p, GameMode queued_mode)
 {
     // queue up player for the given game mode
     //
@@ -47,7 +47,7 @@ void MatchMaker::enqueue(const ptr & p, GameMode queued_mode)
 // cancel, instead of blindly cancelling. If the request
 // is not able to be followed through, we tell the client
 // that their game has started and they must play or forfeit.
-void MatchMaker::cancel(const ptr & p, GameMode queued_mode, bool called_by_user)
+void MatchMaker::cancel(const Session::ptr & p, GameMode queued_mode, bool called_by_user)
 {
     // call matching cancel function for this game mode
     //
@@ -87,7 +87,7 @@ void MatchMaker::tick_all()
 }
 
 // Public facing function to keep strand logic and routing logic separate
-void MatchMaker::route_to_match(const ptr & p, Message msg)
+void MatchMaker::route_to_match(const Session::ptr & p, Message msg)
 {
     asio::post(global_strand_, [this, p, m = std::move(msg)]
     {
@@ -103,25 +103,31 @@ void MatchMaker::forfeit(const Session::ptr & p)
     });
 }
 
-void MatchMaker::send_match_message(boost::uuids::uuid sender,
+void MatchMaker::send_match_message(const Session::ptr & p,
+                                    boost::uuids::uuid user_id,
                                     InternalMatchMessage msg)
 {
     asio::post(global_strand_,
             [this,
-            sender,
+            session = p,
+            u_id = user_id,
             msg = std::move(msg)]{
 
         // Find the sender's match.
-        auto match = uuid_to_match_.find(sender);
+        auto match = uuid_to_match_.find(u_id);
 
         if (match != uuid_to_match_.end())
         {
             // Route to found match instance
-            match->second->match_message(sender, std::move(msg));
+            match->second->match_message(u_id, std::move(msg));
         }
         else
         {
-            // TODO: Can't find match to send message to, notify user.
+            // Can't find match to send message to, notify user.
+            Message match_over;
+            match_over.create_serialized(HeaderType::GameEnded);
+
+            session->deliver(match_over);
         }
 
     });
@@ -260,7 +266,8 @@ void MatchMaker::make_match_on_strand(std::vector<Session::ptr> players,
 // Decode into a command and send to the server
 void MatchMaker::route_impl(const Session::ptr & p, Message msg)
 {
-    auto match = uuid_to_match_.find((p->get_user_data()).user_id);
+    auto user_id = (p->get_user_data()).user_id;
+    auto match = uuid_to_match_.find(user_id);
 
     if (match != uuid_to_match_.end())
     {
@@ -268,7 +275,7 @@ void MatchMaker::route_impl(const Session::ptr & p, Message msg)
         Command cmd_to_send = msg.to_command();
 
         // Route to found match instance
-        match->second->receive_command(p->id(), std::move(cmd_to_send));
+        match->second->receive_command(user_id, std::move(cmd_to_send));
     }
     else
     {

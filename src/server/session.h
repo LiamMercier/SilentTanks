@@ -83,8 +83,6 @@ private:
 
     void force_close_session();
 
-    // TODO: mitigate spam/syn flood style attacks
-
 public:
 
 private:

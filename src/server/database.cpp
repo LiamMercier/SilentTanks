@@ -1139,8 +1139,6 @@ void Database::do_block_user(boost::uuids::uuid blocker,
 
                 txn.commit();
 
-                // TODO: call user manager to update friend.
-
                 // Send notification to caller that user is blocked.
                 NotifyRelationUpdate notification;
                 notification.user.user_id = blocked_id;
@@ -1425,8 +1423,6 @@ void Database::do_fetch_friend_requests(boost::uuids::uuid user,
     }
     });
 }
-
-// TODO: fetch all blocks/friends in one query for use on user login.
 
 // TODO: limit friend requests to some constant
 void Database::prepares()

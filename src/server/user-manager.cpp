@@ -229,8 +229,12 @@ void UserManager::on_block_user(boost::uuids::uuid blocker,
         // Do work if the user exists.
         if (user_it != this->users_.end() && user_it->second)
         {
+            // If friends, remove friendship.
+            user_it->second->friends.erase(blocked);
+
             // Add the blocked user to the list.
             user_it->second->blocked_users.emplace(std::move(blocked));
+
         }
 
     });

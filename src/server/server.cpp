@@ -443,6 +443,7 @@ void Server::on_message(const ptr & session, Message msg)
 
             matcher_.send_match_message
                             (
+                                session,
                                 data.user_id,
                                 msg
                             );

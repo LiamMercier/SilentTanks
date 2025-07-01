@@ -70,7 +70,7 @@ public:
     void set_results_callback(ResultsCallback cb);
 
     // Called by the networking layer to enqueue commands.
-    void receive_command(uint64_t session_id, Command cmd);
+    void receive_command(boost::uuids::uuid user_id, Command cmd);
 
     void forfeit(boost::uuids::uuid user_id);
 

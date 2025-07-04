@@ -539,6 +539,60 @@ int main()
         s2->deliver(msg);
     }
 
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+    // Place tank for player 1.
+    {
+        Message msg;
+        Command c;
+
+        c.sender = 0;
+        c.tank_id = 0;
+        c.type = CommandType::Place;
+        c.payload_first = 5;
+        c.payload_second = 6;
+        c.sequence_number = 3;
+
+        msg.create_serialized(c);
+        s1->deliver(msg);
+    }
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+    // Try to make a bad placement.
+    {
+        Message msg;
+        Command c;
+
+        c.sender = 1;
+        c.tank_id = 2;
+        c.type = CommandType::Place;
+        c.payload_first = 17;
+        c.payload_second = 21;
+        c.sequence_number = 2;
+
+        msg.create_serialized(c);
+        s2->deliver(msg);
+    }
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+    // Place properly.
+    {
+        Message msg;
+        Command c;
+
+        c.sender = 1;
+        c.tank_id = 2;
+        c.type = CommandType::Place;
+        c.payload_first = 5;
+        c.payload_second = 5;
+        c.sequence_number = 2;
+
+        msg.create_serialized(c);
+        s2->deliver(msg);
+    }
+
     /*
 
     std::this_thread::sleep_for(std::chrono::milliseconds(1000));
@@ -606,40 +660,6 @@ int main()
         c.payload_first = 1;
         c.payload_second = 3;
         c.sequence_number = 1;
-
-        msg.create_serialized(c);
-        s1->deliver(msg);
-    }
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
-    {
-        Message msg;
-        Command c;
-
-        c.sender = 1;
-        c.tank_id = 2;
-        c.type = CommandType::Place;
-        c.payload_first = 5;
-        c.payload_second = 5;
-        c.sequence_number = 2;
-
-        msg.create_serialized(c);
-        s2->deliver(msg);
-    }
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
-    {
-        Message msg;
-        Command c;
-
-        c.sender = 0;
-        c.tank_id = 0;
-        c.type = CommandType::Place;
-        c.payload_first = 5;
-        c.payload_second = 6;
-        c.sequence_number = 3;
 
         msg.create_serialized(c);
         s1->deliver(msg);

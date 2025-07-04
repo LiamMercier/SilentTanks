@@ -528,7 +528,6 @@ void MatchInstance::handle_elimination(uint8_t p_id, HeaderType reason)
     start_turn_strand();
 }
 
-// TODO: Ensure moves are valid
 ApplyResult MatchInstance::apply_command(const Command & cmd)
 {
     ApplyResult res;
@@ -538,8 +537,17 @@ ApplyResult MatchInstance::apply_command(const Command & cmd)
     {
         case CommandType::Move:
         {
+            // If the tank does not exist, stop early.
+            if (cmd.tank_id >= game_instance_.num_players_
+                                * game_instance_.num_tanks_)
+            {
+                res.valid_move = false;
+                break;
+            }
+
             Tank & this_tank = game_instance_.get_tank(cmd.tank_id);
-            if (this_tank.health_ == 0 || this_tank.owner_ != current_player)
+
+            if (this_tank.health_ == 0 || this_tank.owner_ != cmd.sender)
             {
                 res.valid_move = false;
                 break;
@@ -550,8 +558,17 @@ ApplyResult MatchInstance::apply_command(const Command & cmd)
         }
         case CommandType::RotateTank:
         {
+            // If the tank does not exist, stop early.
+            if (cmd.tank_id >= game_instance_.num_players_
+                                * game_instance_.num_tanks_)
+            {
+                res.valid_move = false;
+                break;
+            }
+
             Tank & this_tank = game_instance_.get_tank(cmd.tank_id);
-            if (this_tank.health_ == 0 || this_tank.owner_ != current_player)
+
+            if (this_tank.health_ == 0 || this_tank.owner_ != cmd.sender)
             {
                 res.valid_move = false;
                 break;
@@ -562,8 +579,17 @@ ApplyResult MatchInstance::apply_command(const Command & cmd)
         }
         case CommandType::RotateBarrel:
         {
+            // If the tank does not exist, stop early.
+            if (cmd.tank_id >= game_instance_.num_players_
+                                * game_instance_.num_tanks_)
+            {
+                res.valid_move = false;
+                break;
+            }
+
             Tank & this_tank = game_instance_.get_tank(cmd.tank_id);
-            if (this_tank.health_ == 0 || this_tank.owner_ != current_player)
+
+            if (this_tank.health_ == 0 || this_tank.owner_ != cmd.sender)
             {
                 res.valid_move = false;
                 break;
@@ -574,10 +600,18 @@ ApplyResult MatchInstance::apply_command(const Command & cmd)
         }
         case CommandType::Fire:
         {
+            // If the tank does not exist, stop early.
+            if (cmd.tank_id >= game_instance_.num_players_
+                                * game_instance_.num_tanks_)
+            {
+                res.valid_move = false;
+                break;
+            }
+
             Tank & this_tank = game_instance_.get_tank(cmd.tank_id);
 
             // check that the tank is alive
-            if (this_tank.health_ == 0 || this_tank.owner_ != current_player)
+            if (this_tank.health_ == 0 || this_tank.owner_ != cmd.sender)
             {
                 res.valid_move = false;
                 break;
@@ -596,9 +630,18 @@ ApplyResult MatchInstance::apply_command(const Command & cmd)
         }
         case CommandType::Load:
         {
+            // If the tank does not exist, stop early.
+            if (cmd.tank_id >= game_instance_.num_players_
+                                * game_instance_.num_tanks_)
+            {
+                res.valid_move = false;
+                break;
+            }
+
             Tank & this_tank = game_instance_.get_tank(cmd.tank_id);
+
             if (this_tank.loaded_ == true
-                || this_tank.owner_ != current_player)
+                || this_tank.owner_ != cmd.sender)
             {
                 res.valid_move = false;
                 break;
@@ -616,11 +659,16 @@ ApplyResult MatchInstance::apply_command(const Command & cmd)
             }
             vec2 pos(cmd.payload_first, cmd.payload_second);
 
-            if (pos.x_ > game_instance_.get_width() - 1 || pos.y_ > game_instance_.get_height() - 1)
+            if (pos.x_ > game_instance_.get_width() - 1
+                || pos.y_ > game_instance_.get_height() - 1)
             {
                 res.valid_move = false;
                 break;
             }
+
+            // TODO: placement check on board
+            // Check if placement is within the player's
+            // permitted placement area.
 
             game_instance_.place_tank(pos, cmd.sender);
 

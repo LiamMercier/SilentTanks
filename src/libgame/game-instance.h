@@ -67,6 +67,7 @@ private:
 
 public:
     uint8_t num_players_;
+    // Number of tanks per player.
     uint8_t num_tanks_;
 
 private:

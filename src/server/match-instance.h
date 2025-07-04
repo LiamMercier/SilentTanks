@@ -79,6 +79,9 @@ public:
 
     void match_message(boost::uuids::uuid sender, InternalMatchMessage msg);
 
+    // Initialize child classes that might fail.
+    bool init(const GameMap & map);
+
     // Initialization function to start a match.
     void start();
 

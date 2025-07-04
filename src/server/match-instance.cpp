@@ -249,6 +249,12 @@ void MatchInstance::match_message(boost::uuids::uuid sender,
     });
 }
 
+bool MatchInstance::init(const GameMap & map)
+{
+    return game_instance_.read_env_by_name(map.filename,
+                                           map.width * map.height);
+}
+
 void MatchInstance::start()
 {
     // Send an initial view of the environment to each player
@@ -528,6 +534,7 @@ void MatchInstance::handle_elimination(uint8_t p_id, HeaderType reason)
     start_turn_strand();
 }
 
+// TODO: placement checks needed
 ApplyResult MatchInstance::apply_command(const Command & cmd)
 {
     ApplyResult res;

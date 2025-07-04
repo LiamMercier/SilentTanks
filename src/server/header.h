@@ -11,6 +11,7 @@ enum class HeaderType : uint8_t
 {
     LoginRequest,
     RegistrationRequest,
+
     // Server messages to client for auth/register.
     Unauthorized,
     AlreadyAuthorized,
@@ -52,6 +53,7 @@ enum class HeaderType : uint8_t
 
     // Game related headers
     MatchStarting,
+    MatchCreationError,
     NoMatchFound,
     MatchInProgress,
     SendCommand,

@@ -1,15 +1,15 @@
 #include "game-instance.h"
 #include "constants.h"
 
-GameInstance::GameInstance(const GameMap & map, uint8_t num_players)
-:num_players_(num_players), num_tanks_(map.num_tanks), game_env_(map.width, map.height, map.width*map.height), tanks_(new (std::nothrow) Tank[map.num_tanks * num_players]{})
+#include <filesystem>
+
+GameInstance::GameInstance(const GameMap & map,
+                           uint8_t num_players)
+:num_players_(num_players),
+num_tanks_(map.num_tanks),
+game_env_(map.width, map.height, map.width*map.height),
+placement_mask_(map.width*map.height)
 {
-    // check that allocation didn't fail
-    if (tanks_ == nullptr)
-    {
-        std::cerr << "game-instance: Memory allocation failed\n";
-        return;
-    }
 
     // Allocate players_ vector
     players_.reserve(num_players_);
@@ -20,8 +20,7 @@ GameInstance::GameInstance(const GameMap & map, uint8_t num_players)
         players_.emplace_back(num_tanks_, i);
     }
 
-    // Get map from file
-    read_env_by_name(map.filename, map.width*map.height);
+    tanks_ = (new Tank[map.num_tanks * num_players]{});
 }
 
 GameInstance::~GameInstance()
@@ -872,43 +871,99 @@ void GameInstance::load_tank(uint8_t ID)
     return;
 }
 
-// This should really be replaced in the future with a more reasonable solution.
-void GameInstance::read_env_by_name(const std::string& filename, uint16_t total)
+bool GameInstance::read_env_by_name(const std::string& filename,
+                                    uint16_t total)
 {
-    /*
-     Somewhere down the line we will probably need to do
-     #if defined(_WIN32) || defined(_WIN64)
-        filename = "C:\\path\\to\\file.txt";
-    #else
-        filename = "/home/user/file.txt";
-    #endif
+    std::error_code ec;
 
-    but this could possibly be pushed off to the precomputed file list or something
-    that will be made later
-     */
+    if (!std::filesystem::exists(filename, ec)
+        || ec
+        || !std::filesystem::is_regular_file(filename, ec))
+    {
+        std::cerr << "Environment file not found or not regular\n";
+        return false;
+    }
 
-    std::ifstream file(filename, std::ios::in);
+    auto size = std::filesystem::file_size(filename, ec);
+
+    if (ec)
+    {
+        std::cerr << "Unable to query file size \n";
+        return false;
+    }
+
+    if (size != static_cast<std::size_t>(total) * 2)
+    {
+        std::cerr << "File size mismatch in environment setup.\n";
+        std::cerr << size << "\n";
+        return false;
+    }
+
+    std::ifstream file(filename, std::ios::binary);
 
     if (!file.is_open()){
         std::cerr << "ERROR IN FILE OPENING\n";
-        return;
+        return false;
     }
 
     // read the file all at once into the buffer
-    char buffer[total];
-    file.read(buffer, total);
+    std::vector<char> env_buffer(total);
+    file.read(env_buffer.data(), total);
+
+    if (file.gcount() != total)
+    {
+        std::cerr << "Too few bytes for environment\n";
+        return false;
+    }
+
+    if (!file)
+    {
+        std::cerr << "IO error reading environment\n";
+        return false;
+    }
+
+    // Read bitmask for tank placements.
+    std::vector<char> mask_buffer(total);
+    file.read(mask_buffer.data(), total);
+
+    if (file.gcount() != total)
+    {
+        std::cerr << "Too few bytes for mask\n";
+        return false;
+    }
+
+    if (!file)
+    {
+        std::cerr << "IO error reading mask\n";
+        return false;
+    }
 
     // turn the ASCII data (48, 49, 50..) into the correct integers (0,1,2)
     // and assign the GridCell elements the correct type accordingly.
-    for (int i = 0; i < total; i++)
+    for (uint16_t i = 0; i < total; i++)
     {
+        char c = env_buffer[i];
+        if (c < '0' || c > '2')
+        {
+            std::cerr << "Invalid environment character \n";
+            return false;
+        }
+        uint8_t value = static_cast<uint8_t>(c - '0');
+
         // CellType is an enum derived from uint8_t, hence the two casts.
         //
         // Normally you shouldn't do this, but we're reading a chunk of data.
-        game_env_[i].type_ = static_cast<CellType>(static_cast<uint8_t>(buffer[i] - '0'));
-
+        game_env_[i].type_ = static_cast<CellType>(value);
         game_env_[i].occupant_ = NO_OCCUPANT;
         game_env_[i].visible_ = true;
+
+        // Convert the bitmask for each player.
+        //
+        // Places where a player may place their tank are identified
+        // by their player ID.
+        placement_mask_[i] = static_cast<uint8_t>(mask_buffer[i] - '0');
     }
+
+    return true;
 
 }

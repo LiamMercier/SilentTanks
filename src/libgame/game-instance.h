@@ -51,7 +51,15 @@ public:
     inline void set_occupant(vec2 pos, uint8_t occupant);
 
     inline uint8_t get_width() const;
+
     inline uint8_t get_height() const;
+
+    inline bool check_placement_mask(vec2 pos, uint8_t player) const;
+
+    // Read env file
+    //
+    // Called when we create an instance from a file name
+    bool read_env_by_name(const std::string& filename, uint16_t total);
 
 private:
 
@@ -59,11 +67,6 @@ private:
     inline size_t idx(size_t x, size_t y) const;
 
     inline size_t idx(const vec2 & pos) const;
-
-    // Read env file
-    //
-    // Called when we create an instance from a file name
-    void read_env_by_name(const std::string& filename, uint16_t total);
 
 public:
     uint8_t num_players_;
@@ -73,6 +76,7 @@ public:
 private:
     Environment game_env_;
     std::vector<Player> players_;
+    std::vector<uint8_t> placement_mask_;
 
 public:
     Tank* tanks_;
@@ -117,5 +121,10 @@ inline uint8_t GameInstance::get_width() const
 inline uint8_t GameInstance::get_height() const
 {
     return game_env_.get_height();
+}
+
+inline bool GameInstance::check_placement_mask(vec2 pos, uint8_t player) const
+{
+    return (placement_mask_[idx(pos)] == player);
 }
 

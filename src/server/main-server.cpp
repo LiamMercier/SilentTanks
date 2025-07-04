@@ -64,6 +64,16 @@ int main()
         std::cout << "[" << s->id() << "] " << "Ping Timed Out \n";
         return;
     }
+    if (m.header.type_ == HeaderType::MatchCreationError)
+    {
+        std::cout << "[" << s->id() << "] " << "Match creation error \n";
+        return;
+    }
+    if (m.header.type_ == HeaderType::GameEnded)
+    {
+        std::cout << "[" << s->id() << "] " << "Match does not exist \n";
+        return;
+    }
     if (m.header.type_ == HeaderType::DirectTextMessage)
     {
         TextMessage dm = m.to_text_message();

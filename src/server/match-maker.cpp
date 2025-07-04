@@ -125,7 +125,7 @@ void MatchMaker::send_match_message(const Session::ptr & p,
         {
             // Can't find match to send message to, notify user.
             Message match_over;
-            match_over.create_serialized(HeaderType::GameEnded);
+            match_over.create_serialized(HeaderType::NoMatchFound);
 
             session->deliver(match_over);
         }
@@ -209,12 +209,38 @@ void MatchMaker::make_match_on_strand(std::vector<Session::ptr> players,
             this->user_manager_->match_message_user(user_id, msg);
         };
 
-        auto new_inst = std::make_shared<MatchInstance>(io_cntx_,
-                                                        settings,
-                                                        player_list,
-                                                        player_list.size(),
-                                                        send_callback_,
-                                                        game_message_cb);
+        std::shared_ptr<MatchInstance> new_inst;
+
+    // Try to create the instance. If this fails, abort, we are likely
+    // out of memory and need to stop making matches.
+    try
+    {
+        new_inst = std::make_shared<MatchInstance>(io_cntx_,
+                                                   settings,
+                                                   player_list,
+                                                   player_list.size(),
+                                                   send_callback_,
+                                                   game_message_cb);
+
+        bool success = new_inst->init(settings.map);
+
+        if (!success)
+        {
+            // Send server error messages and cancel match.
+            for (uint8_t p_id = 0; p_id < players.size(); p_id++)
+            {
+                Message notify_cancel;
+                notify_cancel.create_serialized(HeaderType::MatchCreationError);
+                send_callback_(player_list[p_id].session_id, notify_cancel);
+            }
+
+            return;
+        }
+    }
+    catch (...)
+    {
+        return;
+    }
         next_match_id_++;
 
         // Setup the results callback to handle deletion.

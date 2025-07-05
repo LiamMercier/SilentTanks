@@ -876,9 +876,7 @@ bool GameInstance::read_env_by_name(const std::string& filename,
 {
     std::error_code ec;
 
-    if (!std::filesystem::exists(filename, ec)
-        || ec
-        || !std::filesystem::is_regular_file(filename, ec))
+    if (!std::filesystem::is_regular_file(filename, ec))
     {
         std::cerr << "Environment file not found or not regular\n";
         return false;
@@ -901,7 +899,8 @@ bool GameInstance::read_env_by_name(const std::string& filename,
 
     std::ifstream file(filename, std::ios::binary);
 
-    if (!file.is_open()){
+    if (!file.is_open())
+    {
         std::cerr << "ERROR IN FILE OPENING\n";
         return false;
     }

@@ -575,7 +575,7 @@ int main()
         Command c;
 
         c.sender = 1;
-        c.tank_id = 2;
+        c.tank_id = 0;
         c.type = CommandType::Place;
         c.payload_first = 17;
         c.payload_second = 21;
@@ -587,13 +587,13 @@ int main()
 
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
-    // Place properly.
+    // Bad placement due to mask.
     {
         Message msg;
         Command c;
 
         c.sender = 1;
-        c.tank_id = 2;
+        c.tank_id = 1;
         c.type = CommandType::Place;
         c.payload_first = 5;
         c.payload_second = 5;
@@ -603,90 +603,19 @@ int main()
         s2->deliver(msg);
     }
 
-    /*
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-
-    // Block "test" from "oranges" (does not exist).
-    {
-        Message msg;
-        BlockRequest request;
-        request.username = "test";
-        msg.create_serialized(request);
-        s1->deliver(msg);
-    }
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-
-    // Block "bananas" from "oranges"
-    {
-        Message msg;
-        BlockRequest request;
-        request.username = "BANANAS";
-        msg.create_serialized(request);
-        s1->deliver(msg);
-    }
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-
-    // Try to unblock from "bananas" (should not happen)
-    {
-        Message msg;
-        UnblockRequest request;
-        boost::uuids::string_generator gen;
-        request.user_id = gen("d96fc731-ecc6-4e77-a113-da914302fa30");
-        msg.create_serialized(request);
-        s2->deliver(msg);
-    }
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-
-    // Unblock "bananas" from "oranges"
-    {
-        Message msg;
-        UnblockRequest request;
-        boost::uuids::string_generator gen;
-        request.user_id = gen("b98c81fe-1da8-4d95-b823-7f65d660fd6c");
-        msg.create_serialized(request);
-        s1->deliver(msg);
-    }
-
-    */
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-
-    /*
-
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
-
+    // Place tank for p2.
     {
         Message msg;
         Command c;
 
-        c.sender = 0;
-        c.tank_id = 0;
-        c.type = CommandType::Place;
-        c.payload_first = 1;
-        c.payload_second = 3;
-        c.sequence_number = 1;
-
-        msg.create_serialized(c);
-        s1->deliver(msg);
-    }
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
-    {
-        Message msg;
-        Command c;
-
-        c.sender = 0;
-        c.tank_id = 0;
+        c.sender = 1;
+        c.tank_id = 1;
         c.type = CommandType::Place;
         c.payload_first = 6;
         c.payload_second = 5;
-        c.sequence_number = 3;
+        c.sequence_number = 2;
 
         msg.create_serialized(c);
         s2->deliver(msg);
@@ -694,358 +623,25 @@ int main()
 
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
-    {
-        Message msg;
-        Command c;
-
-        c.sender = 0;
-        c.tank_id = 1;
-        c.type = CommandType::Fire;
-        c.payload_first = 0;
-        c.payload_second = 0;
-        c.sequence_number = 5;
-
-        msg.create_serialized(c);
-        s1->deliver(msg);
-    }
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
-    {
-        Message msg;
-        Command c;
-
-        c.sender = 0;
-        c.tank_id = 1;
-        c.type = CommandType::Load;
-        c.payload_first = 0;
-        c.payload_second = 0;
-        c.sequence_number = 6;
-
-        msg.create_serialized(c);
-        s1->deliver(msg);
-    }
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
-    {
-        Message msg;
-        Command c;
-
-        c.sender = 0;
-        c.tank_id = 1;
-        c.type = CommandType::Fire;
-        c.payload_first = 0;
-        c.payload_second = 0;
-        c.sequence_number = 7;
-
-        msg.create_serialized(c);
-        s1->deliver(msg);
-    }
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
+    // Place tank for p1.
     {
         Message msg;
         Command c;
 
         c.sender = 0;
         c.tank_id = 2;
-        c.type = CommandType::RotateBarrel;
-        c.payload_first = 1;
-        c.payload_second = 0;
-        c.sequence_number = 7;
+        c.type = CommandType::Place;
+        c.payload_first = 6;
+        c.payload_second = 5;
+        c.sequence_number = 2;
 
         msg.create_serialized(c);
         s2->deliver(msg);
     }
 
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
-    {
-        Message msg;
-        Command c;
-
-        c.sender = 0;
-        c.tank_id = 2;
-        c.type = CommandType::RotateTank;
-        c.payload_first = 1;
-        c.payload_second = 0;
-        c.sequence_number = 8;
-
-        msg.create_serialized(c);
-        s2->deliver(msg);
-    }
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
-    {
-        Message msg;
-        Command c;
-
-        c.sender = 0;
-        c.tank_id = 2;
-        c.type = CommandType::RotateBarrel;
-        c.payload_first = 1;
-        c.payload_second = 0;
-        c.sequence_number = 9;
-
-        msg.create_serialized(c);
-        s2->deliver(msg);
-    }
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
-    {
-        Message msg;
-        Command c;
-
-        c.sender = 0;
-        c.tank_id = 1;
-        c.type = CommandType::Load;
-        c.payload_first = 0;
-        c.payload_second = 0;
-        c.sequence_number = 10;
-
-        msg.create_serialized(c);
-        s1->deliver(msg);
-    }
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
-    {
-        Message msg;
-        Command c;
-
-        c.sender = 0;
-        c.tank_id = 1;
-        c.type = CommandType::Fire;
-        c.payload_first = 0;
-        c.payload_second = 0;
-        c.sequence_number = 11;
-
-        msg.create_serialized(c);
-        s1->deliver(msg);
-    }
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
-    {
-        Message msg;
-        Command c;
-
-        c.sender = 0;
-        c.tank_id = 1;
-        c.type = CommandType::RotateBarrel;
-        c.payload_first = 0;
-        c.payload_second = 0;
-        c.sequence_number = 12;
-
-        msg.create_serialized(c);
-        s1->deliver(msg);
-    }
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
-    {
-        Message msg;
-        Command c;
-
-        c.sender = 0;
-        c.tank_id = 3;
-        c.type = CommandType::RotateTank;
-        c.payload_first = 1;
-        c.payload_second = 0;
-        c.sequence_number = 17;
-
-        msg.create_serialized(c);
-        s2->deliver(msg);
-    }
-
-    {
-        Message msg;
-        Command c;
-
-        c.sender = 0;
-        c.tank_id = 3;
-        c.type = CommandType::RotateTank;
-        c.payload_first = 1;
-        c.payload_second = 0;
-        c.sequence_number = 18;
-
-        msg.create_serialized(c);
-        s2->deliver(msg);
-    }
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
-    {
-        Message msg;
-        Command c;
-
-        c.sender = 0;
-        c.tank_id = 3;
-        c.type = CommandType::RotateTank;
-        c.payload_first = 1;
-        c.payload_second = 0;
-        c.sequence_number = 19;
-
-        msg.create_serialized(c);
-        s2->deliver(msg);
-    }
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
-    {
-        Message msg;
-        Command c;
-
-        c.sender = 0;
-        c.tank_id = 1;
-        c.type = CommandType::Load;
-        c.payload_first = 0;
-        c.payload_second = 0;
-        c.sequence_number = 21;
-
-        msg.create_serialized(c);
-        s1->deliver(msg);
-    }
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
-    {
-        Message msg;
-        Command c;
-
-        c.sender = 0;
-        c.tank_id = 1;
-        c.type = CommandType::Fire;
-        c.payload_first = 0;
-        c.payload_second = 0;
-        c.sequence_number = 22;
-
-        msg.create_serialized(c);
-        s1->deliver(msg);
-    }
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
-    {
-        Message msg;
-        Command c;
-
-        c.sender = 0;
-        c.tank_id = 1;
-        c.type = CommandType::Load;
-        c.payload_first = 0;
-        c.payload_second = 0;
-        c.sequence_number = 23;
-
-        msg.create_serialized(c);
-        s1->deliver(msg);
-    }
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
-    {
-        Message msg;
-        Command c;
-
-        c.sender = 0;
-        c.tank_id = 3;
-        c.type = CommandType::RotateTank;
-        c.payload_first = 1;
-        c.payload_second = 0;
-        c.sequence_number = 20;
-
-        msg.create_serialized(c);
-        s2->deliver(msg);
-    }
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
-    {
-        Message msg;
-        Command c;
-
-        c.sender = 0;
-        c.tank_id = 3;
-        c.type = CommandType::RotateTank;
-        c.payload_first = 1;
-        c.payload_second = 0;
-        c.sequence_number = 21;
-
-        msg.create_serialized(c);
-        s2->deliver(msg);
-    }
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
-    {
-        Message msg;
-        Command c;
-
-        c.sender = 0;
-        c.tank_id = 3;
-        c.type = CommandType::RotateTank;
-        c.payload_first = 1;
-        c.payload_second = 0;
-        c.sequence_number = 22;
-
-        msg.create_serialized(c);
-        s2->deliver(msg);
-    }
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
-    {
-        Message msg;
-        Command c;
-
-        c.sender = 0;
-        c.tank_id = 1;
-        c.type = CommandType::Fire;
-        c.payload_first = 0;
-        c.payload_second = 0;
-        c.sequence_number = 26;
-
-        msg.create_serialized(c);
-        s1->deliver(msg);
-    }
-
-    {
-        Message msg;
-        Command c;
-
-        c.sender = 0;
-        c.tank_id = 1;
-        c.type = CommandType::Load;
-        c.payload_first = 0;
-        c.payload_second = 0;
-        c.sequence_number = 27;
-
-        msg.create_serialized(c);
-        s1->deliver(msg);
-    }
-
-    {
-        Message msg;
-        Command c;
-
-        c.sender = 0;
-        c.tank_id = 1;
-        c.type = CommandType::Fire;
-        c.payload_first = 0;
-        c.payload_second = 0;
-        c.sequence_number = 28;
-
-        msg.create_serialized(c);
-        s1->deliver(msg);
-    }
 
     std::this_thread::sleep_for(std::chrono::milliseconds(2000));
-
-    */
 
     client_io.stop();
 

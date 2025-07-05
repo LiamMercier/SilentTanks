@@ -2,19 +2,19 @@
 #include "user-manager.h"
 
 MatchMaker::MatchMaker(asio::io_context & cntx,
+                       std::string map_file_name,
                        SendCallback send_callback,
                        ResultsCallback recorder_callback,
                        std::shared_ptr<UserManager> user_manager)
 :global_strand_(cntx.get_executor()),
- all_maps_(std::vector<GameMap>
-        {
-        GameMap(std::string("envs/test2.txt"), 12, 8, 2)
-        }),
+ all_maps_(std::make_unique<MapRepository>()),
  io_cntx_(cntx),
  send_callback_(std::move(send_callback)),
  recorder_callback_(std::move(recorder_callback)),
  user_manager_(user_manager)
 {
+    all_maps_->load_map_file(map_file_name);
+
     // Create a callback to make a match when the match strategy
     // finds valid players.
     auto match_call_back = [this](std::vector<Session::ptr> players, MatchSettings settings)

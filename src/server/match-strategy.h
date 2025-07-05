@@ -10,6 +10,7 @@
 #include "session.h"
 #include "message.h"
 #include "maps.h"
+#include "map-repository.h"
 #include "match-settings.h"
 
 class IMatchStrategy
@@ -41,7 +42,7 @@ public:
 
     CasualTwoPlayerStrategy(boost::asio::io_context & cntx,
                             MakeMatchCallback on_match_ready,
-                            const MapRepository & map_repo);
+                            const std::shared_ptr<MapRepository> & map_repo);
 
     void enqueue(Session::ptr p) override;
 
@@ -75,5 +76,5 @@ private:
                        boost::hash<boost::uuids::uuid>> lookup_;
 
     // map repository
-    const MapRepository & map_repo_;
+    const std::shared_ptr<MapRepository> & map_repo_;
 };

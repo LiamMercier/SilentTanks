@@ -346,7 +346,6 @@ void UserManager::on_unfriend_user(boost::uuids::uuid user_id,
     });
 }
 
-// TODO: consider message delivery thread pool?
 void UserManager::direct_message_user(boost::uuids::uuid sender,
                                       TextMessage dm)
 {

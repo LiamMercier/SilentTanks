@@ -2,6 +2,7 @@
 
 #include "match-strategy.h"
 #include "match-instance.h"
+#include "map-repository.h"
 
 #include <boost/functional/hash.hpp>
 
@@ -15,6 +16,7 @@ using ResultsCallback = std::function<void(MatchResult result)>;
 
 public:
     MatchMaker(asio::io_context & cntx,
+               std::string map_file_name,
                SendCallback send_callback,
                ResultsCallback recorder_callback,
                std::shared_ptr<UserManager> user_manager);
@@ -61,8 +63,8 @@ private:
     // Temporary match ID to instance mapping
     std::unordered_map<uint64_t, std::shared_ptr<MatchInstance>> live_matches_;
 
-    // TODO: set this up at server startup instead of inline.
-    MapRepository all_maps_;
+    // Map repository.
+    std::shared_ptr<MapRepository> all_maps_;
 
     // Necessary to create match instances with a different strand
     // to prevent having to use global_strand_ for all calls.

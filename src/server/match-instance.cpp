@@ -534,7 +534,6 @@ void MatchInstance::handle_elimination(uint8_t p_id, HeaderType reason)
     start_turn_strand();
 }
 
-// TODO: placement checks needed
 ApplyResult MatchInstance::apply_command(const Command & cmd)
 {
     ApplyResult res;
@@ -673,9 +672,15 @@ ApplyResult MatchInstance::apply_command(const Command & cmd)
                 break;
             }
 
-            // TODO: placement check on board
             // Check if placement is within the player's
             // permitted placement area.
+            bool valid = game_instance_.check_placement(pos, cmd.sender);
+
+            if (!valid)
+            {
+                res.valid_move = false;
+                break;
+            }
 
             game_instance_.place_tank(pos, cmd.sender);
 

@@ -6,6 +6,7 @@ Server::Server(asio::io_context & cntx,
 acceptor_(cntx, endpoint),
 user_manager_(std::make_shared<UserManager>(cntx)),
 matcher_(cntx,
+         std::string("mapfile.txt"),
          // Callback function to send messages to sessions
          [this](uint64_t s_id, Message msg)
             {

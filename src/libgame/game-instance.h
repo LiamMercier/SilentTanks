@@ -54,7 +54,7 @@ public:
 
     inline uint8_t get_height() const;
 
-    inline bool check_placement_mask(vec2 pos, uint8_t player) const;
+    inline bool check_placement(vec2 pos, uint8_t player) const;
 
     // Read env file
     //
@@ -123,8 +123,21 @@ inline uint8_t GameInstance::get_height() const
     return game_env_.get_height();
 }
 
-inline bool GameInstance::check_placement_mask(vec2 pos, uint8_t player) const
+// We want to ensure the player move is on a tile
+// that is valid for placement and within
+// their placement mask.
+inline bool GameInstance::check_placement(vec2 pos, uint8_t player) const
 {
-    return (placement_mask_[idx(pos)] == player);
+    size_t i = idx(pos);
+    // Check if the placement mask matches the player.
+    if (placement_mask_[i] == player)
+    {
+        // Check that the tile is not terrain.
+        if (game_env_[i].type_ != CellType::Terrain)
+        {
+            return true;
+        }
+    }
+    return false;
 }
 

@@ -2,7 +2,7 @@
 
 CasualTwoPlayerStrategy::CasualTwoPlayerStrategy(asio::io_context & cntx,
                                                  MakeMatchCallback on_match_ready,
-                                                 const MapRepository & map_repo)
+                                                 const std::shared_ptr<MapRepository> & map_repo)
 : strand_(cntx.get_executor()),
   on_match_ready_(std::move(on_match_ready)),
   map_repo_(map_repo)
@@ -70,7 +70,7 @@ void CasualTwoPlayerStrategy::try_form_match()
 
         // get match settings
         // TODO: evaluate how to handle this properly
-        GameMap map = (map_repo_.get_available_maps()[0]);
+        GameMap map = (map_repo_->get_available_maps()[0]);
         MatchSettings settings(map, initial_time_ms, increment_ms, GameMode::ClassicTwoPlayer);
 
         // spawn a new match instance

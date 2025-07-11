@@ -6,7 +6,7 @@
 #include <cmath>
 #include <vector>
 
-#include "environment.h"
+#include "flat-array.h"
 #include "player.h"
 #include "maps.h"
 #include "player-view.h"
@@ -36,17 +36,22 @@ public:
 
     PlayerView compute_view(uint8_t player_ID, uint8_t & live_tanks);
 
-    void cast_ray(PlayerView & player_view, vec2 start, vec2 slope, float size, float max_range ,uint8_t dir) const;
+    void cast_ray(PlayerView & player_view,
+                  vec2 start,
+                  vec2 slope,
+                  float size,
+                  float max_range,
+                  uint8_t dir) const;
 
     void place_tank(vec2 pos, uint8_t player_ID);
 
     void load_tank(uint8_t ID);
 
-    inline Player& get_player(uint8_t index);
+    inline Player & get_player(uint8_t index);
 
-    inline const Player& get_player(uint8_t index) const;
+    inline const Player & get_player(uint8_t index) const;
 
-    inline Tank& get_tank(uint8_t index);
+    inline Tank & get_tank(uint8_t index);
 
     inline void set_occupant(vec2 pos, uint8_t occupant);
 
@@ -74,7 +79,7 @@ public:
     uint8_t num_tanks_;
 
 private:
-    Environment game_env_;
+    FlatArray<GridCell> game_env_;
     std::vector<Player> players_;
     std::vector<uint8_t> placement_mask_;
 
@@ -89,7 +94,7 @@ inline size_t GameInstance::idx(size_t x, size_t y) const
 
 inline size_t GameInstance::idx(const vec2 & pos) const
 {
-    return game_env_.idx(pos);
+    return game_env_.idx(pos.x_, pos.y_);
 }
 
 inline Player& GameInstance::get_player(uint8_t index)

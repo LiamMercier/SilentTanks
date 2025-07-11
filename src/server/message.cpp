@@ -171,10 +171,10 @@ PlayerView Message::to_player_view(bool & op_status)
 
     PlayerView view(width, height);
 
-    view.current_player = current_player;
+    view.player_id = current_player;
 
     // Otherwise, create the player view from the message data
-    Environment & map_view = view.map_view;
+    FlatArray<GridCell> & map_view = view.map_view;
 
     map_view.set_width(width);
     map_view.set_height(height);
@@ -706,7 +706,7 @@ void Message::create_serialized(const mType & req)
     // for the data.
     else if constexpr (std::is_same_v<mType, PlayerView>)
     {
-        const Environment & map_view = req.map_view;
+        const FlatArray<GridCell> & map_view = req.map_view;
 
         // First, set the header to the correct type
         header.type_ = HeaderType::PlayerView;
@@ -716,7 +716,7 @@ void Message::create_serialized(const mType & req)
         payload_buffer.push_back(n_tanks);
 
         // And the current turn
-        payload_buffer.push_back(req.current_player);
+        payload_buffer.push_back(req.player_id);
 
         // Now serialize the environment data, starting with dimensions.
         payload_buffer.push_back(map_view.get_width());

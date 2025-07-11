@@ -7,8 +7,8 @@ GameInstance::GameInstance(const GameMap & map,
                            uint8_t num_players)
 :num_players_(num_players),
 num_tanks_(map.num_tanks),
-game_env_(map.width, map.height, map.width*map.height),
-placement_mask_(map.width*map.height)
+game_env_(map.width, map.height),
+placement_mask_(map.width * map.height)
 {
 
     // Allocate players_ vector
@@ -26,44 +26,6 @@ placement_mask_(map.width*map.height)
 GameInstance::~GameInstance()
 {
     delete[] tanks_;
-}
-
-// Temporary array to hold colors for console print testing
-const static std::string colors_array[4] = {"\033[48;5;196m", "\033[48;5;21m", "\033[48;5;46m", "\033[48;5;226m"};
-
-// Print information to the console
-void GameInstance::print_instance_console() const
-{
-
-    for (int tank_idx = 0; tank_idx < num_tanks_ * num_players_; tank_idx++)
-    {
-        Tank this_tank = tanks_[tank_idx];
-        if (this_tank.health_ > 0)
-        {
-            this_tank.print_tank_state(tank_idx);
-        }
-    }
-
-    for (int y = 0; y < game_env_.get_height(); y++)
-    {
-        for (int x = 0; x < game_env_.get_width(); x++)
-        {
-            GridCell curr = game_env_[idx(x,y)];
-
-            if (curr.occupant_ == NO_OCCUPANT)
-            {
-                std::cout << curr << " ";
-            }
-            else
-            {
-                Tank this_tank = tanks_[curr.occupant_];
-                uint8_t tank_owner = this_tank.get_owner();
-                std::cout << colors_array[tank_owner] << +(curr.occupant_) << "\033[0m ";
-            }
-        }
-        std::cout << "\n";
-    }
-
 }
 
 // Rotate a tank of given ID
@@ -408,7 +370,7 @@ bool GameInstance::move_tank(uint8_t ID, bool reverse)
 
 bool GameInstance::fire_tank(uint8_t ID)
 {
-    Tank& curr_tank = tanks_[ID];
+    Tank & curr_tank = tanks_[ID];
 
     vec2 shell_dir = dir_to_vec[curr_tank.barrel_direction_];
     vec2 curr_loc = curr_tank.pos_;
@@ -476,7 +438,7 @@ PlayerView GameInstance::compute_view(uint8_t player_ID, uint8_t & live_tanks)
 
     PlayerView view(width, height);
 
-    Environment & player_view = view.map_view;
+    FlatArray<GridCell> & player_view = view.map_view;
 
     // copy the cell types
     //
@@ -753,7 +715,7 @@ void GameInstance::cast_ray(PlayerView & player_view, vec2 start, vec2 slope, fl
     int x_sign = 1;
     int y_sign = 1;
 
-    Environment & view = player_view.map_view;
+    FlatArray<GridCell> & view = player_view.map_view;
 
     // prepare slopes for north east
     if (dir % 8 == 1)

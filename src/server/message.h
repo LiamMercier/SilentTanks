@@ -1,7 +1,6 @@
 #pragma once
 
 #include "header.h"
-#include "environment.h"
 #include "player-view.h"
 #include "command.h"
 #include "external-user.h"

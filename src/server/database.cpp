@@ -33,7 +33,7 @@ std::string timepoint_to_string(std::chrono::system_clock::time_point banned_unt
 }
 
 // We expect that a file exists at ~/.pgpass
-Database::Database(asio::io_context& io,
+Database::Database(asio::io_context & io,
                    AuthCallback auth_callback,
                    BanCallback ban_callback,
                    std::shared_ptr<UserManager> user_manager)
@@ -135,8 +135,17 @@ void Database::record_match(MatchResult result)
     asio::post(strand_, [this, result = std::move(result)] mutable
     {
 
-        std::string moves_json = glz::write_json(result.move_history).value_or("error");
-        std::string settings_json = glz::write_json(result.settings).value_or("error");
+        std::string moves_json;
+        auto ec = glz::write_json(result.move_history, moves_json);
+
+        // Handle bad write.
+        if (ec)
+        {
+
+        }
+
+        std::string settings_json;
+        ec = glz::write_json(result, settings_json);
 
         // TODO: handle errors.
 
@@ -145,7 +154,7 @@ void Database::record_match(MatchResult result)
                   result.elimination_order,
                   settings_json,
                   moves_json,
-                  result.settings.mode);
+                  static_cast<GameMode>(result.settings.mode));
 
     });
 }
@@ -639,10 +648,10 @@ void Database::do_register(LoginRequest request,
 }
 
 void Database::do_record(std::vector<boost::uuids::uuid> user_ids,
-                   std::vector<uint8_t> elimination_order,
-                   std::string settings_json,
-                   std::string moves_json,
-                   GameMode mode)
+                         std::vector<uint8_t> elimination_order,
+                         std::string settings_json,
+                         std::string moves_json,
+                         GameMode mode)
 {
     asio::post(thread_pool_,
         [this,

@@ -60,9 +60,8 @@ public:
 
     // Only valid constructor, refuse any other construction attempts.
     MatchInstance(asio::io_context & cntx,
-                  const MatchSettings & settings,
+                  MatchSettings settings,
                   std::vector<PlayerInfo> player_list,
-                  uint8_t num_players,
                   SendCallback send_callback,
                   GameMessageCallback game_message);
 
@@ -78,9 +77,6 @@ public:
     void sync_player(uint64_t session_id, boost::uuids::uuid user_id);
 
     void match_message(boost::uuids::uuid sender, InternalMatchMessage msg);
-
-    // Initialize child classes that might fail.
-    bool init(const GameMap & map);
 
     // Initialization function to start a match.
     void start();
@@ -122,6 +118,9 @@ private:
         }
     };
 
+private:
+    uint8_t n_players_;
+
 public:
     uint8_t current_player;
     uint8_t remaining_players;
@@ -133,11 +132,13 @@ private:
     asio::steady_timer timer_;
     steady_clock::time_point expiry_time_;
 
+    // Move history for recording the game history.
+    MatchResult results_;
+
     // Game related datastructures.
-    GameInstance game_instance_;
     std::vector<PlayerInfo> players_;
-    uint8_t n_players_;
     uint8_t tanks_placed;
+    GameInstance game_instance_;
 
     // The turn ID exists to ensure commands put into the queue
     // for a given turn are not used in later turns due to client or
@@ -172,9 +173,6 @@ private:
 
     // Per player views of the game.
     std::vector<PlayerView> player_views_;
-
-    // Move history for recording the game history.
-    MatchResult results_;
 
     // Callback function to send message to a player's session.
     SendCallback send_callback_;

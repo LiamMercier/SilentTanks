@@ -19,7 +19,9 @@ public:
     GameInstance() = delete;
 
     // Create a predefined environment from map
-    GameInstance(const GameMap & map, uint8_t num_players);
+    GameInstance(GameMap map);
+
+    GameInstance(const MapSettings & map);
 
     ~GameInstance();
 
@@ -137,8 +139,9 @@ inline bool GameInstance::check_placement(vec2 pos, uint8_t player) const
     // Check if the placement mask matches the player.
     if (placement_mask_[i] == player)
     {
-        // Check that the tile is not terrain.
-        if (game_env_[i].type_ != CellType::Terrain)
+        // Check that the tile is not terrain or occupied.
+        if (game_env_[i].type_ != CellType::Terrain &&
+            game_env_[i].occupant_ == NO_OCCUPANT)
         {
             return true;
         }

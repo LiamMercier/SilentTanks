@@ -3,24 +3,40 @@
 
 #include <filesystem>
 
-GameInstance::GameInstance(const GameMap & map,
-                           uint8_t num_players)
-:num_players_(num_players),
-num_tanks_(map.num_tanks),
-game_env_(map.width, map.height),
-placement_mask_(map.width * map.height)
+// Constructor for match instances.
+GameInstance::GameInstance(GameMap map)
+:num_players_(map.map_settings.num_players),
+num_tanks_(map.map_settings.num_tanks),
+game_env_(std::move(map.env)),
+placement_mask_(std::move(map.mask))
 {
-
-    // Allocate players_ vector
     players_.reserve(num_players_);
 
-    // Create each tank in place
+    // Create each tank in place, not currently alive.
     for (uint8_t i = 0; i < num_players_; ++i)
     {
         players_.emplace_back(num_tanks_, i);
     }
 
-    tanks_ = (new Tank[map.num_tanks * num_players]{});
+    tanks_ = (new Tank[num_tanks_ * num_players_]{});
+}
+
+// Constructor when no map repository exists.
+GameInstance::GameInstance(const MapSettings & map_settings)
+:num_players_(map_settings.num_players),
+num_tanks_(map_settings.num_tanks),
+game_env_(map_settings.width, map_settings.height),
+placement_mask_(map_settings.width * map_settings.height)
+{
+    players_.reserve(num_players_);
+
+    // Create each tank in place, not currently alive.
+    for (uint8_t i = 0; i < num_players_; ++i)
+    {
+        players_.emplace_back(num_tanks_, i);
+    }
+
+    tanks_ = (new Tank[num_tanks_ * num_players_]{});
 }
 
 GameInstance::~GameInstance()

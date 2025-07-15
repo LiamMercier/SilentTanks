@@ -50,6 +50,18 @@ enum class GameMode : uint8_t
 // First GameMode which is ranked, for fast checks of a game mode.
 constexpr uint8_t RANKED_MODES_START = static_cast<uint8_t>(GameMode::RankedTwoPlayer);
 
+constexpr uint8_t NUMBER_OF_MODES = static_cast<uint8_t>(GameMode::NO_MODE);
+
+constexpr std::array<uint8_t, NUMBER_OF_MODES> players_for_gamemode = []
+{
+    std::array<uint8_t, NUMBER_OF_MODES> a{};
+
+    a[static_cast<uint8_t>(GameMode::ClassicTwoPlayer)] = 2;
+    a[static_cast<uint8_t>(GameMode::RankedTwoPlayer)] = 2;
+
+    return a;
+}();
+
 struct QueueMatchRequest
 {
     QueueMatchRequest(GameMode input_mode)

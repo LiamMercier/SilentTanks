@@ -2,17 +2,26 @@
 
 #include "maps.h"
 
+#include <random>
+#include <shared_mutex>
+#include <mutex>
+
 class MapRepository
 {
 public:
-    MapRepository() = default;
+    MapRepository();
 
     void load_map_file(std::string map_file_name);
 
-    const std::vector<GameMap> & get_available_maps() const;
-
-    // in the future, perhaps allow for adding maps to the repository
+    const GameMap & get_random_map(uint8_t index) const;
 
 private:
-    std::vector<GameMap> maps_;
+    // Controls map access. Mostly to prevent reading before
+    // initialization at server startup.
+    mutable std::shared_mutex maps_mutex_;
+    std::vector<std::vector<GameMap>> maps_;
+
+    // For getting a random map, pseudorandom is fine.
+    // We want this to be thread local for different match strategies.
+    static thread_local std::mt19937 gen_;
 };

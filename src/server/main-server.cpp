@@ -549,7 +549,7 @@ int main()
         s2->deliver(msg);
     }
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
 
     // Place tank for player 1.
     {
@@ -567,7 +567,7 @@ int main()
         s1->deliver(msg);
     }
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
 
     // Try to make a bad placement.
     {
@@ -585,7 +585,7 @@ int main()
         s2->deliver(msg);
     }
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
 
     // Bad placement due to mask.
     {
@@ -603,7 +603,7 @@ int main()
         s2->deliver(msg);
     }
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
     // Place tank for p2.
     {
@@ -621,7 +621,7 @@ int main()
         s2->deliver(msg);
     }
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
     // Place tank for p1.
     {
@@ -639,7 +639,123 @@ int main()
         s2->deliver(msg);
     }
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+
+    // Forfeit the game.
+    {
+        Message msg;
+        msg.create_serialized(HeaderType::ForfeitMatch);
+        s2->deliver(msg);
+    }
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+
+    // Queue up again, ensure we can still re-use the map.
+    {
+        Message msg;
+        msg.create_serialized(QueueMatchRequest(GameMode::ClassicTwoPlayer));
+        s1->deliver(msg);
+    }
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+
+    {
+        Message msg;
+        msg.create_serialized(QueueMatchRequest(GameMode::ClassicTwoPlayer));
+        s2->deliver(msg);
+    }
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+
+    {
+        Message msg;
+        TextMessage mm;
+        mm.text = "Message should not be shown still, is it????";
+        msg.header.type_ = HeaderType::MatchTextMessage;
+        msg.create_serialized(mm);
+        s2->deliver(msg);
+    }
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
+
+    // Place tank for player 1.
+    {
+        Message msg;
+        Command c;
+
+        c.sender = 0;
+        c.tank_id = 0;
+        c.type = CommandType::Place;
+        c.payload_first = 5;
+        c.payload_second = 6;
+        c.sequence_number = 3;
+
+        msg.create_serialized(c);
+        s1->deliver(msg);
+    }
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
+
+    // Place tank for player 2.
+    {
+        Message msg;
+        Command c;
+
+        c.sender = 0;
+        c.tank_id = 1;
+        c.type = CommandType::Place;
+        c.payload_first = 6;
+        c.payload_second = 5;
+        c.sequence_number = 3;
+
+        msg.create_serialized(c);
+        s2->deliver(msg);
+    }
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
+
+    // Place tank for player 1.
+    {
+        Message msg;
+        Command c;
+
+        c.sender = 0;
+        c.tank_id = 1;
+        c.type = CommandType::Place;
+        c.payload_first = 3;
+        c.payload_second = 3;
+        c.sequence_number = 4;
+
+        msg.create_serialized(c);
+        s1->deliver(msg);
+    }
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
+
+    // Place tank for player 2.
+    {
+        Message msg;
+        Command c;
+
+        c.sender = 1;
+        c.tank_id = 3;
+        c.type = CommandType::Place;
+        c.payload_first = 7;
+        c.payload_second = 7;
+        c.sequence_number = 5;
+
+        msg.create_serialized(c);
+        s2->deliver(msg);
+    }
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
+
+    // Forfeit the game.
+    {
+        Message msg;
+        msg.create_serialized(HeaderType::ForfeitMatch);
+        s1->deliver(msg);
+    }
 
     std::this_thread::sleep_for(std::chrono::milliseconds(2000));
 

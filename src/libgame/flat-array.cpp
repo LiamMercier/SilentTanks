@@ -10,8 +10,10 @@ array_()
 
 }
 
+// Allocate an empty array.
 template <typename element>
-FlatArray<element>::FlatArray(uint8_t input_width, uint8_t input_height)
+FlatArray<element>::FlatArray(uint8_t input_width,
+                              uint8_t input_height)
 :width_(input_width),
 height_(input_height),
 array_(size_t(input_width * input_height))

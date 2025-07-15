@@ -8,35 +8,38 @@ PlayerInfo::PlayerInfo(uint8_t id, uint64_t s_id, boost::uuids::uuid u_id)
 
 // Only valid constructor, refuse any other construction attempts.
 MatchInstance::MatchInstance(asio::io_context & cntx,
-                             const MatchSettings & settings,
+                             MatchSettings settings,
                              std::vector<PlayerInfo> player_list,
-                             uint8_t num_players,
                              SendCallback send_callback,
                              GameMessageCallback game_message)
     :
+    n_players_(settings.map.map_settings.num_players),
     current_player(0),
-    remaining_players(num_players),
+    remaining_players(n_players_),
     current_fuel(TURN_PLAYER_FUEL),
     strand_(cntx.get_executor()),
     timer_(cntx),
-    game_instance_(settings.map, num_players),
+    results_(settings.map.map_settings,
+             settings.initial_time_ms,
+             settings.increment_ms),
     players_(player_list),
-    n_players_(num_players),
     tanks_placed(0),
+    game_instance_(std::move(settings.map)),
     turn_ID_(0),
     increment_(std::chrono::milliseconds(settings.increment_ms)),
     current_state(GameState::Setup),
-    command_queues_(num_players),
-    time_left_(num_players, std::chrono::milliseconds(settings.initial_time_ms)),
-    results_(num_players, settings),
+    command_queues_(n_players_),
+    time_left_(n_players_,
+               std::chrono::milliseconds(settings.initial_time_ms)),
     send_callback_(send_callback),
     results_callback_(nullptr),
     game_message_(game_message)
 {
-    player_views_.reserve(num_players);
-    for (int i = 0; i < num_players; i++)
+    player_views_.reserve(n_players_);
+    for (int i = 0; i < n_players_; i++)
     {
-        player_views_.emplace_back(settings.map.width, settings.map.height);
+        player_views_.emplace_back(game_instance_.get_width(),
+                                   game_instance_.get_height());
     }
 }
 
@@ -247,12 +250,6 @@ void MatchInstance::match_message(boost::uuids::uuid sender,
 
         return;
     });
-}
-
-bool MatchInstance::init(const GameMap & map)
-{
-    return game_instance_.read_env_by_name(map.filename,
-                                           map.width * map.height);
 }
 
 void MatchInstance::start()

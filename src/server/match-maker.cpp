@@ -216,31 +216,25 @@ void MatchMaker::make_match_on_strand(std::vector<Session::ptr> players,
     try
     {
         new_inst = std::make_shared<MatchInstance>(io_cntx_,
-                                                   settings,
+                                                   std::move(settings),
                                                    player_list,
-                                                   player_list.size(),
                                                    send_callback_,
                                                    game_message_cb);
-
-        bool success = new_inst->init(settings.map);
-
-        if (!success)
-        {
-            // Send server error messages and cancel match.
-            for (uint8_t p_id = 0; p_id < players.size(); p_id++)
-            {
-                Message notify_cancel;
-                notify_cancel.create_serialized(HeaderType::MatchCreationError);
-                send_callback_(player_list[p_id].session_id, notify_cancel);
-            }
-
-            return;
-        }
     }
     catch (...)
     {
+        // Notify players that the server had an error creating the match.
+        for (uint8_t p_id = 0; p_id < players.size(); p_id++)
+        {
+            Message notify_cancel;
+            notify_cancel.create_serialized(HeaderType::MatchCreationError);
+            send_callback_(player_list[p_id].session_id, notify_cancel);
+        }
+
         return;
     }
+        // Proceed with match creation if successful.
+
         next_match_id_++;
 
         // Setup the results callback to handle deletion.

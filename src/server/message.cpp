@@ -33,6 +33,8 @@ template void Message::create_serialized<Command>(Command const&);
 
 template void Message::create_serialized<BadRegNotification>(BadRegNotification const&);
 
+template void Message::create_serialized<BadAuthNotification>(BadAuthNotification const&);
+
 template void Message::create_serialized<LoginRequest>(LoginRequest const&);
 
 template void Message::create_serialized<RegisterRequest>(RegisterRequest const&);
@@ -529,6 +531,11 @@ void Message::create_serialized(const mType & req)
     else if constexpr (std::is_same_v<mType, BadRegNotification>)
     {
         header.type_ = HeaderType::BadRegistration;
+        payload_buffer.push_back(static_cast<uint8_t>(req.reason));
+    }
+    else if constexpr (std::is_same_v<mType, BadAuthNotification>)
+    {
+        header.type_ = HeaderType::BadAuth;
         payload_buffer.push_back(static_cast<uint8_t>(req.reason));
     }
     else if constexpr (std::is_same_v<mType, LoginRequest>)

@@ -100,6 +100,24 @@ struct BadRegNotification
     Reason reason;
 };
 
+struct BadAuthNotification
+{
+    enum class Reason : uint8_t
+    {
+        BadHash,
+        InvalidUsername,
+        CurrentlyAuthenticated,
+        ServerError
+    };
+
+    BadAuthNotification(Reason input_reason)
+    :reason(input_reason)
+    {
+    }
+
+    Reason reason;
+};
+
 
 struct MatchStartNotification
 {

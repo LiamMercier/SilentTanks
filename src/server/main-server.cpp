@@ -3,6 +3,7 @@
 #include <thread>
 
 #include "server.h"
+#include "console.h"
 #include <boost/asio.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/local/stream_protocol.hpp>
@@ -20,6 +21,9 @@ int main()
     }
 
     asio::io_context server_io_context;
+
+    Console::init(server_io_context, LogLevel::INFO);
+    Console::instance().log("Test!", LogLevel::WARN);
 
     asio::ip::tcp::endpoint endpoint(asio::ip::make_address("127.0.0.1"), 12345);
 

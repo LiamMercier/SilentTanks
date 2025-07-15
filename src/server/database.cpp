@@ -1,6 +1,7 @@
 #include "database.h"
 #include "message.h"
 #include "user-manager.h"
+#include "console.h"
 
 #include <boost/uuid/uuid_io.hpp>
 
@@ -77,7 +78,8 @@ void Database::authenticate(Message msg,
             }
             else
             {
-                std::cerr << "Auth callback was not set!\n";
+                Console::instance().log("Auth callback was not set!",
+                                        LogLevel::ERROR);
             }
 
             return;
@@ -141,13 +143,17 @@ void Database::record_match(MatchResult result)
         // Handle bad write.
         if (ec)
         {
-
+            moves_json = "Error parsing moves.";
         }
 
         std::string settings_json;
         ec = glz::write_json(result, settings_json);
 
-        // TODO: handle errors.
+        // Handle bad write.
+        if (ec)
+        {
+            moves_json = "Error parsing settings.";
+        }
 
         // post database work to the database thread pool.
         do_record(result.user_ids,
@@ -401,7 +407,8 @@ void Database::do_auth(LoginRequest request,
                 }
                 else
                 {
-                    std::cerr << "Auth callback was not set!\n";
+                    Console::instance().log("Auth callback was not set!",
+                                            LogLevel::ERROR);
                 }
 
                 // Close the client connection, they are banned.
@@ -415,8 +422,12 @@ void Database::do_auth(LoginRequest request,
             if (hash_bytes.size() != HASH_LENGTH ||
                 salt_bytes.size() != SALT_LENGTH)
             {
-                std::cerr << "DB call had wrong hashing lengths!\n";
-                std::cerr << hash_bytes.size() << " " << salt_bytes.size() << "\n";
+                std::string lmsg = "DB call had wrong hashing lengths! "
+                                    + std::to_string(hash_bytes.size())
+                                    + " "
+                                    + std::to_string(salt_bytes.size());
+                Console::instance().log(std::move(lmsg),
+                                        LogLevel::ERROR);
                 return;
             }
 
@@ -493,18 +504,34 @@ void Database::do_auth(LoginRequest request,
                     }
 
                 }
+                // Inform bad login.
+                else
+                {
+                    // Tell client that their password is bad.
+                    Message bad_auth;
+                    BadAuthNotification a_notif(BadAuthNotification::Reason::BadHash);
+                    bad_auth.create_serialized(a_notif);
+
+                    s->deliver(bad_auth);
+                }
             }
             // Handle bad function calls.
             else
             {
-                std::cerr << "Argon2 hashing failed " << argon2_error_message(result) << "\n";
+                std::string lmsg = "Argon2 hashing failed "
+                                    + std::string(argon2_error_message(result));
+                Console::instance().log(std::move(lmsg),
+                                        LogLevel::ERROR);
             }
 
         txn.commit();
     }
-    catch(const std::exception& e)
+    catch(const std::exception & e)
     {
-        std::cerr << "Unexpected exception occured during auth " << e.what() << "\n";
+        std::string lmsg = "Unexpected exception occured during auth "
+                            + std::string(e.what());
+        Console::instance().log(std::move(lmsg),
+                                LogLevel::ERROR);
     }
     // Send callback to server once we've done our work.
     if(auth_callback_)
@@ -513,7 +540,8 @@ void Database::do_auth(LoginRequest request,
     }
     else
     {
-        std::cerr << "Auth callback was not set!\n";
+        Console::instance().log("Auth callback was not set!",
+                                LogLevel::ERROR);
     }
 
             });
@@ -522,19 +550,41 @@ void Database::do_auth(LoginRequest request,
             else
             {
                 // Empty, failed to find user.
+                Message bad_auth;
+                BadAuthNotification a_notif(BadAuthNotification::Reason::InvalidUsername);
+                bad_auth.create_serialized(a_notif);
+
+                s->deliver(bad_auth);
             }
 
             txn.commit();
             return;
         }
-
         catch(const pqxx::sql_error& e)
         {
-            std::cerr << "Database error: " << e.what() << "\n";
+            std::string lmsg = "Database error: "
+                                + std::string(e.what());
+            Console::instance().log(std::move(lmsg),
+                                    LogLevel::WARN);
+
+            Message bad_auth;
+            BadAuthNotification a_notif(BadAuthNotification::Reason::ServerError);
+            bad_auth.create_serialized(a_notif);
+
+            s->deliver(bad_auth);
         }
         catch(const std::exception& e)
         {
-            std::cerr << "Unexpected exception occured during auth " << e.what() << "\n";
+            std::string lmsg = "Unexpected exception occured during auth "
+                                + std::string(e.what());
+            Console::instance().log(std::move(lmsg),
+                                    LogLevel::ERROR);
+
+            Message bad_auth;
+            BadAuthNotification a_notif(BadAuthNotification::Reason::ServerError);
+            bad_auth.create_serialized(a_notif);
+
+            s->deliver(bad_auth);
         }
     });
 }
@@ -571,7 +621,10 @@ void Database::do_register(LoginRequest request,
 
         if (result != ARGON2_OK)
         {
-            std::cerr << "Argon2id failed: " << argon2_error_message(result) << "\n";
+            std::string lmsg = "Argon2id failed: "
+                                + std::string(argon2_error_message(result));
+            Console::instance().log(std::move(lmsg),
+                                    LogLevel::ERROR);
 
             Message bad_reg;
             BadRegNotification r_notif(BadRegNotification::Reason::ServerError);
@@ -621,7 +674,10 @@ void Database::do_register(LoginRequest request,
 
         catch (const pqxx::unique_violation & e)
         {
-            std::cerr << "Exception in registration: user not unique" << "\n";
+            std::string lmsg = "Exception in registration: user not unique";
+            Console::instance().log(std::move(lmsg),
+                                    LogLevel::INFO);
+
 
             // Tell client that their username is not unique
             Message bad_reg;
@@ -633,7 +689,10 @@ void Database::do_register(LoginRequest request,
 
         catch (const std::exception & e)
         {
-            std::cerr << "Exception in registration: " << e.what() << "\n";
+            std::string lmsg = "Exception in registration: "
+                                + std::string(e.what());
+            Console::instance().log(std::move(lmsg),
+                                    LogLevel::ERROR);
 
             Message bad_reg;
             BadRegNotification r_notif(BadRegNotification::Reason::ServerError);
@@ -707,7 +766,10 @@ void Database::do_record(std::vector<boost::uuids::uuid> user_ids,
         }
         catch (const std::exception & e)
         {
-            std::cerr << "standard exception in db match write: " << e.what() << "\n";
+            std::string lmsg = "Standard exception in db match write: "
+                                + std::string(e.what());
+            Console::instance().log(std::move(lmsg),
+                                    LogLevel::ERROR);
         }
 
     });
@@ -731,7 +793,10 @@ void Database::do_ban_ip(std::string ip,
         }
         catch (const std::exception & e)
         {
-            std::cerr << "Exception in do_ban_ip: " << e.what() << "\n";
+            std::string lmsg = "Exception in do_ban_ip: "
+                                + std::string(e.what());
+            Console::instance().log(std::move(lmsg),
+                                    LogLevel::CONSOLE);
         }
 
     });
@@ -752,7 +817,10 @@ void Database::do_unban_ip(std::string ip)
         }
         catch (const std::exception & e)
         {
-            std::cerr << "Exception in do_unban_ip: " << e.what() << "\n";
+            std::string lmsg = "Exception in do_unban_ip: "
+                                + std::string(e.what());
+            Console::instance().log(std::move(lmsg),
+                                    LogLevel::CONSOLE);
         }
 
     });
@@ -820,14 +888,17 @@ void Database::do_ban_user(std::string username,
             // No user found, exit.
             else
             {
-                // TODO: log this to console
-                std::cerr << "no user in do ban user\n";
+                Console::instance().log("No user in do_ban_user.",
+                                        LogLevel::CONSOLE);
             }
             txn.commit();
         }
         catch (const std::exception & e)
         {
-            std::cerr << "Exception in do_ban_user: " << e.what() << "\n";
+            std::string lmsg = "Exception in do_ban_user: "
+                                + std::string(e.what());
+            Console::instance().log(std::move(lmsg),
+                                    LogLevel::ERROR);
         }
 
     });
@@ -878,14 +949,17 @@ void Database::do_unban_user(std::string username, uint64_t ban_id)
             // No user found, exit.
             else
             {
-                // TODO: log to console
-                std::cerr << "no user in do unban user\n";
+                Console::instance().log("No user in do_unban_user",
+                                        LogLevel::CONSOLE);
             }
             txn.commit();
         }
         catch (const std::exception & e)
         {
-            std::cerr << "Exception in do_unban_user: " << e.what() << "\n";
+            std::string lmsg = "Exception in do_unban_user: "
+                                + std::string(e.what());
+            Console::instance().log(std::move(lmsg),
+                                    LogLevel::ERROR);
         }
 
     });
@@ -968,13 +1042,17 @@ void Database::do_send_friend_request(boost::uuids::uuid user,
                     // simply do nothing.
                     txn.exec_prepared("friend_request",
                                       boost::uuids::to_string(user),
-                                      boost::uuids::to_string(friend_id));
+                                      boost::uuids::to_string(friend_id),
+                                      MAX_FRIEND_REQUESTS);
 
                     txn.commit();
                 }
                 catch (const std::exception & e)
                 {
-                    std::cerr << "Exception in do_send_friend_request: " << e.what() << "\n";
+                    std::string lmsg = "Exception in do_send_friend_request: "
+                                        + std::string(e.what());
+                    Console::instance().log(std::move(lmsg),
+                                            LogLevel::ERROR);
                 }
                 });
 // END LAMBDA FOR UUID BASED STRAND
@@ -982,14 +1060,17 @@ void Database::do_send_friend_request(boost::uuids::uuid user,
             // No user found, exit.
             else
             {
-                // TODO: log to console
-                std::cerr << "no user in do_send_friend_request\n";
+                Console::instance().log("No user in do_send_friend_request",
+                                        LogLevel::INFO);
             }
             txn.commit();
         }
         catch (const std::exception & e)
         {
-            std::cerr << "Exception in do_send_friend_request: " << e.what() << "\n";
+            std::string lmsg = "Exception in do_send_friend_request: "
+                                + std::string(e.what());
+            Console::instance().log(std::move(lmsg),
+                                    LogLevel::ERROR);
         }
 
     });
@@ -1077,7 +1158,10 @@ void Database::do_respond_friend_request(boost::uuids::uuid user,
     }
     catch (const std::exception & e)
     {
-        std::cerr << "Exception in do_respond_friend_request: " << e.what() << "\n";
+        std::string lmsg = "Exception in do_respond_friend_request: "
+                            + std::string(e.what());
+        Console::instance().log(std::move(lmsg),
+                                LogLevel::ERROR);
     }
     });
 // END LAMBDA FOR UUID BASED STRAND
@@ -1164,7 +1248,10 @@ void Database::do_block_user(boost::uuids::uuid blocker,
             }
             catch (const std::exception & e)
             {
-                std::cerr << "Exception in do_block_user: " << e.what() << "\n";
+                std::string lmsg = "Exception in do_block_user: "
+                                    + std::string(e.what());
+                Console::instance().log(std::move(lmsg),
+                                        LogLevel::ERROR);
             }
                 });
 // END LAMBDA FOR UUID BASED STRAND
@@ -1172,14 +1259,17 @@ void Database::do_block_user(boost::uuids::uuid blocker,
             // No user found, exit.
             else
             {
-                // TODO: log to console
-                std::cerr << "no user in do_block_user\n";
+                Console::instance().log("No user in do_block_user",
+                                        LogLevel::INFO);
             }
             txn.commit();
         }
         catch (const std::exception & e)
         {
-            std::cerr << "Exception in do_block_user: " << e.what() << "\n";
+            std::string lmsg = "Exception in do_block_user: "
+                                + std::string(e.what());
+            Console::instance().log(std::move(lmsg),
+                                    LogLevel::ERROR);
         }
 
     });
@@ -1225,7 +1315,10 @@ void Database::do_unblock_user(boost::uuids::uuid blocker,
     }
     catch (const std::exception & e)
     {
-        std::cerr << "Exception in do_unblock_user: " << e.what() << "\n";
+        std::string lmsg = "Exception in do_unblock_user: "
+                            + std::string(e.what());
+        Console::instance().log(std::move(lmsg),
+                                LogLevel::ERROR);
     }
     });
 // END LAMBDA FOR UUID BASED STRAND
@@ -1271,7 +1364,10 @@ void Database::do_remove_friend(boost::uuids::uuid user,
     }
     catch (const std::exception & e)
     {
-        std::cerr << "Exception in do_remove_friend: " << e.what() << "\n";
+        std::string lmsg = "Exception in do_remove_friend: "
+                            + std::string(e.what());
+        Console::instance().log(std::move(lmsg),
+                                LogLevel::ERROR);
     }
     });
 // END LAMBDA FOR UUID BASED STRAND
@@ -1324,7 +1420,10 @@ void Database::do_fetch_blocks(boost::uuids::uuid user,
     }
     catch (const std::exception & e)
     {
-        std::cerr << "Exception in do_fetch_blocks: " << e.what() << "\n";
+        std::string lmsg = "Exception in do_fetch_blocks: "
+                            + std::string(e.what());
+        Console::instance().log(std::move(lmsg),
+                                LogLevel::ERROR);
     }
     });
 }
@@ -1376,7 +1475,10 @@ void Database::do_fetch_friends(boost::uuids::uuid user,
     }
     catch (const std::exception & e)
     {
-        std::cerr << "Exception in do_fetch_friends: " << e.what() << "\n";
+        std::string lmsg = "Exception in do_fetch_friends: "
+                            + std::string(e.what());
+        Console::instance().log(std::move(lmsg),
+                                LogLevel::ERROR);
     }
     });
 }
@@ -1428,7 +1530,10 @@ void Database::do_fetch_friend_requests(boost::uuids::uuid user,
     }
     catch (const std::exception & e)
     {
-        std::cerr << "Exception in do_fetch_friend_requests: " << e.what() << "\n";
+        std::string lmsg = "Exception in do_fetch_friend_requests: "
+                            + std::string(e.what());
+        Console::instance().log(std::move(lmsg),
+                                LogLevel::ERROR);
     }
     });
 }
@@ -1504,8 +1609,15 @@ void Database::prepares()
             "WHERE ban_id = $1"
             );
         conn_->prepare("friend_request",
+            "WITH pending AS ( "
+            "SELECT COUNT(*) AS cnt "
+            "FROM FriendRequests "
+            "WHERE sender = $1 "
+            ") "
             "INSERT INTO FriendRequests (sender, receiver) "
-            "VALUES ($1, $2) "
+            "SELECT $1, $2 "
+            "FROM pending "
+            "WHERE cnt < $3 "
             "ON CONFLICT DO NOTHING"
             );
         conn_->prepare("delete_friend_request",

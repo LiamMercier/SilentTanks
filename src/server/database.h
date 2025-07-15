@@ -33,6 +33,9 @@ constexpr size_t MAX_CONCURRENT_AUTHS = 3;
 // Default elo on table insert
 constexpr int DEFAULT_ELO = 1000;
 
+// Maximum number of requests to hold at one time, to prevent spam.
+constexpr int MAX_FRIEND_REQUESTS = 50;
+
 constexpr bool ACCEPT_REQUEST = true;
 
 namespace asio = boost::asio;

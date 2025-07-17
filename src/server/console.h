@@ -28,11 +28,18 @@ constexpr std::array<std::string_view, NUMBER_OF_LOG_LEVELS> log_prefix = []
 
 namespace asio = boost::asio;
 
-// TODO: async commands from admin.
 class Console
 {
 public:
+    using CommandHandler = std::function<void(std::string)>;
+
     static Console & instance();
+
+    void set_command_handler(CommandHandler h);
+
+    void start_command_loop();
+
+    void stop_command_loop();
 
     static void init(asio::io_context & io_context, LogLevel level);
 
@@ -54,4 +61,9 @@ private:
     static inline asio::io_context * io_context_ = nullptr;
 
     static inline LogLevel level_;
+
+    // Thread state data.
+    std::thread reader_thread_;
+    std::atomic<bool> running_;
+    CommandHandler cmd_handler_;
 };

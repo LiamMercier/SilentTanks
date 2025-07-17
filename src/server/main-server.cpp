@@ -4,6 +4,7 @@
 
 #include "server.h"
 #include "console.h"
+#include "console-dispatch.h"
 #include <boost/asio.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/local/stream_protocol.hpp>
@@ -30,6 +31,14 @@ int main()
     Server server(server_io_context, endpoint);
 
     std::cout << "Server started on " << endpoint << std::endl;
+
+    // Bind the line parsing handle for the console to use.
+    auto cmd_handler = std::bind(&console_dispatch,
+                                 std::ref(server),
+                                 std::placeholders::_1);
+
+    Console::instance().set_command_handler(cmd_handler);
+    Console::instance().start_command_loop();
 
     std::thread server_thread([&]()
     {

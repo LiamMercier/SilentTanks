@@ -21,6 +21,9 @@ public:
                           std::chrono::system_clock::time_point banned_until,
                           std::string reason);
 
+    void CONSOLE_ban_ip(std::string username,
+                        std::chrono::system_clock::time_point banned_until);
+
     void do_accept();
 
 private:

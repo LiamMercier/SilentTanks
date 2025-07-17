@@ -741,6 +741,8 @@ void Database::do_record(std::vector<boost::uuids::uuid> user_ids,
 
             // Now we insert each player for the game into the
             // MatchPlayers table. Loop through the players.
+            //
+            // This is a candidate for pipelining.
             for (size_t i = 0; i < user_ids.size(); i++)
             {
                 txn.exec_params(
@@ -1538,7 +1540,6 @@ void Database::do_fetch_friend_requests(boost::uuids::uuid user,
     });
 }
 
-// TODO: limit friend requests to some constant
 void Database::prepares()
 {
     if (!conn_)

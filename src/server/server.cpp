@@ -1,4 +1,5 @@
 #include "server.h"
+#include "console.h"
 
 Server::Server(asio::io_context & cntx,
                tcp::endpoint endpoint)
@@ -68,6 +69,13 @@ void Server::CONSOLE_ban_user(std::string username,
     db_.ban_user(std::move(username),
                  std::move(banned_until),
                  std::move(reason));
+}
+
+void Server::CONSOLE_ban_ip(std::string username,
+                            std::chrono::system_clock::time_point banned_until)
+{
+    db_.ban_ip(std::move(username),
+               std::move(banned_until));
 }
 
 void Server::do_accept()
@@ -163,7 +171,6 @@ void Server::remove_session(const ptr & session)
 }
 
 // TODO: Error handling
-// TODO: message validation
 // TODO: any filtering of excessive packets
 //
 // This function is used in session's strand. As such, it must not
@@ -171,8 +178,21 @@ void Server::remove_session(const ptr & session)
 // should only post to the strand of the object being utilized.
 void Server::on_message(const ptr & session, Message msg)
 {
-    std::cout << "Header Type: " << +uint8_t(msg.header.type_) << "\n";
-    std::cout << "Payload Size: " << +uint8_t(msg.header.payload_len) << "\n";
+    // Prevent malformed or incorrect data.
+    if (msg.header.payload_len != msg.payload.size())
+    {
+        Message b_req;
+        b_req.create_serialized(HeaderType::BadMessage);
+        session->deliver(b_req);
+
+        session->close_session();
+        return;
+    }
+
+try {
+
+    std::cout << "[Server]: Header Type: " << +uint8_t(msg.header.type_) << "\n";
+    std::cout << "[Server]: Payload Size: " << +uint8_t(msg.header.payload_len) << "\n";
 
     // handle different types of messages
     switch(msg.header.type_)
@@ -183,7 +203,8 @@ void Server::on_message(const ptr & session, Message msg)
             if (session->is_authenticated())
             {
                 Message already_authorized;
-                already_authorized.create_serialized(HeaderType::AlreadyAuthorized);
+                BadAuthNotification b_auth(BadAuthNotification::Reason::CurrentlyAuthenticated);
+                already_authorized.create_serialized(b_auth);
                 session->deliver(already_authorized);
 
                 break;
@@ -227,6 +248,8 @@ void Server::on_message(const ptr & session, Message msg)
 
                 session->deliver(banned_msg);
                 session->close_session();
+
+                return;
             }
 
             db_.authenticate(msg, session, client_ip);
@@ -283,6 +306,7 @@ void Server::on_message(const ptr & session, Message msg)
 
                 session->deliver(banned_msg);
                 session->close_session();
+                return;
             }
 
             db_.register_account(msg, session, client_ip);
@@ -532,6 +556,20 @@ void Server::on_message(const ptr & session, Message msg)
             // do nothing, should never happen
             break;
     }
+}
+// Close bad sessions.
+catch (std::exception & e)
+{
+    std::string lmsg = "Exception in session's on_message handler: "
+                        + std::string(e.what());
+    Console::instance().log(lmsg,
+                            LogLevel::ERROR);
+    Message b_req;
+    b_req.create_serialized(HeaderType::BadMessage);
+    session->deliver(b_req);
+
+    session->close_session();
+}
 }
 
 void Server::on_auth(UserData data,

@@ -14,14 +14,20 @@ enum class LogLevel : uint8_t
 
 constexpr size_t NUMBER_OF_LOG_LEVELS = static_cast<size_t>(LogLevel::CONSOLE) + 1;
 
+constexpr std::string TERM_YELLOW = "\033[33m";
+
+constexpr std::string TERM_RED = "\033[31m";
+
+constexpr std::string_view TERM_RESET = "\033[0m";
+
 constexpr std::array<std::string_view, NUMBER_OF_LOG_LEVELS> log_prefix = []
 {
     std::array<std::string_view, NUMBER_OF_LOG_LEVELS> a{};
 
-    a[static_cast<size_t>(LogLevel::INFO)] = "[INFO]: ";
-    a[static_cast<size_t>(LogLevel::WARN)] = "[WARN]: ";
-    a[static_cast<size_t>(LogLevel::ERROR)] = "[ERROR]: ";
-    a[static_cast<size_t>(LogLevel::CONSOLE)] = "[CONSOLE]: ";
+    a[static_cast<size_t>(LogLevel::INFO)] = "\033[32m[INFO]:\033[0m ";
+    a[static_cast<size_t>(LogLevel::WARN)] = "\033[33m[WARN]:\033[0m ";
+    a[static_cast<size_t>(LogLevel::ERROR)] = "\033[31m[ERROR]:\033[0m ";
+    a[static_cast<size_t>(LogLevel::CONSOLE)] = "\033[36m[CONSOLE]:\033[0m ";
 
     return a;
 }();
@@ -66,4 +72,8 @@ private:
     std::thread reader_thread_;
     std::atomic<bool> running_;
     CommandHandler cmd_handler_;
+
+    // User input buffer.
+    std::mutex buffer_mutex_;
+    std::string current_input_buffer_;
 };

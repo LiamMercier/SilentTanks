@@ -91,9 +91,9 @@ inline void console_dispatch(Server & server, std::string line)
     else if (cmd == "help")
     {
         Console::instance().log(
-                "Available commands: \n\n"
-                "    BanUser <username> <duration (minutes)> <reason>\n"
-                "    BanIP <ipv4_address> <duration (minutes)>\n\n",
+                "Available commands: \n"
+                "BanUser <username> <duration (minutes)> <reason>\n"
+                "BanIP <ipv4_address> <duration (minutes)>\n\n",
                 LogLevel::CONSOLE
             );
     }

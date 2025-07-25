@@ -30,9 +30,6 @@ constexpr uint32_t ARGON2_PARALLEL = 1;
 // Limit how much memory we are consuming for logins.
 constexpr size_t MAX_CONCURRENT_AUTHS = 3;
 
-// Default elo on table insert
-constexpr int DEFAULT_ELO = 1000;
-
 // Maximum number of requests to hold at one time, to prevent spam.
 constexpr int MAX_FRIEND_REQUESTS = 50;
 
@@ -41,6 +38,9 @@ constexpr bool ACCEPT_REQUEST = true;
 namespace asio = boost::asio;
 
 // TODO: pipeline everything that can be pipelined.
+// This is especially true for the match write function.
+
+// TODO: smooth database shutdown on server close.
 class Database
 {
 public:

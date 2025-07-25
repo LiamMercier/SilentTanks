@@ -5,6 +5,8 @@
 #include "server.h"
 #include "console.h"
 #include "console-dispatch.h"
+#include "elo-updates.h"
+
 #include <boost/asio.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/local/stream_protocol.hpp>
@@ -24,7 +26,7 @@ int main()
     asio::io_context server_io_context;
 
     Console::init(server_io_context, LogLevel::INFO);
-    Console::instance().log("Test!", LogLevel::WARN);
+    Console::instance().log("Test error text", LogLevel::ERROR);
 
     asio::ip::tcp::endpoint endpoint(asio::ip::make_address("127.0.0.1"), 12345);
 
@@ -44,6 +46,55 @@ int main()
     {
         server_io_context.run();
     });
+
+    // Some early console tests
+    Console::instance().log("Text should be replaced in the CLI", LogLevel::WARN);
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(750));
+
+    Console::instance().log("Text should be replaced in the CLI", LogLevel::WARN);
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(750));
+
+    Console::instance().log("Text should be replaced in the CLI", LogLevel::WARN);
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+
+    Console::instance().log("Text should be replaced in the CLI", LogLevel::WARN);
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+
+    Console::instance().log("Text should be replaced in the CLI", LogLevel::WARN);
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+
+    Console::instance().log("Testing result of elo changes for two 1500 elo players. Expected result is 1484, 1516.", LogLevel::INFO);
+
+    {
+        std::vector<int> init_elos_1 = {1500, 1500};
+        std::vector<uint8_t> placement_1 = {0, 1};
+
+        std::vector<int> new_elos = elo_updates(init_elos_1, placement_1);
+
+        std::string lmsg = std::to_string(new_elos[0]) + " " + std::to_string(new_elos[1]);
+        Console::instance().log(lmsg, LogLevel::INFO);
+    }
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+
+    Console::instance().log("Testing result of elo changes for three 1500 elo players. Expected result is 1525, 1500, 1475.", LogLevel::INFO);
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+    {
+        std::vector<int> init_elos_1 = {1500, 1500, 1500};
+        std::vector<uint8_t> placement_1 = {2, 1, 0};
+
+        std::vector<int> new_elos = elo_updates(init_elos_1, placement_1);
+
+        std::string lmsg = std::to_string(new_elos[0]) + " " + std::to_string(new_elos[1]) + " " + std::to_string(new_elos[2]);
+        Console::instance().log(lmsg, LogLevel::INFO);
+    }
 
     // client logic
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -783,10 +834,15 @@ int main()
         std::cerr << "Client error: " << e.what() << std::endl;
     }
 
+    // Clean up system resources
 
     server_io_context.stop();
 
     server_thread.join();
+
+    std::cerr << "Server stopped. Press anything to return.\n";
+
+    Console::instance().stop_command_loop();
 
     return 0;
 

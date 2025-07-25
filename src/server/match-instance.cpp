@@ -14,6 +14,7 @@ MatchInstance::MatchInstance(asio::io_context & cntx,
                              GameMessageCallback game_message)
     :
     n_players_(settings.map.map_settings.num_players),
+    elim_counter_(0),
     current_player(0),
     remaining_players(n_players_),
     current_fuel(TURN_PLAYER_FUEL),
@@ -492,7 +493,8 @@ void MatchInstance::handle_elimination(uint8_t p_id, HeaderType reason)
     remaining_players = remaining_players - 1;
     time_left_[p_id] = std::chrono::milliseconds(0);
     players_[p_id].alive = false;
-    results_.elimination_order.push_back(p_id);
+    results_.elimination_order[p_id] = elim_counter_;
+    elim_counter_++;
 
     // Inform the player that they are eliminated
     Message inform_elimination;
@@ -719,7 +721,8 @@ void MatchInstance::compute_all_views()
             remaining_players -= 1;
 
             players_[i].alive = false;
-            results_.elimination_order.push_back(i);
+            results_.elimination_order[i] = elim_counter_;
+            elim_counter_++;
 
             // Inform the player that they are eliminated
             Message inform_elimination;
@@ -749,6 +752,7 @@ void MatchInstance::conclude_game()
         if (players_[i].alive == true)
         {
             winner = i;
+            results_.elimination_order[i] = elim_counter_;
         }
 
         results_.user_ids[i] = players_[i].user_id;

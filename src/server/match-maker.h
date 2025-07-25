@@ -61,7 +61,10 @@ private:
                        boost::hash<boost::uuids::uuid>> uuid_to_match_;
 
     // Temporary match ID to instance mapping
+    // TODO: check this doesn't exist before allowing to enqueue
     std::unordered_map<uint64_t, std::shared_ptr<MatchInstance>> live_matches_;
+
+    // TODO: track queued user IDs.
 
     // Map repository.
     std::shared_ptr<MapRepository> all_maps_;

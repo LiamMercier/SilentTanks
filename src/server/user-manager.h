@@ -36,6 +36,11 @@ public:
     void notify_match_start(boost::uuids::uuid user_id,
                             std::shared_ptr<MatchInstance> inst);
 
+    // Update the user data and session's user data on elo update.
+    void notify_elo_update(boost::uuids::uuid user_id,
+                           int new_elo,
+                           GameMode mode);
+
     void on_ban_user(boost::uuids::uuid user_id,
                      std::chrono::system_clock::time_point banned_until,
                      std::string reason);

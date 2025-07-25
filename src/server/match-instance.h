@@ -120,6 +120,7 @@ private:
 
 private:
     uint8_t n_players_;
+    uint8_t elim_counter_;
 
 public:
     uint8_t current_player;

@@ -71,10 +71,10 @@ void Server::CONSOLE_ban_user(std::string username,
                  std::move(reason));
 }
 
-void Server::CONSOLE_ban_ip(std::string username,
+void Server::CONSOLE_ban_ip(std::string ip,
                             std::chrono::system_clock::time_point banned_until)
 {
-    db_.ban_ip(std::move(username),
+    db_.ban_ip(std::move(ip),
                std::move(banned_until));
 }
 

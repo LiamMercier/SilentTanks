@@ -26,6 +26,7 @@ struct MatchResult
     }
 
     std::vector<CommandHead> move_history;
+    // user_id's and elimination_order are both indexed by player_id
     std::vector<boost::uuids::uuid> user_ids;
     std::vector<uint8_t> elimination_order;
     MapSettings settings;

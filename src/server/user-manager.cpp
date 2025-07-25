@@ -169,6 +169,28 @@ void UserManager::notify_match_start(boost::uuids::uuid user_id,
 
 }
 
+void UserManager::notify_elo_update(boost::uuids::uuid user_id,
+                                    int new_elo,
+                                    GameMode mode)
+{
+    boost::asio::post(strand_,
+        [this,
+         uuid = std::move(user_id),
+         new_elo,
+         mode]{
+
+        auto & user = (this->users_)[uuid];
+
+        uint8_t mode_idx = elo_ranked_index(mode);
+
+        user->user_data.matching_elos[mode_idx] = new_elo;
+
+        // Now, update the session's data.
+        (user->current_session)->update_elo(new_elo, mode_idx);
+
+    });
+}
+
 void UserManager::on_ban_user(boost::uuids::uuid user_id,
                         std::chrono::system_clock::time_point banned_until,
                         std::string reason)

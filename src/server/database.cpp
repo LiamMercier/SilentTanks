@@ -1,6 +1,7 @@
 #include "database.h"
 #include "message.h"
 #include "user-manager.h"
+#include "elo-updates.h"
 #include "console.h"
 
 #include <boost/uuid/uuid_io.hpp>
@@ -31,6 +32,28 @@ std::string timepoint_to_string(std::chrono::system_clock::time_point banned_unt
     banned_until_str += "Z";
 
     return banned_until_str;
+}
+
+// Manually convert a vector of UUID strings to data for postgre to use.
+//
+// This could be replaced if using a new version of libpqxx that supports
+// passing in std::vector<std::string> but otherwise this is necessary.
+//
+// This function should not be called for any arbitrary data, only UUIDs.
+std::string uuid_to_pq_array(const std::vector<std::string> & user_id_strs)
+{
+    std::string result = "{";
+    for (size_t i = 0; i < user_id_strs.size(); i++)
+    {
+        result += "\"" + user_id_strs[i] + "\"";
+        if (i + 1 < user_id_strs.size())
+        {
+            result += ",";
+        }
+    }
+
+    result += "}";
+    return result;
 }
 
 // We expect that a file exists at ~/.pgpass
@@ -503,6 +526,38 @@ void Database::do_auth(LoginRequest request,
                             gen(row["blocked"].as<std::string>()));
                     }
 
+                    // Fetch elo's for this user.
+                    auto mode_elos = txn.exec_prepared(
+                                            "get_mode_elos",
+                                            boost::uuids::to_string(user_id));
+
+                    for (const auto & row : mode_elos)
+                    {
+                        uint8_t mode = static_cast<uint8_t>
+                                        (
+                                            row["game_mode"].as<int>()
+                                        );
+
+                        if (mode < RANKED_MODES_START)
+                        {
+                            continue;
+                        }
+
+                        uint8_t idx = elo_ranked_index(mode);
+
+                        data.matching_elos[idx] =  row["current_elo"]
+                                                    .as<int>();
+
+                        // TODO: remove
+                        std::string lmsg = "Loaded elo "
+                                            + std::to_string(
+                                                data.matching_elos[idx])
+                                            + " for game mode "
+                                            + std::to_string(mode);
+
+                        Console::instance().log(lmsg, LogLevel::INFO);
+                    }
+
                 }
                 // Inform bad login.
                 else
@@ -714,25 +769,42 @@ void Database::do_record(std::vector<boost::uuids::uuid> user_ids,
 {
     asio::post(thread_pool_,
         [this,
-        user_ids,
-        elimination_order,
-        settings_json,
-        moves_json,
+        user_ids = std::move(user_ids),
+        elimination_order = std::move(elimination_order),
+        settings_json = std::move(settings_json),
+        moves_json = std::move(moves_json),
         mode]() mutable{
 
         try
         {
             prepares();
 
-            // start transaction
-            pqxx::work txn{*conn_};
+            size_t N_players = user_ids.size();
+
+            if (N_players <= 1)
+            {
+                Console::instance().log("Too few players in match log!",
+                                        LogLevel::ERROR);
+                return;
+            }
+
+            if (elimination_order.size() != N_players)
+            {
+                Console::instance().log(
+                    "Size mismatch between elimination "
+                    "order and number of players.",
+                    LogLevel::ERROR);
+
+                return;
+            }
+
+            // start main transaction
+            pqxx::work match_txn{*conn_};
 
             // Insert the match
-            auto res_m_id = txn.exec_params(
-                "INSERT INTO Matches(game_mode, settings, move_history) \
-                VALUES ($1, $2::jsonb, $3::jsonb) \
-                RETURNING match_id",
-                static_cast<short>(mode),
+            auto res_m_id = match_txn.exec_prepared(
+                "insert_matches",
+                static_cast<int16_t>(mode),
                 settings_json,
                 moves_json
             );
@@ -743,27 +815,141 @@ void Database::do_record(std::vector<boost::uuids::uuid> user_ids,
             // MatchPlayers table. Loop through the players.
             //
             // This is a candidate for pipelining.
-            for (size_t i = 0; i < user_ids.size(); i++)
+            for (size_t i = 0; i < N_players; i++)
             {
-                txn.exec_params(
-                    "INSERT INTO MatchPlayers(match_id, user_id, \
-                    player_id, placement) VALUES ($1, $2, $3, $4)",
-                    match_id,
-                    boost::uuids::to_string(user_ids[i]),
-                    static_cast<short>(i),
-                    static_cast<short>(elimination_order[i])
-                );
+                match_txn.exec_prepared("insert_player",
+                                  match_id,
+                                  boost::uuids::to_string(user_ids[i]),
+                                  static_cast<int16_t>(i),
+                                  static_cast<int16_t>(elimination_order[i]));
             }
+
+            match_txn.commit();
 
             // Next, we decide if we need to change the player
-            // elo and if so we fetch the player's current ranks.
-            if (static_cast<uint8_t>(mode) >= RANKED_MODES_START)
+            // elos and if so we fetch the player's current ratings.
+            // TODO: revert +/- 1 from testing values
+            if (static_cast<uint8_t>(mode) >= RANKED_MODES_START - 1)
             {
-                // TODO: ranked updates
-            }
+                std::vector<std::string> user_id_strs;
+                user_id_strs.reserve(N_players);
 
-            // Commit the transaction.
-            txn.commit();
+                // Go through the array (type is boost uuid) and
+                // create a string from the user IDs.
+                for (const auto & uuid : user_ids)
+                {
+                    user_id_strs.push_back(boost::uuids::to_string(uuid));
+                }
+
+                // Create a transaction to read the user elos.
+                pqxx::work elo_txn{*conn_};
+
+                // Manually turn this into an array of values.
+                std::string user_id_array = uuid_to_pq_array(user_id_strs);
+
+                auto read_res = elo_txn.exec_prepared(
+                            "get_elos",
+                            user_id_array,
+                            static_cast<int16_t>(mode) + 1);
+
+                // Get elo values out of our result.
+                //
+                // We map UUID to index and then make the elo vector.
+                std::unordered_map<boost::uuids::uuid, size_t> player_idx;
+                player_idx.reserve(N_players);
+
+                for (size_t i = 0; i < N_players; i++)
+                {
+                    player_idx.emplace(user_ids[i], i);
+                }
+
+                boost::uuids::string_generator gen;
+                int elo_sum = 0;
+
+                std::vector<int> elos(N_players, 0);
+
+                for (const auto & row : read_res)
+                {
+                    boost::uuids::uuid id = gen
+                                    (
+                                        row["user_id"].as<std::string>()
+                                    );
+
+                    int elo = row["current_elo"].as<int>();
+                    auto idx_it = player_idx.find(id);
+
+                    // If we find the user ID then place in correct index.
+                    //
+                    // This should never fail, because we only found
+                    // rows based on our input UUIDs and so there
+                    // should be no way for an external UUID to get in.
+                    if (idx_it != player_idx.end())
+                    {
+                        elos[idx_it->second] = elo;
+                        elo_sum += elo;
+                    }
+                }
+
+                // If a player was missing (not found in table) then
+                // set their elo to the average of the lobby for fairness.
+                //
+                // We do not expect this to occur under normal operation, but
+                // it is good to guard against bad elo updates.
+                if (read_res.size() < N_players)
+                {
+                    std::string lmsg = "Found "
+                                        + std::to_string(read_res.size())
+                                        + " of "
+                                        + std::to_string(N_players)
+                                        + " players in recording for match "
+                                        + std::to_string(match_id)
+                                        + ".";
+                    Console::instance().log(std::move(lmsg),
+                                            LogLevel::WARN);
+
+                    int average_elo = std::round(
+                                            static_cast<double>(elo_sum)
+                                            /
+                                            static_cast<double>(N_players));
+
+                    for (size_t i = 0; i < N_players; i++)
+                    {
+                        if (elos[i] == 0)
+                        {
+                            elos[i] = average_elo;
+                        }
+                    }
+                }
+
+                // Compute the output elo's for database updates.
+                std::vector<int> new_elos = elo_updates(elos, elimination_order);
+
+                // Update user elo's.
+                //
+                // This is a candidate for pipelining.
+                for (size_t i = 0; i < N_players; i++)
+                {
+                    elo_txn.exec_prepared("record_elo_history",
+                                          boost::uuids::to_string(user_ids[i]),
+                                          match_id,
+                                          static_cast<int16_t>(mode) + 1,
+                                          elos[i],
+                                          new_elos[i]);
+
+                    elo_txn.exec_prepared("update_elo",
+                                          boost::uuids::to_string(user_ids[i]),
+                                          static_cast<int16_t>(mode) + 1,
+                                          new_elos[i]);
+
+                    // Inform the user manager of elo updates.
+                    user_manager_->notify_elo_update(user_ids[i],
+                                                     new_elos[i],
+                                                     static_cast<GameMode>(static_cast<uint8_t>(mode) + 1));
+                }
+
+                elo_txn.commit();
+
+            }
 
         }
         catch (const std::exception & e)
@@ -778,7 +964,7 @@ void Database::do_record(std::vector<boost::uuids::uuid> user_ids,
 }
 
 void Database::do_ban_ip(std::string ip,
-               std::chrono::system_clock::time_point banned_until)
+                         std::chrono::system_clock::time_point banned_until)
 {
     asio::post(thread_pool_, [this, ip, banned_until]{
         try
@@ -1557,6 +1743,36 @@ void Database::prepares()
             );
         conn_->prepare("reg",
             "INSERT INTO Users (user_id, username, hash, salt, last_ip) "
+            "VALUES ($1, $2, $3, $4, $5)"
+            );
+        conn_->prepare("insert_matches",
+            "INSERT INTO Matches(game_mode, settings, move_history) "
+            "VALUES ($1, $2::jsonb, $3::jsonb) "
+            "RETURNING match_id"
+            );
+        conn_->prepare("insert_player",
+            "INSERT INTO MatchPlayers(match_id, user_id, "
+            "player_id, placement) VALUES ($1, $2, $3, $4)"
+            );
+        conn_->prepare("get_elos",
+            "SELECT user_id, current_elo "
+            "FROM UserElos "
+            "WHERE user_id = ANY($1::uuid[]) AND game_mode = $2 "
+            );
+        conn_->prepare("get_mode_elos",
+            "SELECT user_id, current_elo, game_mode "
+            "FROM UserElos "
+            "WHERE user_id = $1"
+            );
+        conn_->prepare("update_elo",
+            "INSERT INTO UserElos (user_id, game_mode, current_elo) "
+            "VALUES ($1, $2, $3) "
+            "ON CONFLICT (user_id, game_mode) "
+            "DO UPDATE SET current_elo = EXCLUDED.current_elo"
+            );
+        conn_->prepare("record_elo_history",
+            "INSERT INTO EloHistory (user_id, match_id, game_mode, "
+                                    "old_elo, new_elo) "
             "VALUES ($1, $2, $3, $4, $5)"
             );
         conn_->prepare("ban_ip",

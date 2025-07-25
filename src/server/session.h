@@ -66,6 +66,8 @@ public:
 
     inline UserData get_user_data() const;
 
+    inline void update_elo(int new_elo, uint8_t mode_idx);
+
 private:
     void start_ping();
 
@@ -157,4 +159,11 @@ inline UserData Session::get_user_data() const
 {
     std::lock_guard lock(user_data_mutex_);
     return user_data_;
+}
+
+inline void Session::update_elo(int new_elo, uint8_t mode_idx)
+{
+    std::lock_guard<std::mutex> lock(user_data_mutex_);
+    user_data_.matching_elos[mode_idx] = new_elo;
+    return;
 }

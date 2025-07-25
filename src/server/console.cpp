@@ -2,6 +2,71 @@
 
 #include <iostream>
 
+// ANSI console setup for windows
+#ifdef _WIN32
+#include <windows.h>
+void enable_ansi_windows()
+{
+    HANDLE h = GetStdHandle(STD_OUTPUT_HANDLE);
+    DWORD mode = 0;
+    GetConsoleMode(h, &mode);
+    mode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
+    SetConsoleMode(h, mode);
+}
+#else
+void enable_ansi_windows()
+{
+
+}
+#endif
+
+// Disable buffering on linux
+#ifndef _WIN32
+#include <termios.h>
+#include <unistd.h>
+
+static struct termios g_original_termios;
+
+void restore_terminal()
+{
+    tcsetattr(STDIN_FILENO, TCSANOW, &g_original_termios);
+}
+
+void setup_signal_handlers()
+{
+    auto handle_sig = [](int sig){
+        restore_terminal();
+        std::signal(sig, SIG_DFL);
+        std::raise(sig);
+    };
+
+    std::signal(SIGINT, handle_sig);
+    std::signal(SIGTERM, handle_sig);
+    std::signal(SIGSEGV, handle_sig);
+    std::signal(SIGABRT, handle_sig);
+    std::signal(SIGHUP, handle_sig);
+
+}
+
+struct TermGuard {
+    TermGuard()
+    {
+        tcgetattr(STDIN_FILENO, &g_original_termios);
+        termios raw = g_original_termios;
+        raw.c_lflag &= ~(ICANON | ECHO);
+        tcsetattr(STDIN_FILENO, TCSANOW, &raw);
+        setup_signal_handlers();
+    }
+    ~TermGuard()
+    {
+        restore_terminal();
+    }
+};
+#else
+// Nothing on windows
+struct TermGuard { TermGuard(){} ~TermGuard(){} };
+#endif
+
 Console & Console::instance()
 {
     static Console * inst = nullptr;
@@ -36,18 +101,77 @@ void Console::start_command_loop()
 
     reader_thread_ = std::thread([this]()
     {
+        // Terminal settings to prevent tearing.
+        TermGuard tg;
+        enable_ansi_windows();
+
         // Grab lines and push them to the command handler for
         // parsing commands.
-        std::string line;
-        while (running_ && std::getline(std::cin, line))
+        std::string buffer;
+        while (running_)
         {
-            boost::asio::post(strand_, [this, l = std::move(line)]()
+            int ch = std::cin.get();
+            std::lock_guard<std::mutex> lock(buffer_mutex_);
+
+            // Termination.
+            if (ch == EOF || ch == '\x04')
             {
-                if (cmd_handler_)
+                running_ = false;
+                break;
+            }
+
+            // User pressed enter.
+            if (ch == '\r' || ch == '\n')
+            {
+                std::cout << "\r\n" << std::flush;
+                std::string line = std::move(current_input_buffer_);
+                current_input_buffer_.clear();
+
+                // Now give the full line over.
+                boost::asio::post(strand_, [this, l = std::move(line)]()
                 {
-                    cmd_handler_(l);
+                    try
+                    {
+                        if (cmd_handler_)
+                        {
+                            cmd_handler_(l);
+                        }
+                        else
+                        {
+                            std::string lmsg = "cmd_handler_ not set";
+                            Console::instance().log(lmsg, LogLevel::ERROR);
+                        }
+                    }
+                    catch (std::exception & e)
+                    {
+                        std::string lmsg = std::string("Command threw: ")
+                                            + e.what();
+                        Console::instance().log(lmsg, LogLevel::ERROR);
+                    }
+                    catch (...)
+                    {
+                        std::string lmsg = std::string("Command threw "
+                                            "nonstandard exception");
+                        Console::instance().log(lmsg, LogLevel::ERROR);
+                    }
+                });
+            }
+            // Backspace was pressed
+            else if (ch == 127 || ch == '\b')
+            {
+                // Delete if not empty
+                if (!current_input_buffer_.empty())
+                {
+                    current_input_buffer_.pop_back();
+                    std::cout << "\b \b" << std::flush;
                 }
-            });
+            }
+            // Anything else.
+            else
+            {
+                current_input_buffer_.push_back(char(ch));
+                std::cout << char(ch) << std::flush;
+            }
         }
 
         log("Console input was closed.", LogLevel::WARN);
@@ -93,12 +217,19 @@ running_(false)
 
 void Console::do_log(std::string msg, LogLevel level)
 {
-    if (level >= LogLevel::ERROR)
+    // Grab a copy of the current buffer
+    std::string snapshot;
     {
-        std::clog << log_prefix[static_cast<size_t>(level)] << msg << std::endl;
+        // Lock only for enough time to grab this data.
+        std::lock_guard<std::mutex> lock(buffer_mutex_);
+        snapshot = current_input_buffer_;
     }
-    else
-    {
-        std::clog << log_prefix[static_cast<size_t>(level)] << msg << "\n";
-    }
+
+    // Clear the line.
+    std::clog << "\r\033[2K";
+
+    std::clog << log_prefix[static_cast<size_t>(level)] << msg << "\n";
+
+    // Redraw the buffer.
+    std::clog << snapshot << std::flush;
 }

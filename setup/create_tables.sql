@@ -96,7 +96,7 @@ CREATE TABLE EloHistory(
 CREATE TABLE UserElos(
     user_id UUID NOT NULL REFERENCES Users(user_id),
     game_mode SMALLINT NOT NULL,
-    current_elo INT NOT NULL DEFAULT 1000,
+    current_elo INT NOT NULL DEFAULT 1500,
     PRIMARY KEY (user_id, game_mode)
 );
 

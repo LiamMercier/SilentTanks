@@ -828,8 +828,7 @@ void Database::do_record(std::vector<boost::uuids::uuid> user_ids,
 
             // Next, we decide if we need to change the player
             // elos and if so we fetch the player's current ratings.
-            // TODO: revert +/- 1 from testing values
-            if (static_cast<uint8_t>(mode) >= RANKED_MODES_START - 1)
+            if (static_cast<uint8_t>(mode) >= RANKED_MODES_START)
             {
                 std::vector<std::string> user_id_strs;
                 user_id_strs.reserve(N_players);
@@ -850,7 +849,7 @@ void Database::do_record(std::vector<boost::uuids::uuid> user_ids,
                 auto read_res = elo_txn.exec_prepared(
                             "get_elos",
                             user_id_array,
-                            static_cast<int16_t>(mode) + 1);
+                            static_cast<int16_t>(mode));
 
                 // Get elo values out of our result.
                 //
@@ -932,19 +931,19 @@ void Database::do_record(std::vector<boost::uuids::uuid> user_ids,
                     elo_txn.exec_prepared("record_elo_history",
                                           boost::uuids::to_string(user_ids[i]),
                                           match_id,
-                                          static_cast<int16_t>(mode) + 1,
+                                          static_cast<int16_t>(mode),
                                           elos[i],
                                           new_elos[i]);
 
                     elo_txn.exec_prepared("update_elo",
                                           boost::uuids::to_string(user_ids[i]),
-                                          static_cast<int16_t>(mode) + 1,
+                                          static_cast<int16_t>(mode),
                                           new_elos[i]);
 
                     // Inform the user manager of elo updates.
                     user_manager_->notify_elo_update(user_ids[i],
                                                      new_elos[i],
-                                                     static_cast<GameMode>(static_cast<uint8_t>(mode) + 1));
+                                                     static_cast<GameMode>(static_cast<uint8_t>(mode)));
                 }
 
                 elo_txn.commit();

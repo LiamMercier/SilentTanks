@@ -128,6 +128,11 @@ int main()
         std::cout << "[" << s->id() << "] " << "Ping Timed Out \n";
         return;
     }
+    if (m.header.type_ == HeaderType::BadQueue)
+    {
+        std::cout << "[" << s->id() << "] " << "Bad queue \n";
+        return;
+    }
     if (m.header.type_ == HeaderType::MatchCreationError)
     {
         std::cout << "[" << s->id() << "] " << "Match creation error \n";
@@ -533,6 +538,17 @@ int main()
 
     std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
+    // Should fail as we are already queued.
+    {
+        Message msg;
+        msg.create_serialized(QueueMatchRequest(GameMode::RankedTwoPlayer));
+
+        s1->deliver(msg);
+    }
+
+    // Cancel the casual queue.
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+
     {
         Message msg;
         msg.create_serialized(CancelMatchRequest(GameMode::ClassicTwoPlayer));
@@ -544,7 +560,7 @@ int main()
 
     {
         Message msg;
-        msg.create_serialized(QueueMatchRequest(GameMode::ClassicTwoPlayer));
+        msg.create_serialized(QueueMatchRequest(GameMode::RankedTwoPlayer));
 
         s1->deliver(msg);
     }
@@ -553,10 +569,16 @@ int main()
 
     {
         Message msg2;
-        msg2.create_serialized(QueueMatchRequest(GameMode::ClassicTwoPlayer));
+        msg2.create_serialized(QueueMatchRequest(GameMode::RankedTwoPlayer));
 
         s2->deliver(msg2);
     }
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+
+    Console::instance().log("Waiting for tick timer.", LogLevel::WARN);
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(45000));
 
     std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 

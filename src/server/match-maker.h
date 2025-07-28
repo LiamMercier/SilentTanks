@@ -6,6 +6,8 @@
 
 #include <boost/functional/hash.hpp>
 
+constexpr int TICK_INTERVAL_SECONDS = 5;
+
 class UserManager;
 
 class MatchMaker
@@ -36,6 +38,8 @@ public:
                             InternalMatchMessage msg);
 
 private:
+    void start_tick_loop();
+
     void make_match_on_strand(std::vector<Session::ptr> players,
                               MatchSettings settings);
 
@@ -60,11 +64,13 @@ private:
                        std::shared_ptr<MatchInstance>,
                        boost::hash<boost::uuids::uuid>> uuid_to_match_;
 
-    // Temporary match ID to instance mapping
-    // TODO: check this doesn't exist before allowing to enqueue
-    std::unordered_map<uint64_t, std::shared_ptr<MatchInstance>> live_matches_;
+    // Temporary UUID to queued mode mapping.
+    std::unordered_map<boost::uuids::uuid,
+                       GameMode,
+                       boost::hash<boost::uuids::uuid>> uuid_to_gamemode_;
 
-    // TODO: track queued user IDs.
+    // Temporary match ID to instance mapping
+    std::unordered_map<uint64_t, std::shared_ptr<MatchInstance>> live_matches_;
 
     // Map repository.
     std::shared_ptr<MapRepository> all_maps_;
@@ -83,4 +89,6 @@ private:
     ResultsCallback recorder_callback_;
 
     std::shared_ptr<UserManager> user_manager_;
+
+    boost::asio::steady_timer tick_timer_;
 };

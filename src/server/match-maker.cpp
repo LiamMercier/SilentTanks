@@ -1,5 +1,6 @@
 #include "match-maker.h"
 #include "user-manager.h"
+#include "console.h"
 
 MatchMaker::MatchMaker(asio::io_context & cntx,
                        std::string map_file_name,
@@ -11,7 +12,8 @@ MatchMaker::MatchMaker(asio::io_context & cntx,
  io_cntx_(cntx),
  send_callback_(std::move(send_callback)),
  recorder_callback_(std::move(recorder_callback)),
- user_manager_(user_manager)
+ user_manager_(user_manager),
+ tick_timer_(cntx)
 {
     all_maps_->load_map_file(map_file_name);
 
@@ -22,17 +24,46 @@ MatchMaker::MatchMaker(asio::io_context & cntx,
         make_match_on_strand(std::move(players), settings);
     };
 
+    // Setup match making strategies.
     matching_queues_[static_cast<size_t>(GameMode::ClassicTwoPlayer)] = std::make_unique<CasualTwoPlayerStrategy>(cntx, match_call_back, all_maps_);
 
-    // other matchmaking options go here
-    //
-    // TODO: change this to the proper option when implemented
-    matching_queues_[static_cast<size_t>(GameMode::RankedTwoPlayer)] = std::make_unique<CasualTwoPlayerStrategy>(cntx, match_call_back, all_maps_);
+    matching_queues_[static_cast<size_t>(GameMode::RankedTwoPlayer)] = std::make_unique<RankedTwoPlayerStrategy>(cntx, match_call_back, all_maps_);
 
+    // Start tick timer.
+    start_tick_loop();
 }
 
 void MatchMaker::enqueue(const Session::ptr & p, GameMode queued_mode)
 {
+    // Check that the user is not currently in a game
+    auto user_id = (p->get_user_data()).user_id;
+    auto match = uuid_to_match_.find(user_id);
+
+    // If in a match already, do not queue.
+    if (match != uuid_to_match_.end())
+    {
+        Message bad_queue;
+        bad_queue.create_serialized(HeaderType::BadQueue);
+        p->deliver(bad_queue);
+        return;
+    }
+
+    // Now check if the player is already queued for a game.
+    auto mode = uuid_to_gamemode_.find(user_id);
+
+    // Reject if currently in queue.
+    if (mode != uuid_to_gamemode_.end())
+    {
+        Message bad_queue;
+        bad_queue.create_serialized(HeaderType::BadQueue);
+        p->deliver(bad_queue);
+        return;
+    }
+
+    // Otherwise, if we are going to queue we should add this to the data
+    // structure for future lookups.
+    uuid_to_gamemode_[user_id] = queued_mode;
+
     // queue up player for the given game mode
     //
     // matching_queues_[queued_mode] handles concurrency on its strand
@@ -47,8 +78,14 @@ void MatchMaker::enqueue(const Session::ptr & p, GameMode queued_mode)
 // cancel, instead of blindly cancelling. If the request
 // is not able to be followed through, we tell the client
 // that their game has started and they must play or forfeit.
-void MatchMaker::cancel(const Session::ptr & p, GameMode queued_mode, bool called_by_user)
+void MatchMaker::cancel(const Session::ptr & p,
+                        GameMode queued_mode,
+                        bool called_by_user)
 {
+    // Remove the user from the map of queued users.
+    auto user_id = (p->get_user_data()).user_id;
+    uuid_to_gamemode_.erase(user_id);
+
     // call matching cancel function for this game mode
     //
     // matching_queues_[queued_mode] handles concurrency on its strand
@@ -79,6 +116,8 @@ void MatchMaker::cancel(const Session::ptr & p, GameMode queued_mode, bool calle
 
 void MatchMaker::tick_all()
 {
+    Console::instance().log("Ticking all matchers!", LogLevel::INFO);
+
     // tick all game modes
     for (int i = 0; i < static_cast<int>(GameMode::NO_MODE); i++)
     {
@@ -99,7 +138,7 @@ void MatchMaker::forfeit(const Session::ptr & p)
 {
     asio::post(global_strand_, [this, p]
     {
-       forfeit_impl(p);
+        forfeit_impl(p);
     });
 }
 
@@ -133,13 +172,50 @@ void MatchMaker::send_match_message(const Session::ptr & p,
     });
 }
 
+void MatchMaker::start_tick_loop()
+{
+    tick_timer_.expires_after(std::chrono::seconds(TICK_INTERVAL_SECONDS));
+
+    tick_timer_.async_wait(
+        boost::asio::bind_executor(
+            global_strand_,
+            [this](const boost::system::error_code & ec)
+            {
+                // Stop ticking on server shutdown.
+                if (ec == boost::asio::error::operation_aborted)
+                {
+                    std::string lmsg = "MatchMaker tick aborted, server "
+                                       "is shutting down?";
+                    Console::instance().log(lmsg, LogLevel::WARN);
+                    return;
+                }
+                // Log other errors.
+                if (ec)
+                {
+                    std::string lmsg = "Error in MatchMaker tick timer. "
+                                       "Server will be unable to match "
+                                       "any new players.";
+                    Console::instance().log(lmsg, LogLevel::WARN);
+                    return;
+                }
+
+                // Call tick_all and restart the timer.
+                tick_all();
+                start_tick_loop();
+            }));
+}
+
 void MatchMaker::make_match_on_strand(std::vector<Session::ptr> players,
                                       MatchSettings settings)
 {
     asio::post(global_strand_, [this, players, settings]{
 
-        std::cout << "Creating match with session IDs: "
-        << players[0]->id() << " " << players[1]->id() << "\n";
+        std::string templog = "Creating match with session IDs: "
+                              + std::to_string(players[0]->id())
+                              + " "
+                              + std::to_string(players[1]->id());
+
+        Console::instance().log(templog, LogLevel::INFO);
 
         std::vector<Session::ptr> live_players;
         live_players.reserve(players.size());
@@ -148,6 +224,10 @@ void MatchMaker::make_match_on_strand(std::vector<Session::ptr> players,
         for (uint8_t i = 0; i < players.size(); i++)
         {
             Session::ptr p = players[i];
+
+            // Remove this UUID from the queue
+            auto uuid = (p->get_user_data()).user_id;
+            uuid_to_gamemode_.erase(uuid);
 
             // If still live, add to the match
             if(p->is_live())
@@ -164,6 +244,8 @@ void MatchMaker::make_match_on_strand(std::vector<Session::ptr> players,
         }
 
         // Match cancel logic
+        //
+        // TODO: consider requeue for players who are alive.
         if (live_players.size() < players.size())
         {
             // iterate through the vector
@@ -310,10 +392,15 @@ void MatchMaker::forfeit_impl(const Session::ptr & p)
 {
     const auto & u_id = (p->get_user_data()).user_id;
 
-    // tell the match instance that we are forfeiting
-    auto inst = uuid_to_match_[u_id];
+    // Tell the match instance that we are forfeiting if one exists.
+    auto inst = uuid_to_match_.find(u_id);
 
-    inst->forfeit(u_id);
+    if (inst == uuid_to_match_.end())
+    {
+        return;
+    }
+
+    inst->second->forfeit(u_id);
 
     // Remove from the map and notify the user manager.
     uuid_to_match_.erase(u_id);

@@ -724,6 +724,8 @@ void Database::do_register(LoginRequest request,
             Message good_reg;
             good_reg.create_serialized(HeaderType::GoodRegistration);
             s->deliver(good_reg);
+
+            s->set_registered();
             return;
         }
 

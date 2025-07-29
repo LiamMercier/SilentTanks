@@ -1,5 +1,6 @@
 #include "header.h"
 #include "command.h"
+#include <iostream>
 
 bool Header::valid()
 {

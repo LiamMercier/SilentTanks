@@ -54,18 +54,6 @@ int main()
 
     Console::instance().log("Text should be replaced in the CLI", LogLevel::WARN);
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(750));
-
-    Console::instance().log("Text should be replaced in the CLI", LogLevel::WARN);
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(500));
-
-    Console::instance().log("Text should be replaced in the CLI", LogLevel::WARN);
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(500));
-
-    Console::instance().log("Text should be replaced in the CLI", LogLevel::WARN);
-
     std::this_thread::sleep_for(std::chrono::milliseconds(500));
 
     Console::instance().log("Testing result of elo changes for two 1500 elo players. Expected result is 1484, 1516.", LogLevel::INFO);
@@ -120,6 +108,17 @@ int main()
     if (m.header.type_ == HeaderType::Ping)
     {
         std::cout << "[" << s->id() << "] " << "Pinged by server \n";
+
+        Message resp;
+        resp.create_serialized(HeaderType::PingResponse);
+        s->deliver(resp);
+
+        return;
+    }
+
+    if (m.header.type_ == HeaderType::RateLimited)
+    {
+        std::cout << "[" << s->id() << "] " << "User is rate limited \n";
         return;
     }
 
@@ -374,7 +373,6 @@ int main()
 
     std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
-
     Message msg;
     msg.create_serialized(QueueMatchRequest(GameMode::ClassicTwoPlayer));
 
@@ -573,12 +571,6 @@ int main()
 
         s2->deliver(msg2);
     }
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-
-    Console::instance().log("Waiting for tick timer.", LogLevel::WARN);
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(45000));
 
     std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 

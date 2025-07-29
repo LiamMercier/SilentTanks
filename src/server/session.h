@@ -14,11 +14,47 @@
 
 // Seconds to wait before closing session when data is not sent.
 static constexpr uint64_t READ_TIMEOUT = 10;
+static constexpr uint64_t PING_TIMEOUT = READ_TIMEOUT;
 
 // Seconds between pings to the client.
 static constexpr uint64_t PING_INTERVAL = 90;
 
-static constexpr uint64_t PING_TIMEOUT = READ_TIMEOUT;
+// Token refill rate per second.
+static constexpr uint64_t TOKENS_REFILL_RATE = 10;
+
+// Allow bursts of up to 10x the refill rate.
+static constexpr uint64_t MAX_TOKENS = 10 * TOKENS_REFILL_RATE;
+
+// Command to get the cost in tokens of a command.
+constexpr uint64_t weight_of_cmd(Header h)
+{
+    switch (h.type_)
+    {
+        // Value for fetch requests, should be rarely called.
+        case HeaderType::FetchFriends: return 20;
+        case HeaderType::FetchFriendRequests: return 20;
+        case HeaderType::FetchBlocks: return 20;
+
+        // Requests that involve other users (and thus the database).
+        case HeaderType::SendFriendRequest: return 20;
+        case HeaderType::RespondFriendRequest: return 5;
+        case HeaderType::RemoveFriend: return 20;
+        case HeaderType::BlockUser: return 20;
+        case HeaderType::UnblockUser: return 20;
+
+        // Message passing variable string for text.
+        case HeaderType::DirectTextMessage: return 2 + (h.payload_len / 100);
+        case HeaderType::MatchTextMessage: return 2 + (h.payload_len / 100);
+
+        // Game related requests.
+        case HeaderType::QueueMatch: return 2;
+        case HeaderType::CancelMatch: return 1;
+        case HeaderType::SendCommand: return 4;
+        case HeaderType::ForfeitMatch: return 1;
+
+        default: return 0;
+    }
+}
 
 namespace asio = boost::asio;
 
@@ -56,11 +92,17 @@ public:
 
     void set_session_data(UserData user_data);
 
+    bool spend_tokens(Header header);
+
     inline tcp::socket& socket();
 
     inline uint64_t id() const;
 
     inline bool is_authenticated() const;
+
+    inline bool has_registered() const;
+
+    inline void set_registered();
 
     inline bool is_live() const;
 
@@ -102,6 +144,11 @@ private:
     asio::steady_timer ping_timer_;
     asio::steady_timer pong_timer_;
 
+    // Tokens related members for rate limiting.
+    mutable std::mutex tokens_mutex_;
+    uint64_t tokens;
+    std::chrono::steady_clock::time_point last_update;
+
     // Unique ID for this session. Session IDs are used internally
     // so we can simply use uint64_t for our implementation.
     //
@@ -114,6 +161,12 @@ private:
     // We want to use this to prevent calls to our database
     // when we already are authenticated.
     std::atomic<bool> authenticated_;
+
+    // Prevent clients from trying to register many accounts.
+    //
+    // We may also need to monitor clients that reset connections to
+    // create more accounts in our database calls.
+    std::atomic<bool> called_register_;
 
     // For managing game queues.
     std::atomic<bool> live_;
@@ -148,6 +201,17 @@ inline uint64_t Session::id() const
 inline bool Session::is_authenticated() const
 {
     return authenticated_.load(std::memory_order_acquire);
+}
+
+inline bool Session::has_registered() const
+{
+    return called_register_.load(std::memory_order_acquire);
+}
+
+inline void Session::set_registered()
+{
+    called_register_.store(true, std::memory_order_release);
+    return;
 }
 
 inline bool Session::is_live() const

@@ -1,6 +1,7 @@
 #include "server.h"
 #include "console.h"
 
+// TODO: secure socket connection, not just TCP.
 Server::Server(asio::io_context & cntx,
                tcp::endpoint endpoint)
 :server_strand_(cntx.get_executor()),
@@ -170,9 +171,6 @@ void Server::remove_session(const ptr & session)
     });
 }
 
-// TODO: Error handling
-// TODO: any filtering of excessive packets
-//
 // This function is used in session's strand. As such, it must not
 // modify any members outside of the session instance. All actions
 // should only post to the strand of the object being utilized.
@@ -193,6 +191,18 @@ try {
 
     std::cout << "[Server]: Header Type: " << +uint8_t(msg.header.type_) << "\n";
     std::cout << "[Server]: Payload Size: " << +uint8_t(msg.header.payload_len) << "\n";
+
+    // Attempt to spend tokens. If successful, returns true. Otherwise, false,
+    // we reject the request.
+    bool affordable_command = session->spend_tokens(msg.header);
+
+    if (!affordable_command)
+    {
+        Message rate_limited;
+        rate_limited.create_serialized(HeaderType::RateLimited);
+        session->deliver(rate_limited);
+        return;
+    }
 
     // handle different types of messages
     switch(msg.header.type_)
@@ -257,8 +267,9 @@ try {
         }
         case HeaderType::RegistrationRequest:
         {
-            // Prevent registration attempts when already logged in.
-            if (session->is_authenticated())
+            // Prevent registration attempts when already logged in or
+            // if we already have registered.
+            if (session->is_authenticated() || session->has_registered())
             {
                 Message bad_reg;
                 BadRegNotification r_notif(BadRegNotification::Reason::CurrentlyAuthenticated);

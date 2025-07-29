@@ -70,11 +70,13 @@ enum class HeaderType : uint8_t
     Ping,
     PingResponse,
     PingTimeout,
+    RateLimited,
     Banned,
 
     // Communication.
     DirectTextMessage,
     MatchTextMessage,
+
     MAX_TYPE
 };
 

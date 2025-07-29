@@ -8,6 +8,7 @@ ping_timer_(cntx),
 pong_timer_(cntx),
 session_id_(session_id),
 authenticated_(false),
+called_register_(false),
 user_data_()
 {
 
@@ -68,6 +69,34 @@ void Session::set_session_data(UserData user_data)
         self->user_data_ = std::move(data);
         self->authenticated_.store(true, std::memory_order_release);
     });
+}
+
+bool Session::spend_tokens(Header header)
+{
+    std::lock_guard lock(tokens_mutex_);
+
+    // Compute the client's current token count.
+    auto now = std::chrono::steady_clock::now();
+    double elapsed = std::chrono::duration<double>(now - last_update).count();
+
+    tokens = std::min(MAX_TOKENS,
+                      tokens
+                      + static_cast<uint64_t>(elapsed * TOKENS_REFILL_RATE));
+
+    last_update = now;
+
+    // Attempt to remove tokens.
+    uint64_t cost = weight_of_cmd(header);
+    if (tokens >= cost)
+    {
+        std::cout << "Spending " << cost << " of " << tokens << " tokens.\n";
+        tokens -= cost;
+        return true;
+    }
+    else
+    {
+        return false;
+    }
 }
 
 void Session::start_ping()

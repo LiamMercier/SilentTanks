@@ -116,6 +116,12 @@ int main()
         return;
     }
 
+    if (m.header.type_ == HeaderType::ServerFull)
+    {
+        std::cout << "[" << s->id() << "] " << "Server is full! \n";
+        return;
+    }
+
     if (m.header.type_ == HeaderType::RateLimited)
     {
         std::cout << "[" << s->id() << "] " << "User is rate limited \n";

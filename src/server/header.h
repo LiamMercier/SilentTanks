@@ -72,6 +72,7 @@ enum class HeaderType : uint8_t
     PingTimeout,
     RateLimited,
     Banned,
+    ServerFull,
 
     // Communication.
     DirectTextMessage,

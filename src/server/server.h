@@ -7,6 +7,9 @@
 #include "user-manager.h"
 #include "database.h"
 
+// TODO: consider how to estimate this value.
+static int MAX_SESSIONS = 1600;
+
 class Server
 {
     using tcp = asio::ip::tcp;
@@ -45,6 +48,8 @@ private:
 
     void send_banned(std::chrono::system_clock::time_point banned_until,
                      tcp::socket socket);
+
+    void send_reject(tcp::socket socket);
 
 private:
     // Strand to prevent race conditions on session removal and addition.

@@ -91,14 +91,22 @@ void Server::do_accept()
 void Server::handle_accept(const boost::system::error_code & ec,
                            tcp::socket socket)
 {
+    // Recursively accept in our handler.
+    do_accept();
+
     if (!ec)
     {
+        // Handle global max connections to prevent OOM.
+        if (sessions_.size() >= MAX_SESSIONS)
+        {
+            send_reject(std::move(socket));
+            return;
+        }
+
         // Handle IP bans.
         auto client_ip = socket.remote_endpoint().address().to_string();
         auto ip_itr = bans_.find(client_ip);
         auto now = std::chrono::system_clock::now();
-
-        //db_.ban_ip(client_ip, now + std::chrono::minutes(10));
 
         // Drop connections of banned players.
         if(ip_itr != bans_.end() && now < ip_itr->second)
@@ -106,8 +114,6 @@ void Server::handle_accept(const boost::system::error_code & ec,
             // Send ban message.
             auto ban_expiration = ip_itr->second;
             send_banned(ban_expiration, std::move(socket));
-
-            do_accept();
             return;
         }
         // If a ban exists but expired, clean it up
@@ -144,9 +150,6 @@ void Server::handle_accept(const boost::system::error_code & ec,
         sessions_.emplace(s_id, session);
         session->start();
     }
-
-    // Recursively accept in our handler.
-    do_accept();
 }
 
 void Server::remove_session(const ptr & session)
@@ -669,3 +672,31 @@ void Server::send_banned(std::chrono::system_clock::time_point banned_until,
     });
 }
 
+void Server::send_reject(tcp::socket socket)
+{
+    // Send a server full message and close the socket.
+    auto msg_ptr = std::make_shared<Message>();
+    msg_ptr->create_serialized(HeaderType::ServerFull);
+
+    // Buffer over header and payload.
+    const std::array<asio::const_buffer, 1> & bufs
+    {
+        {
+            asio::buffer(&msg_ptr->header, sizeof(Header)),
+        }
+    };
+
+    // Keep data alive until socket is fully closed.
+    auto socket_ptr = std::make_shared<tcp::socket>(std::move(socket));
+
+    // Close the session after sending.
+    asio::async_write(*socket_ptr, bufs,
+            [socket_ptr, msg_ptr]
+            (boost::system::error_code ec, std::size_t){
+                boost::system::error_code ignored_ec;
+
+                socket_ptr->shutdown(tcp::socket::shutdown_both, ignored_ec);
+
+                socket_ptr->close(ignored_ec);
+    });
+}

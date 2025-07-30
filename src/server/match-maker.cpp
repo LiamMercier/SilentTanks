@@ -130,7 +130,7 @@ void MatchMaker::route_to_match(const Session::ptr & p, Message msg)
 {
     asio::post(global_strand_, [this, p, m = std::move(msg)]
     {
-       route_impl(p, m);
+        route_impl(p, m);
     });
 }
 
@@ -172,6 +172,33 @@ void MatchMaker::send_match_message(const Session::ptr & p,
     });
 }
 
+void MatchMaker::async_shutdown(std::function<void()> on_done)
+{
+    asio::post(global_strand_,
+            [this,
+            on_done = std::move(on_done)]{
+
+            // Only call once.
+            if (shutting_down_)
+            {
+                return;
+            }
+
+            shutting_down_ = true;
+
+            // Since strand calls are ordered, we can shutdown all
+            // the instances and then call back.
+            for (auto & key : live_matches_)
+            {
+                key.second->async_shutdown();
+            }
+
+            tick_timer_.cancel();
+
+            on_done();
+    });
+}
+
 void MatchMaker::start_tick_loop()
 {
     tick_timer_.expires_after(std::chrono::seconds(TICK_INTERVAL_SECONDS));
@@ -185,7 +212,7 @@ void MatchMaker::start_tick_loop()
                 if (ec == boost::asio::error::operation_aborted)
                 {
                     std::string lmsg = "MatchMaker tick aborted, server "
-                                       "is shutting down?";
+                                       "is likely shutting down.";
                     Console::instance().log(lmsg, LogLevel::WARN);
                     return;
                 }

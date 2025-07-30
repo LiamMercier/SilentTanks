@@ -23,7 +23,13 @@ int main()
         return 1;
     }
 
+    auto thread_count = std::thread::hardware_concurrency();
+
     asio::io_context server_io_context;
+    auto work_guard = asio::make_work_guard(server_io_context);
+
+    std::vector<std::thread> server_threads;
+    server_threads.reserve(thread_count);
 
     Console::init(server_io_context, LogLevel::INFO);
     Console::instance().log("Test error text", LogLevel::ERROR);
@@ -854,11 +860,15 @@ int main()
         std::cerr << "Client error: " << e.what() << std::endl;
     }
 
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+
     // Clean up system resources
 
     server_io_context.stop();
 
     server_thread.join();
+
+    work_guard.reset();
 
     std::cerr << "Server stopped. Press anything to return.\n";
 

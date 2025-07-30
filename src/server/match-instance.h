@@ -78,6 +78,8 @@ public:
 
     void match_message(boost::uuids::uuid sender, InternalMatchMessage msg);
 
+    void async_shutdown();
+
     // Initialization function to start a match.
     void start();
 
@@ -182,5 +184,7 @@ private:
     ResultsCallback results_callback_;
 
     GameMessageCallback game_message_;
+
+    bool shutdown{false};
 
 };

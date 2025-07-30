@@ -253,6 +253,26 @@ void MatchInstance::match_message(boost::uuids::uuid sender,
     });
 }
 
+// Force close the instance.
+void MatchInstance::async_shutdown()
+{
+    asio::dispatch(strand_,
+            [self = shared_from_this()]{
+
+    if (self->shutdown)
+    {
+        return;
+    }
+
+    self->shutdown = true;
+
+    self->timer_.cancel();
+    self->send_callback_ = nullptr;
+    self->results_callback_ = nullptr;
+
+    });
+}
+
 void MatchInstance::start()
 {
     // Send an initial view of the environment to each player
@@ -321,7 +341,7 @@ void MatchInstance::start_turn()
             }
 
             // check that we didn't already move on this turn
-            if (self->turn_claimed_ == true)
+            if (self->turn_claimed_)
             {
                 return;
             }
@@ -743,6 +763,12 @@ void MatchInstance::compute_all_views()
 
 void MatchInstance::conclude_game()
 {
+    // Prevent more database calls on server close.
+    if (shutdown)
+    {
+        return;
+    }
+
     // At this point, there is only one player. Determine the winner.
     current_state = GameState::Concluded;
 

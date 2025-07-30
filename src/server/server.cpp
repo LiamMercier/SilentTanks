@@ -4,7 +4,8 @@
 // TODO: secure socket connection, not just TCP.
 Server::Server(asio::io_context & cntx,
                tcp::endpoint endpoint)
-:server_strand_(cntx.get_executor()),
+:calling_context_(cntx),
+server_strand_(cntx.get_executor()),
 acceptor_(cntx, endpoint),
 user_manager_(std::make_shared<UserManager>(cntx)),
 matcher_(cntx,
@@ -46,6 +47,10 @@ db_(cntx,
     {
         this->on_ban_user(user_id, banned_until, reason);
     },
+    [this]()
+    {
+        this->notify_subsystem_shutdown();
+    },
     // Pass a reference to the user manager.
     user_manager_
 )
@@ -79,6 +84,46 @@ void Server::CONSOLE_ban_ip(std::string ip,
                std::move(banned_until));
 }
 
+// Shutdown smoothly.
+void Server::shutdown()
+{
+    bool expected = false;
+
+    // Prevent multiple shutdown calls.
+    if (!shutting_down_.compare_exchange_strong(expected, true))
+    {
+        return;
+    }
+
+    // Stop accepting connections.
+    boost::system::error_code ec;
+    acceptor_.close(ec);
+
+    // Tell system components to shut down.
+    {
+        std::lock_guard<std::mutex> lock(shutdown_mutex_);
+        remaining_shutdown_tasks_ = SHUTDOWN_COMPONENTS_COUNT;
+    }
+
+    // Release mutex and then call async shutdowns.
+    matcher_.async_shutdown(
+        [this](){
+            notify_subsystem_shutdown();
+        });
+
+    db_.async_shutdown();
+
+    // Close all sessions.
+    for (auto & key : sessions_)
+    {
+        key.second->close_session();
+    }
+
+    // Now, we wait until notify_subsystem_shutdown turns off the io context
+    // after it is called enough times.
+    notify_subsystem_shutdown();
+}
+
 void Server::do_accept()
 {
     acceptor_.async_accept(
@@ -96,8 +141,10 @@ void Server::handle_accept(const boost::system::error_code & ec,
 
     if (!ec)
     {
-        // Handle global max connections to prevent OOM.
-        if (sessions_.size() >= MAX_SESSIONS)
+        // Handle global max connections to prevent OOM and other
+        // resource exhaustion.
+        auto session_limit = max_sessions_.load(std::memory_order_relaxed);
+        if (sessions_.size() >= session_limit)
         {
             send_reject(std::move(socket));
             return;
@@ -699,4 +746,27 @@ void Server::send_reject(tcp::socket socket)
 
                 socket_ptr->close(ignored_ec);
     });
+}
+
+void Server::notify_subsystem_shutdown()
+{
+    std::lock_guard<std::mutex> lock(shutdown_mutex_);
+    remaining_shutdown_tasks_ -= 1;
+
+    size_t done = SHUTDOWN_COMPONENTS_COUNT - remaining_shutdown_tasks_;
+    std::string lmsg = "Shutdown "
+                        + std::to_string(done)
+                        + " of "
+                        + std::to_string(SHUTDOWN_COMPONENTS_COUNT)
+                        + " tasks.";
+
+    Console::instance().log(lmsg, LogLevel::CONSOLE);
+
+    // If we are entirely done, finish our server shutdown.
+    if (remaining_shutdown_tasks_ == 0)
+    {
+        // Stop the io context if we are done with everything.
+        calling_context_.stop();
+        std::cout << "IO context stopped." << std::endl;
+    }
 }

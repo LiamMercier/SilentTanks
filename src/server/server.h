@@ -7,8 +7,7 @@
 #include "user-manager.h"
 #include "database.h"
 
-// TODO: consider how to estimate this value.
-static int MAX_SESSIONS = 1600;
+static constexpr int SHUTDOWN_COMPONENTS_COUNT = 3;
 
 class Server
 {
@@ -27,8 +26,9 @@ public:
     void CONSOLE_ban_ip(std::string username,
                         std::chrono::system_clock::time_point banned_until);
 
-    void do_accept();
+    void shutdown();
 
+    void do_accept();
 private:
     void handle_accept(const boost::system::error_code & ec,
                        tcp::socket socket);
@@ -51,7 +51,12 @@ private:
 
     void send_reject(tcp::socket socket);
 
+    void notify_subsystem_shutdown();
+
 private:
+    // Spawning IO context reference.
+    asio::io_context & calling_context_;
+
     // Strand to prevent race conditions on session removal and addition.
     asio::strand<asio::io_context::executor_type> server_strand_;
 
@@ -90,5 +95,14 @@ private:
 
     // Increasing counter for the next session ID.
     uint64_t next_session_id_{1};
+
+    // TODO: consider how to estimate this value.
+    std::atomic<std::size_t> max_sessions_{1600};
+
+    std::atomic<bool> shutting_down_{false};
+
+    std::mutex shutdown_mutex_;
+    std::condition_variable shutdown_cv_;
+    size_t remaining_shutdown_tasks_ = 0;
 
 };

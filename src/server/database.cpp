@@ -60,11 +60,13 @@ std::string uuid_to_pq_array(const std::vector<std::string> & user_id_strs)
 Database::Database(asio::io_context & io,
                    AuthCallback auth_callback,
                    BanCallback ban_callback,
+                   ShutdownCallback shutdown_callback,
                    std::shared_ptr<UserManager> user_manager)
 : strand_(io.get_executor()),
 thread_pool_(MAX_CONCURRENT_AUTHS),
 auth_callback_(std::move(auth_callback)),
 ban_callback_(std::move(ban_callback)),
+shutdown_callback_(std::move(shutdown_callback)),
 user_manager_(user_manager),
 // Isolate per username work on the same thread pool.
 uuid_strands_(thread_pool_.get_executor())
@@ -74,13 +76,17 @@ void Database::authenticate(Message msg,
                             std::shared_ptr<Session> session,
                             std::string client_ip)
 {
+    if(shutting_down_.load(std::memory_order_relaxed))
+    {
+        return;
+    }
+
     asio::post(strand_,
                [this,
                 m = std::move(msg),
                 s = std::move(session),
                 ip = std::move(client_ip)]
     {
-
         // First, turn the message into an authentication attempt.
         LoginRequest request = m.to_login_request();
 
@@ -121,6 +127,11 @@ void Database::register_account(Message msg,
                                 std::shared_ptr<Session> session,
                                 std::string client_ip)
 {
+    if(shutting_down_.load(std::memory_order_relaxed))
+    {
+        return;
+    }
+
     asio::post(strand_,
                [this,
                 m = std::move(msg),
@@ -159,6 +170,9 @@ void Database::record_match(MatchResult result)
 {
     asio::post(strand_, [this, result = std::move(result)] mutable
     {
+        // Add a write to pending, we need to not prevent
+        // match results to be returned and exit only once done.
+        pending_writes_.fetch_add(1, std::memory_order_acq_rel);
 
         std::string moves_json;
         auto ec = glz::write_json(result.move_history, moves_json);
@@ -184,18 +198,28 @@ void Database::record_match(MatchResult result)
                   settings_json,
                   moves_json,
                   static_cast<GameMode>(result.settings.mode));
-
     });
 }
 
 void Database::ban_ip(std::string ip,
             std::chrono::system_clock::time_point banned_until)
 {
+    if(shutting_down_.load(std::memory_order_relaxed))
+    {
+        return;
+
+    }
+
     do_ban_ip(std::move(ip), banned_until);
 }
 
 void Database::unban_ip(std::string ip)
 {
+    if(shutting_down_.load(std::memory_order_relaxed))
+    {
+        return;
+    }
+
     do_unban_ip(std::move(ip));
 }
 
@@ -203,6 +227,11 @@ void Database::ban_user(std::string username,
               std::chrono::system_clock::time_point banned_until,
               std::string reason)
 {
+    if(shutting_down_.load(std::memory_order_relaxed))
+    {
+        return;
+    }
+
     do_ban_user(std::move(username),
                 std::move(banned_until),
                 std::move(reason));
@@ -210,6 +239,11 @@ void Database::ban_user(std::string username,
 
 void Database::unban_user(std::string username, uint64_t ban_id)
 {
+    if(shutting_down_.load(std::memory_order_relaxed))
+    {
+        return;
+    }
+
     do_unban_user(std::move(username), ban_id);
 }
 
@@ -217,6 +251,10 @@ void Database::send_friend_request(boost::uuids::uuid user,
                                    Message msg,
                                    std::shared_ptr<Session> session)
 {
+    if(shutting_down_.load(std::memory_order_relaxed))
+    {
+        return;
+    }
 
     std::string friend_username = msg.to_username();
 
@@ -234,6 +272,11 @@ void Database::respond_friend_request(boost::uuids::uuid user,
                                       Message msg,
                                       std::shared_ptr<Session> session)
 {
+    if(shutting_down_.load(std::memory_order_relaxed))
+    {
+        return;
+    }
+
     FriendDecision friend_decision = msg.to_friend_decision();
 
     if (friend_decision.user_id == boost::uuids::nil_uuid())
@@ -251,6 +294,11 @@ void Database::block_user(boost::uuids::uuid blocker,
                           Message msg,
                           std::shared_ptr<Session> session)
 {
+    if(shutting_down_.load(std::memory_order_relaxed))
+    {
+        return;
+    }
+
     std::string blocked = msg.to_username();
 
     if (blocked.size() < 1)
@@ -267,6 +315,11 @@ void Database::unblock_user(boost::uuids::uuid blocker,
                             Message msg,
                             std::shared_ptr<Session> session)
 {
+    if(shutting_down_.load(std::memory_order_relaxed))
+    {
+        return;
+    }
+
     boost::uuids::uuid unblocked_uuid = msg.to_uuid();
 
     if (unblocked_uuid == boost::uuids::nil_uuid())
@@ -283,6 +336,11 @@ void Database::remove_friend(boost::uuids::uuid user,
                              Message msg,
                              std::shared_ptr<Session> session)
 {
+    if(shutting_down_.load(std::memory_order_relaxed))
+    {
+        return;
+    }
+
     boost::uuids::uuid friend_uuid = msg.to_uuid();
 
     if (friend_uuid == boost::uuids::nil_uuid())
@@ -298,18 +356,33 @@ void Database::remove_friend(boost::uuids::uuid user,
 void Database::fetch_blocks(boost::uuids::uuid user,
                             std::shared_ptr<Session> session)
 {
+    if(shutting_down_.load(std::memory_order_relaxed))
+    {
+        return;
+    }
+
     do_fetch_blocks(std::move(user), std::move(session));
 }
 
 void Database::fetch_friends(boost::uuids::uuid user,
                              std::shared_ptr<Session> session)
 {
+    if(shutting_down_.load(std::memory_order_relaxed))
+    {
+        return;
+    }
+
     do_fetch_friends(std::move(user), std::move(session));
 }
 
 void Database::fetch_friend_requests(boost::uuids::uuid user,
                                      std::shared_ptr<Session> session)
 {
+    if(shutting_down_.load(std::memory_order_relaxed))
+    {
+        return;
+    }
+
     do_fetch_friend_requests(std::move(user), std::move(session));
 }
 
@@ -345,6 +418,19 @@ Database::load_bans()
     }
 
     return map;
+}
+
+void Database::async_shutdown()
+{
+    bool expected = false;
+
+    if (!shutting_down_.compare_exchange_strong(expected, true))
+    {
+        return;
+    }
+
+    // Try to shutdown.
+    try_finish_shutdown();
 }
 
 void Database::do_auth(LoginRequest request,
@@ -950,6 +1036,11 @@ void Database::do_record(std::vector<boost::uuids::uuid> user_ids,
 
                 elo_txn.commit();
 
+                // Record that we finished writing.
+                pending_writes_.fetch_sub(1, std::memory_order_acq_rel);
+
+                // Attempt to finish shutdown if necessary.
+                try_finish_shutdown();
             }
 
         }
@@ -1915,5 +2006,33 @@ void Database::prepares()
             "FROM BlockedUsers b "
             "WHERE b.blocker = $1"
             );
+    }
+}
+
+void Database::try_finish_shutdown()
+{
+    if (!shutting_down_.load(std::memory_order_acquire))
+    {
+        return;
+    }
+
+    if (pending_writes_.load(std::memory_order_acquire) > 0)
+    {
+        std::cerr << pending_writes_.load(std::memory_order_acquire) << "\n";
+        return;
+    }
+
+    if (shutdown_callback_)
+    {
+        auto cb = std::move(shutdown_callback_);
+        shutdown_callback_ = nullptr;
+
+        cb();
+    }
+    else
+    {
+        Console::instance().log("Shutdown callback in database not "
+                                "set or called twice!",
+                                LogLevel::WARN);
     }
 }

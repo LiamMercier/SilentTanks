@@ -39,8 +39,6 @@ namespace asio = boost::asio;
 
 // TODO: pipeline everything that can be pipelined.
 // This is especially true for the match write function.
-
-// TODO: smooth database shutdown on server close.
 class Database
 {
 public:
@@ -57,9 +55,12 @@ public:
                                         std::chrono::system_clock::time_point,
                                         std::string)>;
 
+    using ShutdownCallback = std::function<void()>;
+
     Database(asio::io_context & io,
              AuthCallback auth_callback,
              BanCallback ban_callback,
+             ShutdownCallback shutdown_callback,
              std::shared_ptr<UserManager> user_manager);
 
     void authenticate(Message msg,
@@ -114,6 +115,8 @@ public:
 
     std::unordered_map<std::string, std::chrono::system_clock::time_point>
     load_bans();
+
+    void async_shutdown();
 
 private:
     void do_auth(LoginRequest request,
@@ -173,6 +176,8 @@ private:
 
     void prepares();
 
+    void try_finish_shutdown();
+
 private:
     // Main strand to serialize requests.
     asio::strand<asio::io_context::executor_type> strand_;
@@ -184,6 +189,7 @@ private:
     // Callbacks
     AuthCallback auth_callback_;
     BanCallback ban_callback_;
+    ShutdownCallback shutdown_callback_;
 
     std::shared_ptr<UserManager> user_manager_;
 
@@ -191,4 +197,7 @@ private:
     KeyedExecutor<boost::uuids::uuid,
                   boost::hash<boost::uuids::uuid>>
                   uuid_strands_;
+
+    std::atomic<bool> shutting_down_{false};
+    std::atomic<size_t> pending_writes_{0};
 };

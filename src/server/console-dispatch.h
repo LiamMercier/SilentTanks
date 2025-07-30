@@ -97,6 +97,14 @@ inline void console_dispatch(Server & server, std::string line)
                 LogLevel::CONSOLE
             );
     }
+    else if (cmd == "shutdown")
+    {
+        Console::instance().log(
+                "Shutting down server, please wait.",
+                LogLevel::CONSOLE
+            );
+        server.shutdown();
+    }
     else
     {
         Console::instance().log("Console command: "

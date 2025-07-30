@@ -37,6 +37,8 @@ public:
                             boost::uuids::uuid user_id,
                             InternalMatchMessage msg);
 
+    void async_shutdown(std::function<void()> on_done);
+
 private:
     void start_tick_loop();
 
@@ -91,4 +93,6 @@ private:
     std::shared_ptr<UserManager> user_manager_;
 
     boost::asio::steady_timer tick_timer_;
+
+    bool shutting_down_{false};
 };

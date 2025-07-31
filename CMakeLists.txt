@@ -57,5 +57,6 @@ if(NOT OpenSSL_FOUND)
 endif()
 
 add_subdirectory(src/libgame)
+add_subdirectory(src/protocol)
 add_subdirectory(src/server)
 add_subdirectory(src/client)

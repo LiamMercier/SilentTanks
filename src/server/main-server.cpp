@@ -23,7 +23,15 @@ int main()
         return 1;
     }
 
+try
+{
+
     auto thread_count = std::thread::hardware_concurrency();
+
+    if (thread_count == 0)
+    {
+        thread_count = 2;
+    }
 
     asio::io_context server_io_context;
     auto work_guard = asio::make_work_guard(server_io_context);
@@ -31,14 +39,16 @@ int main()
     std::vector<std::thread> server_threads;
     server_threads.reserve(thread_count);
 
-    Console::init(server_io_context, LogLevel::INFO);
-    Console::instance().log("Test error text", LogLevel::ERROR);
+    Console::init(server_io_context, LogLevel::WARN);
 
     asio::ip::tcp::endpoint endpoint(asio::ip::make_address("127.0.0.1"), 12345);
 
     Server server(server_io_context, endpoint);
 
-    std::cout << "Server started on " << endpoint << std::endl;
+    std::string lmsg = "Server started on "
+                       + endpoint.address().to_string();
+
+    Console::instance().log(lmsg, LogLevel::CONSOLE);
 
     // Bind the line parsing handle for the console to use.
     auto cmd_handler = std::bind(&console_dispatch,
@@ -48,11 +58,14 @@ int main()
     Console::instance().set_command_handler(cmd_handler);
     Console::instance().start_command_loop();
 
-    std::thread server_thread([&]()
+    for (unsigned int i = 0; i < thread_count; i++)
     {
-        server_io_context.run();
-    });
+        server_threads.emplace_back([&]{
+            server_io_context.run();
+        });
+    }
 
+    /*
     // Some early console tests
     Console::instance().log("Text should be replaced in the CLI", LogLevel::WARN);
 
@@ -431,7 +444,6 @@ int main()
     }
 
     // Test console ban
-    /*
     server.CONSOLE_ban_user("oranges",
                             std::chrono::system_clock::now() + std::chrono::seconds(30),
                             std::string("test ban console")
@@ -445,6 +457,7 @@ int main()
                             );
     */
 
+    /*
     std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
     // Send friend request from bananas to apples (does not exist).
@@ -847,11 +860,15 @@ int main()
         s1->deliver(msg);
     }
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+    */
 
-    client_io.stop();
-
-    io_thread.join();
+    for (auto & thread : server_threads)
+    {
+        if (thread.joinable())
+        {
+            thread.join();
+        }
+    }
 
     }
 
@@ -859,16 +876,6 @@ int main()
     {
         std::cerr << "Client error: " << e.what() << std::endl;
     }
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-
-    // Clean up system resources
-
-    server_io_context.stop();
-
-    server_thread.join();
-
-    work_guard.reset();
 
     std::cerr << "Server stopped. Press anything to return.\n";
 

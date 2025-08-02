@@ -767,6 +767,6 @@ void Server::notify_subsystem_shutdown()
     {
         // Stop the io context if we are done with everything.
         calling_context_.stop();
-        std::cout << "IO context stopped." << std::endl;
+        Console::instance().log("IO context stopped.", LogLevel::CONSOLE);
     }
 }

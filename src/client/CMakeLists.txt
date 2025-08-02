@@ -1,4 +1,12 @@
  
-add_executable(SilentTanks main-client.cpp)
+add_executable(SilentTanks-Client main-client.cpp client-session.cpp client.cpp)
 
-target_link_libraries(SilentTanks PRIVATE libgame Boost::system)
+target_include_directories(SilentTanks-Client PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(SilentTanks-Client PRIVATE ${Boost_INCLUDE_DIRS})
+
+target_link_libraries(SilentTanks-Client PRIVATE
+    libgame
+    protocol
+    Boost::system
+    glaze::glaze
+)

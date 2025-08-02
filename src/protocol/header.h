@@ -87,7 +87,10 @@ constexpr size_t MAX_USERNAME_LENGTH = 30;
 
 struct Header
 {
-    bool valid();
+    bool valid_server();
+
+    bool valid_client();
+
     inline Header to_network();
     inline Header from_network();
 

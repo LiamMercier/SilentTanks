@@ -1,4 +1,5 @@
 #include "session.h"
+#include "console.h"
 
 Session::Session(asio::io_context & cntx, uint64_t session_id)
 :socket_(cntx),
@@ -22,7 +23,6 @@ void Session::set_message_handler(MessageHandler m_handler, DisconnectHandler d_
 
 void Session::start()
 {
-    std::cout << "Starting session!\n";
     live_.store(true, std::memory_order_release);
     awaiting_pong_ = false;
     do_read_header();
@@ -172,7 +172,7 @@ void Session::do_read_header()
                     self->incoming_header_ = self->incoming_header_.from_network();
 
                     // If valid, read the body
-                    if (self->incoming_header_.valid())
+                    if (self->incoming_header_.valid_server())
                     {
                         self->do_read_body();
                     }
@@ -248,6 +248,7 @@ void Session::do_read_body()
             }));
 }
 
+// TODO: consider optimizing move semantics here.
 void Session::do_write()
 {
     auto self = shared_from_this();
@@ -379,7 +380,8 @@ void Session::force_close_session()
         }
         else
         {
-            std::cerr << "Disconnect handler wasn't set!\n";
+            Console::instance().log("Disconnect handler wasn't set in session!",
+                                    LogLevel::ERROR);
         }
 
     });

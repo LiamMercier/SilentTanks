@@ -93,7 +93,8 @@ inline void console_dispatch(Server & server, std::string line)
         Console::instance().log(
                 "Available commands: \n"
                 "BanUser <username> <duration (minutes)> <reason>\n"
-                "BanIP <ipv4_address> <duration (minutes)>\n\n",
+                "BanIP <ipv4_address> <duration (minutes)>\n"
+                "Shutdown",
                 LogLevel::CONSOLE
             );
     }

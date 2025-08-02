@@ -2,7 +2,7 @@
 #include "command.h"
 #include <iostream>
 
-bool Header::valid()
+bool Header::valid_server()
 {
     if (type_ >= HeaderType::MAX_TYPE)
     {
@@ -91,6 +91,38 @@ bool Header::valid()
         case HeaderType::UnblockUser:
         {
             if (payload_len != 16)
+            {
+                return false;
+            }
+            break;
+        }
+        default:
+        {
+            // do nothing, should never happen
+            break;
+        }
+    }
+
+    return true;
+}
+
+bool Header::valid_client()
+{
+    if (type_ >= HeaderType::MAX_TYPE)
+    {
+        return false;
+    }
+
+    if (payload_len > MAX_PAYLOAD_LEN)
+    {
+        return false;
+    }
+
+    switch(type_)
+    {
+        case HeaderType::DirectTextMessage:
+        {
+            if (payload_len < 17)
             {
                 return false;
             }

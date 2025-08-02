@@ -1,70 +1,47 @@
 #include "game-instance.h"
 #include "constants.h"
 
-GameInstance::GameInstance(const GameMap & map, uint8_t num_players)
-:num_players_(num_players), num_tanks_(map.num_tanks), game_env_(map.width, map.height, map.width*map.height), tanks_(new (std::nothrow) Tank[map.num_tanks * num_players]{})
-{
-    // check that allocation didn't fail
-    if (tanks_ == nullptr)
-    {
-        std::cerr << "game-instance: Memory allocation failed\n";
-        return;
-    }
+#include <filesystem>
 
-    // Allocate players_ vector
+// Constructor for match instances.
+GameInstance::GameInstance(GameMap map)
+:num_players_(map.map_settings.num_players),
+num_tanks_(map.map_settings.num_tanks),
+game_env_(std::move(map.env)),
+placement_mask_(std::move(map.mask))
+{
     players_.reserve(num_players_);
 
-    // Create each tank in place
+    // Create each tank in place, not currently alive.
     for (uint8_t i = 0; i < num_players_; ++i)
     {
         players_.emplace_back(num_tanks_, i);
     }
 
-    // Get map from file
-    read_env_by_name(map.filename, map.width*map.height);
+    tanks_ = (new Tank[num_tanks_ * num_players_]{});
+}
+
+// Constructor when no map repository exists.
+GameInstance::GameInstance(const MapSettings & map_settings)
+:num_players_(map_settings.num_players),
+num_tanks_(map_settings.num_tanks),
+game_env_(map_settings.width, map_settings.height),
+placement_mask_(map_settings.width * map_settings.height)
+{
+    players_.reserve(num_players_);
+
+    // Create each tank in place, not currently alive.
+    for (uint8_t i = 0; i < num_players_; ++i)
+    {
+        players_.emplace_back(num_tanks_, i);
+    }
+
+    tanks_ = (new Tank[num_tanks_ * num_players_]{});
 }
 
 GameInstance::~GameInstance()
 {
     delete[] tanks_;
-}
-
-// Temporary array to hold colors for console print testing
-const static std::string colors_array[4] = {"\033[48;5;196m", "\033[48;5;21m", "\033[48;5;46m", "\033[48;5;226m"};
-
-// Print information to the console
-void GameInstance::print_instance_console() const
-{
-
-    for (int tank_idx = 0; tank_idx < num_tanks_ * num_players_; tank_idx++)
-    {
-        Tank this_tank = tanks_[tank_idx];
-        if (this_tank.health_ > 0)
-        {
-            this_tank.print_tank_state(tank_idx);
-        }
-    }
-
-    for (int y = 0; y < game_env_.get_height(); y++)
-    {
-        for (int x = 0; x < game_env_.get_width(); x++)
-        {
-            GridCell curr = game_env_[idx(x,y)];
-
-            if (curr.occupant_ == NO_OCCUPANT)
-            {
-                std::cout << curr << " ";
-            }
-            else
-            {
-                Tank this_tank = tanks_[curr.occupant_];
-                uint8_t tank_owner = this_tank.get_owner();
-                std::cout << colors_array[tank_owner] << +(curr.occupant_) << "\033[0m ";
-            }
-        }
-        std::cout << "\n";
-    }
-
 }
 
 // Rotate a tank of given ID
@@ -409,7 +386,7 @@ bool GameInstance::move_tank(uint8_t ID, bool reverse)
 
 bool GameInstance::fire_tank(uint8_t ID)
 {
-    Tank& curr_tank = tanks_[ID];
+    Tank & curr_tank = tanks_[ID];
 
     vec2 shell_dir = dir_to_vec[curr_tank.barrel_direction_];
     vec2 curr_loc = curr_tank.pos_;
@@ -469,15 +446,15 @@ bool GameInstance::fire_tank(uint8_t ID)
 //
 // We start with the current game environment and set all cells
 // to having no vision
-Environment GameInstance::compute_view(uint8_t player_ID, uint8_t & live_tanks)
+PlayerView GameInstance::compute_view(uint8_t player_ID, uint8_t & live_tanks)
 {
-
     uint8_t width = game_env_.get_width();
     uint8_t height = game_env_.get_height();
     uint16_t total = width * height;
 
-    // make a new environemnt
-    Environment player_view(width, height);
+    PlayerView view(width, height);
+
+    FlatArray<GridCell> & player_view = view.map_view;
 
     // copy the cell types
     //
@@ -505,6 +482,8 @@ Environment GameInstance::compute_view(uint8_t player_ID, uint8_t & live_tanks)
         }
 
         Tank& curr_tank = tanks_[curr_tank_ID];
+
+        view.visible_tanks.push_back(curr_tank);
 
         // Check that the tank is still alive
         if (curr_tank.health_ == 0)
@@ -680,11 +659,30 @@ Environment GameInstance::compute_view(uint8_t player_ID, uint8_t & live_tanks)
                             if (primary_var_y == true)
                             {
                                 player_view[idx(sec_int, p)].visible_ = true;
-                                player_view[idx(sec_int, p)].occupant_ = game_env_[idx(sec_int, p)].occupant_;
+
+                                uint8_t occ = game_env_[idx(sec_int, p)].occupant_;
+                                player_view[idx(sec_int, p)].occupant_ = occ;
+
+                                // Add occupant to list of tanks.
+                                if (occ != NO_OCCUPANT)
+                                {
+                                    Tank & this_tank = tanks_[occ];
+                                    view.visible_tanks.push_back(this_tank);
+                                }
+
                             }
                             else {
                                 player_view[idx(p, sec_int)].visible_ = true;
-                                player_view[idx(p, sec_int)].occupant_ = game_env_[idx(p, sec_int)].occupant_;
+
+                                uint8_t occ = game_env_[idx(p, sec_int)].occupant_;
+                                player_view[idx(p, sec_int)].occupant_ = occ;
+
+                                // Add occupant to list of tanks.
+                                if (occ != NO_OCCUPANT)
+                                {
+                                    Tank & this_tank = tanks_[occ];
+                                    view.visible_tanks.push_back(this_tank);
+                                }
                             }
                         }
 
@@ -708,14 +706,15 @@ Environment GameInstance::compute_view(uint8_t player_ID, uint8_t & live_tanks)
                     float size = diagonal_vec_size[r];
                     float max_range = diagonal_ray_dists[r];
 
-                    cast_ray(player_view, curr_tank.pos_, m, size, max_range, curr_tank.barrel_direction_);
+                    cast_ray(view, curr_tank.pos_, m, size, max_range, curr_tank.barrel_direction_);
                 }
 
 
             }
         }
     }
-    return player_view;
+
+    return view;
 }
 
 // Given <x_0, y_0> and a slope vector <x_s, y_x> we
@@ -724,13 +723,15 @@ Environment GameInstance::compute_view(uint8_t player_ID, uint8_t & live_tanks)
 // r(t) = <x_0, y_0> + t * <x_s, y_s>
 //
 // within a certain distance bound.
-void GameInstance::cast_ray(Environment & view, vec2 start, vec2 slope, float size, float max_range, uint8_t dir) const
+void GameInstance::cast_ray(PlayerView & player_view, vec2 start, vec2 slope, float size, float max_range, uint8_t dir) const
 {
     // by default the slopes are setup for south east
     // since moving up in the game world is equivalent
     // to moving down on the y axis
     int x_sign = 1;
     int y_sign = 1;
+
+    FlatArray<GridCell> & view = player_view.map_view;
 
     // prepare slopes for north east
     if (dir % 8 == 1)
@@ -791,7 +792,16 @@ void GameInstance::cast_ray(Environment & view, vec2 start, vec2 slope, float si
         }
         // otherwise, mark the cell as visible
         view[idx(cx_t, cy_t)].visible_ = true;
-        view[idx(cx_t, cy_t)].occupant_ = game_env_[idx(cx_t, cy_t)].occupant_;
+
+        uint8_t occ = game_env_[idx(cx_t, cy_t)].occupant_;
+        view[idx(cx_t, cy_t)].occupant_ = occ;
+
+        // Add occupant to list of tanks.
+        if (occ != NO_OCCUPANT)
+        {
+            Tank & this_tank = tanks_[occ];
+            player_view.visible_tanks.push_back(this_tank);
+        }
 
         continue;
     }
@@ -813,6 +823,7 @@ void GameInstance::place_tank(vec2 pos, uint8_t player_ID)
     this_tank.owner_ = player_ID;
     this_tank.health_ = 3;
     this_tank.loaded_ = true;
+    this_tank.id_ = tank_ID;
 
     // set occupant
     this_cell.occupant_ = tank_ID;
@@ -838,43 +849,98 @@ void GameInstance::load_tank(uint8_t ID)
     return;
 }
 
-// This should really be replaced in the future with a more reasonable solution.
-void GameInstance::read_env_by_name(const std::string& filename, uint16_t total)
+bool GameInstance::read_env_by_name(const std::string& filename,
+                                    uint16_t total)
 {
-    /*
-     Somewhere down the line we will probably need to do
-     #if defined(_WIN32) || defined(_WIN64)
-        filename = "C:\\path\\to\\file.txt";
-    #else
-        filename = "/home/user/file.txt";
-    #endif
+    std::error_code ec;
 
-    but this could possibly be pushed off to the precomputed file list or something
-    that will be made later
-     */
+    if (!std::filesystem::is_regular_file(filename, ec))
+    {
+        std::cerr << "Environment file not found or not regular\n";
+        return false;
+    }
 
-    std::ifstream file(filename, std::ios::in);
+    auto size = std::filesystem::file_size(filename, ec);
 
-    if (!file.is_open()){
+    if (ec)
+    {
+        std::cerr << "Unable to query file size \n";
+        return false;
+    }
+
+    if (size != static_cast<std::size_t>(total) * 2)
+    {
+        std::cerr << "File size mismatch in environment setup.\n";
+        std::cerr << size << "\n";
+        return false;
+    }
+
+    std::ifstream file(filename, std::ios::binary);
+
+    if (!file.is_open())
+    {
         std::cerr << "ERROR IN FILE OPENING\n";
-        return;
+        return false;
     }
 
     // read the file all at once into the buffer
-    char buffer[total];
-    file.read(buffer, total);
+    std::vector<char> env_buffer(total);
+    file.read(env_buffer.data(), total);
+
+    if (file.gcount() != total)
+    {
+        std::cerr << "Too few bytes for environment\n";
+        return false;
+    }
+
+    if (!file)
+    {
+        std::cerr << "IO error reading environment\n";
+        return false;
+    }
+
+    // Read bitmask for tank placements.
+    std::vector<char> mask_buffer(total);
+    file.read(mask_buffer.data(), total);
+
+    if (file.gcount() != total)
+    {
+        std::cerr << "Too few bytes for mask\n";
+        return false;
+    }
+
+    if (!file)
+    {
+        std::cerr << "IO error reading mask\n";
+        return false;
+    }
 
     // turn the ASCII data (48, 49, 50..) into the correct integers (0,1,2)
     // and assign the GridCell elements the correct type accordingly.
-    for (int i = 0; i < total; i++)
+    for (uint16_t i = 0; i < total; i++)
     {
+        char c = env_buffer[i];
+        if (c < '0' || c > '2')
+        {
+            std::cerr << "Invalid environment character \n";
+            return false;
+        }
+        uint8_t value = static_cast<uint8_t>(c - '0');
+
         // CellType is an enum derived from uint8_t, hence the two casts.
         //
         // Normally you shouldn't do this, but we're reading a chunk of data.
-        game_env_[i].type_ = static_cast<CellType>(static_cast<uint8_t>(buffer[i] - '0'));
-
+        game_env_[i].type_ = static_cast<CellType>(value);
         game_env_[i].occupant_ = NO_OCCUPANT;
         game_env_[i].visible_ = true;
+
+        // Convert the bitmask for each player.
+        //
+        // Places where a player may place their tank are identified
+        // by their player ID.
+        placement_mask_[i] = static_cast<uint8_t>(mask_buffer[i] - '0');
     }
+
+    return true;
 
 }

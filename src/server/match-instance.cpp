@@ -1,59 +1,64 @@
 #include "match-instance.h"
 
-PlayerInfo::PlayerInfo(uint8_t p_id, uint64_t s_id)
-:PlayerID(p_id), session_id(s_id), alive(true)
+PlayerInfo::PlayerInfo(uint8_t id, uint64_t s_id, boost::uuids::uuid u_id)
+:PlayerID(id), session_id(s_id), user_id(u_id), alive(true)
 {
 
 }
 
 // Only valid constructor, refuse any other construction attempts.
 MatchInstance::MatchInstance(asio::io_context & cntx,
-                             const MatchSettings & settings,
+                             MatchSettings settings,
                              std::vector<PlayerInfo> player_list,
-                             uint8_t num_players,
-                             SendCallback send_callback)
-    : // initializer list
+                             SendCallback send_callback,
+                             GameMessageCallback game_message)
+    :
+    n_players_(settings.map.map_settings.num_players),
+    elim_counter_(0),
     current_player(0),
-    remaining_players(num_players),
+    remaining_players(n_players_),
     current_fuel(TURN_PLAYER_FUEL),
     strand_(cntx.get_executor()),
     timer_(cntx),
-    game_instance_(settings.map, num_players),
+    results_(settings.map.map_settings,
+             settings.initial_time_ms,
+             settings.increment_ms),
     players_(player_list),
-    n_players_(num_players),
     tanks_placed(0),
+    game_instance_(std::move(settings.map)),
     turn_ID_(0),
     increment_(std::chrono::milliseconds(settings.increment_ms)),
     current_state(GameState::Setup),
-    command_queues_(num_players),
-    time_left_(num_players, std::chrono::milliseconds(settings.initial_time_ms)),
-    send_callback_(send_callback)
+    command_queues_(n_players_),
+    time_left_(n_players_,
+               std::chrono::milliseconds(settings.initial_time_ms)),
+    send_callback_(send_callback),
+    results_callback_(nullptr),
+    game_message_(game_message)
 {
-    // reserve and emplace_back into player_views_
-    player_views_.reserve(num_players);
-    for (int i = 0; i < num_players; i++)
+    player_views_.reserve(n_players_);
+    for (int i = 0; i < n_players_; i++)
     {
-        player_views_.emplace_back(settings.map.width, settings.map.height);
+        player_views_.emplace_back(game_instance_.get_width(),
+                                   game_instance_.get_height());
     }
 }
 
+void MatchInstance::set_results_callback(ResultsCallback cb)
+{
+    results_callback_ = std::move(cb);
+}
+
 // Function to add a command to the queue (routed by the server)
-void MatchInstance::receive_command(uint64_t session_id, Command cmd)
+void MatchInstance::receive_command(boost::uuids::uuid user_id, Command cmd)
 {
     asio::post(strand_,
         [self = shared_from_this(),
          m_cmd = std::move(cmd),
          t_id = turn_ID_,
-         s_id = session_id]() mutable {
+         user_id = user_id]() mutable {
 
-            // stale move due to strand ordering, cancel
-            if (t_id != self->turn_ID_)
-            {
-                return;
-            }
-
-            // Otherwise, valid move, lets find the correct
-            // player ID and then add this to the queue.
+            // Lets find the correct player ID and then add this to the queue.
             //
             // We do this by scanning the vector to search for the ID.
             //
@@ -61,7 +66,7 @@ void MatchInstance::receive_command(uint64_t session_id, Command cmd)
             uint8_t correct_id = UINT8_MAX;
             for (uint8_t p_id = 0; p_id < self->n_players_; p_id++)
             {
-                if (self->players_[p_id].session_id == s_id)
+                if (self->players_[p_id].user_id == user_id)
                 {
                     correct_id = p_id;
                     break;
@@ -74,11 +79,41 @@ void MatchInstance::receive_command(uint64_t session_id, Command cmd)
                 return;
             }
 
-            // Override the sender field
+            // Check if game is over.
+            if (self->current_state == GameState::Concluded)
+            {
+                Message match_over;
+                match_over.create_serialized(HeaderType::GameEnded);
+
+                self->send_callback_(self->players_[correct_id].session_id,
+                                     std::move(match_over));
+                return;
+            }
+
+            // stale move due to strand ordering, cancel
+            if (t_id != self->turn_ID_)
+            {
+                Message failed_move_msg;
+                failed_move_msg.create_serialized(HeaderType::StaleMove);
+
+                self->send_callback_(self->players_[correct_id].session_id,
+                                     std::move(failed_move_msg));
+
+                return;
+            }
+
+            // Override the sender field.
             m_cmd.sender = correct_id;
 
-            // Enqueue the command
-            self->command_queues_[m_cmd.sender].push(std::move(m_cmd));
+            // Enqueue the command if there is room. Otherwise, drop.
+            if (self->command_queues_[m_cmd.sender].size() < MAX_QUEUE_SIZE)
+            {
+                self->command_queues_[m_cmd.sender].push(std::move(m_cmd));
+            }
+            else
+            {
+                return;
+            }
 
             // notify if necessary
             if (m_cmd.sender == self->current_player)
@@ -89,8 +124,168 @@ void MatchInstance::receive_command(uint64_t session_id, Command cmd)
         });
 }
 
+void MatchInstance::forfeit(boost::uuids::uuid user_id)
+{
+    asio::post(strand_,
+        [self = shared_from_this(), u_id = user_id]{
+
+        // Find the player given the user ID.
+        uint8_t correct_id = UINT8_MAX;
+        for (uint8_t p_id = 0; p_id < self->n_players_; p_id++)
+        {
+            if (self->players_[p_id].user_id == u_id)
+            {
+                correct_id = p_id;
+                break;
+            }
+        }
+
+        // If we couldn't find the player, return
+        if (correct_id == UINT8_MAX)
+        {
+                return;
+        }
+
+        // Check if game is over.
+        if (self->current_state == GameState::Concluded)
+        {
+            Message match_over;
+            match_over.create_serialized(HeaderType::GameEnded);
+
+            self->send_callback_(self->players_[correct_id].session_id,
+                                 std::move(match_over));
+            return;
+        }
+
+        // Now, if we got a player, we do regular elimination logic.
+        //
+        // We can just do the usual elimination logic.
+        self->handle_elimination(correct_id, HeaderType::ForfeitMatch);
+
+    });
+}
+
+void MatchInstance::sync_player(uint64_t session_id,
+                                boost::uuids::uuid user_id)
+{
+    asio::post(strand_,
+               [self = shared_from_this(),
+               s_id = session_id,
+               u_id = user_id]{
+
+            // Check if game is over.
+            if (self->current_state == GameState::Concluded)
+            {
+                Message match_over;
+                match_over.create_serialized(HeaderType::GameEnded);
+
+                self->send_callback_(s_id, std::move(match_over));
+                return;
+            }
+
+            // Get the player ID for this user.
+            uint8_t correct_id = UINT8_MAX;
+            for (uint8_t p_id = 0; p_id < self->n_players_; p_id++)
+            {
+                if (self->players_[p_id].user_id == u_id)
+                {
+                    correct_id = p_id;
+                    break;
+                }
+            }
+
+            // If we couldn't find the player, return
+            if (correct_id == UINT8_MAX)
+            {
+                Message match_over;
+                match_over.create_serialized(HeaderType::GameEnded);
+
+                self->send_callback_(s_id, std::move(match_over));
+                return;
+            }
+
+            self->players_[correct_id].session_id = s_id;
+
+            // We should dump the old session's commands
+            // to make the client experience more consistent.
+            std::priority_queue<Command, std::vector<Command>, seq_comp> none;
+            std::swap(self->command_queues_[correct_id], none);
+
+            // Views were already computed in previous strand call
+            // because we always compute everyone's view at
+            // the end of an operation. Just grab this and send
+            // the view to the client.
+
+            Message view_message;
+            view_message.create_serialized(self->player_views_[correct_id]);
+            self->send_callback_(s_id, std::move(view_message));
+
+    });
+}
+
+void MatchInstance::match_message(boost::uuids::uuid sender,
+                                 InternalMatchMessage msg)
+{
+    asio::post(strand_,
+               [wp = weak_from_this(),
+               sender = std::move(sender),
+               msg = std::move(msg)]{
+
+        // Only do work if game is still in progress.
+        if (auto self = wp.lock())
+        {
+            // Deliver messages to all users, using the user manager.
+            for (uint8_t i = 0; i < self->n_players_; i++)
+            {
+                if (self->players_[i].user_id != sender)
+                {
+                    InternalMatchMessage dm;
+                    dm.user_id = self->players_[i].user_id;
+                    dm.sender_username = msg.sender_username;
+                    dm.text = msg.text;
+
+                    self->game_message_(sender, dm);
+                }
+            }
+        }
+
+        return;
+    });
+}
+
+// Force close the instance.
+void MatchInstance::async_shutdown()
+{
+    asio::dispatch(strand_,
+            [self = shared_from_this()]{
+
+    if (self->shutdown)
+    {
+        return;
+    }
+
+    self->shutdown = true;
+
+    self->timer_.cancel();
+    self->send_callback_ = nullptr;
+    self->results_callback_ = nullptr;
+
+    });
+}
+
 void MatchInstance::start()
 {
+    // Send an initial view of the environment to each player
+    // and then start the game asynchronously
+
+    for (int i = 0; i < n_players_; i++)
+    {
+        Message view_message;
+        view_message.create_serialized(player_views_[i]);
+        send_callback_(players_[i].session_id,
+                       std::move(view_message));
+    }
+
     start_turn_strand();
 }
 
@@ -104,9 +299,9 @@ void MatchInstance::start_turn()
     if (current_state == GameState::Setup &&
         tanks_placed >= remaining_players * game_instance_.num_tanks_)
     {
-         current_state = GameState::Play;
-         current_player = 0;
-         current_fuel = TURN_PLAYER_FUEL;
+        current_state = GameState::Play;
+        current_player = 0;
+        current_fuel = TURN_PLAYER_FUEL;
     }
 
     // game end condition
@@ -137,7 +332,7 @@ void MatchInstance::start_turn()
     timer_.async_wait(asio::bind_executor(strand_,
         [self = shared_from_this(),
          id=current_player,
-         t_id = turn_ID_](asio::error_code ec)
+         t_id = turn_ID_](boost::system::error_code ec)
         {
             // check for stale timer calls
             if (t_id != self->turn_ID_)
@@ -146,7 +341,7 @@ void MatchInstance::start_turn()
             }
 
             // check that we didn't already move on this turn
-            if (self->turn_claimed_ == true)
+            if (self->turn_claimed_)
             {
                 return;
             }
@@ -242,12 +437,21 @@ void MatchInstance::on_player_move_arrived(uint16_t t_id)
     // try again (restart the turn)
     if (res.valid_move == false)
     {
-        // TODO: callback failed move to player
+        // Callback failed move to player
+        Message failed_move_msg;
+        failed_move_msg.create_serialized(HeaderType::FailedMove);
+
+        send_callback_(players_[current_player].session_id,
+                       std::move(failed_move_msg));
+
         start_turn_strand();
         return;
     }
 
     time_left_[current_player] += increment_;
+
+    // Add this command to the move history of the match
+    results_.move_history.push_back(std::move(CommandHead(next_move)));
 
     // If we're in the setup phase, don't consume fuel.
     // Just show the tank placement.
@@ -289,21 +493,33 @@ void MatchInstance::on_player_move_arrived(uint16_t t_id)
 
 void MatchInstance::handle_timeout()
 {
+    handle_elimination(current_player, HeaderType::TimedOut);
+}
+
+void MatchInstance::handle_elimination(uint8_t p_id, HeaderType reason)
+{
     // Handle accidental calls to handle_timeout twice.
-    if (players_[current_player].alive == false)
+    if (players_[p_id].alive == false)
     {
         return;
     }
 
     // Reclaim priority queue space.
     std::priority_queue<Command, std::vector<Command>, seq_comp> none;
-    std::swap(command_queues_[current_player], none);
+    std::swap(command_queues_[p_id], none);
 
     // Remove the player.
-    Player & this_player = game_instance_.get_player(current_player);
+    Player & this_player = game_instance_.get_player(p_id);
     remaining_players = remaining_players - 1;
-    time_left_[current_player] = std::chrono::milliseconds(0);
-    players_[current_player].alive = false;
+    time_left_[p_id] = std::chrono::milliseconds(0);
+    players_[p_id].alive = false;
+    results_.elimination_order[p_id] = elim_counter_;
+    elim_counter_++;
+
+    // Inform the player that they are eliminated
+    Message inform_elimination;
+    inform_elimination.create_serialized(reason);
+    send_callback_(players_[p_id].session_id, inform_elimination);
 
     // Handle updating the setup criterion.
     if (current_state == GameState::Setup)
@@ -324,9 +540,14 @@ void MatchInstance::handle_timeout()
 
     compute_all_views();
 
-    // Prepare for the next player.
-    current_player = ((current_player + 1) % n_players_);
-    current_fuel = TURN_PLAYER_FUEL;
+    // Prepare for the next player if necessary.
+    if (p_id == current_player)
+    {
+        current_player = ((current_player + 1) % n_players_);
+        current_fuel = TURN_PLAYER_FUEL;
+        // Cancel timers.
+        timer_.cancel();
+    }
 
     // Go back to main game loop by posting a new turn.
     start_turn_strand();
@@ -341,19 +562,38 @@ ApplyResult MatchInstance::apply_command(const Command & cmd)
     {
         case CommandType::Move:
         {
-            Tank & this_tank = game_instance_.get_tank(cmd.tank_id);
-            if (this_tank.health_ == 0)
+            // If the tank does not exist, stop early.
+            if (cmd.tank_id >= game_instance_.num_players_
+                                * game_instance_.num_tanks_)
             {
                 res.valid_move = false;
                 break;
             }
-            res.op_status = game_instance_.move_tank(cmd.tank_id, cmd.payload_first);
+
+            Tank & this_tank = game_instance_.get_tank(cmd.tank_id);
+
+            if (this_tank.health_ == 0 || this_tank.owner_ != cmd.sender)
+            {
+                res.valid_move = false;
+                break;
+            }
+            res.op_status = game_instance_.move_tank(cmd.tank_id,
+                                                     cmd.payload_first);
             break;
         }
         case CommandType::RotateTank:
         {
+            // If the tank does not exist, stop early.
+            if (cmd.tank_id >= game_instance_.num_players_
+                                * game_instance_.num_tanks_)
+            {
+                res.valid_move = false;
+                break;
+            }
+
             Tank & this_tank = game_instance_.get_tank(cmd.tank_id);
-            if (this_tank.health_ == 0)
+
+            if (this_tank.health_ == 0 || this_tank.owner_ != cmd.sender)
             {
                 res.valid_move = false;
                 break;
@@ -364,8 +604,17 @@ ApplyResult MatchInstance::apply_command(const Command & cmd)
         }
         case CommandType::RotateBarrel:
         {
+            // If the tank does not exist, stop early.
+            if (cmd.tank_id >= game_instance_.num_players_
+                                * game_instance_.num_tanks_)
+            {
+                res.valid_move = false;
+                break;
+            }
+
             Tank & this_tank = game_instance_.get_tank(cmd.tank_id);
-            if (this_tank.health_ == 0)
+
+            if (this_tank.health_ == 0 || this_tank.owner_ != cmd.sender)
             {
                 res.valid_move = false;
                 break;
@@ -376,10 +625,18 @@ ApplyResult MatchInstance::apply_command(const Command & cmd)
         }
         case CommandType::Fire:
         {
+            // If the tank does not exist, stop early.
+            if (cmd.tank_id >= game_instance_.num_players_
+                                * game_instance_.num_tanks_)
+            {
+                res.valid_move = false;
+                break;
+            }
+
             Tank & this_tank = game_instance_.get_tank(cmd.tank_id);
 
             // check that the tank is alive
-            if (this_tank.health_ == 0)
+            if (this_tank.health_ == 0 || this_tank.owner_ != cmd.sender)
             {
                 res.valid_move = false;
                 break;
@@ -398,8 +655,18 @@ ApplyResult MatchInstance::apply_command(const Command & cmd)
         }
         case CommandType::Load:
         {
+            // If the tank does not exist, stop early.
+            if (cmd.tank_id >= game_instance_.num_players_
+                                * game_instance_.num_tanks_)
+            {
+                res.valid_move = false;
+                break;
+            }
+
             Tank & this_tank = game_instance_.get_tank(cmd.tank_id);
-            if (this_tank.loaded_ == true)
+
+            if (this_tank.loaded_ == true
+                || this_tank.owner_ != cmd.sender)
             {
                 res.valid_move = false;
                 break;
@@ -417,13 +684,30 @@ ApplyResult MatchInstance::apply_command(const Command & cmd)
             }
             vec2 pos(cmd.payload_first, cmd.payload_second);
 
-            if (pos.x_ > game_instance_.get_width() - 1 || pos.y_ > game_instance_.get_height() - 1)
+            if (pos.x_ > game_instance_.get_width() - 1
+                || pos.y_ > game_instance_.get_height() - 1)
+            {
+                res.valid_move = false;
+                break;
+            }
+
+            // Check if placement is within the player's
+            // permitted placement area.
+            bool valid = game_instance_.check_placement(pos, cmd.sender);
+
+            if (!valid)
             {
                 res.valid_move = false;
                 break;
             }
 
             game_instance_.place_tank(pos, cmd.sender);
+
+            if (res.valid_move == true)
+            {
+                tanks_placed += 1;
+            }
+
             break;
         }
         default:
@@ -439,8 +723,6 @@ void MatchInstance::compute_all_views()
 {
     for (int i = 0; i < n_players_; i++)
     {
-        std::cout << "View : " << i << "\n";
-
         // avoid unnecessary computation
         if (players_[i].alive == false)
         {
@@ -459,9 +741,21 @@ void MatchInstance::compute_all_views()
             remaining_players -= 1;
 
             players_[i].alive = false;
+            results_.elimination_order[i] = elim_counter_;
+            elim_counter_++;
+
+            // Inform the player that they are eliminated
+            Message inform_elimination;
+            inform_elimination.create_serialized(HeaderType::Eliminated);
+            send_callback_(players_[i].session_id, inform_elimination);
         }
 
-        player_views_[i].print_view(game_instance_.tanks_);
+        // Send view to the player
+        Message view_message;
+        view_message.create_serialized(player_views_[i]);
+        send_callback_(players_[i].session_id,
+                       std::move(view_message));
+
 
     }
 
@@ -469,6 +763,12 @@ void MatchInstance::compute_all_views()
 
 void MatchInstance::conclude_game()
 {
+    // Prevent more database calls on server close.
+    if (shutdown)
+    {
+        return;
+    }
+
     // At this point, there is only one player. Determine the winner.
     current_state = GameState::Concluded;
 
@@ -478,13 +778,32 @@ void MatchInstance::conclude_game()
         if (players_[i].alive == true)
         {
             winner = i;
-            break;
+            results_.elimination_order[i] = elim_counter_;
         }
+
+        results_.user_ids[i] = players_[i].user_id;
     }
 
-    std::cout << winner << "\n";
+    std::cout << "Winner: " << +winner << "\n";
 
-    // TODO: callbacks at end of game
+    // Tell winner that they won, everyone else has already
+    // been told that they lost.
+    if (winner < n_players_)
+    {
+        Message inform_winner;
+        inform_winner.create_serialized(HeaderType::Victory);
+        send_callback_(players_[winner].session_id, inform_winner);
+    }
+
+    // Call back to the server to write results to the database
+    // and handle any updates
+    results_callback_(results_);
+
+    // Break down the game instance. We do not need it anymore.
+    timer_.cancel();
+
+    send_callback_ = nullptr;
+    results_callback_ = nullptr;
 
     return;
 }

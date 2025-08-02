@@ -1,0 +1,254 @@
+#pragma once
+
+#include "header.h"
+#include "player-view.h"
+#include "command.h"
+#include "external-user.h"
+
+#include <type_traits>
+#include <vector>
+#include <array>
+#include <cstring>
+#include <algorithm>
+#include <chrono>
+#include <bit>
+#include <boost/uuid/uuid.hpp>
+
+constexpr size_t HASH_LENGTH = 32;
+
+// Construct a lookup table of valid username characters.
+constexpr std::array<bool, 256> allowed_username_characters = []
+{
+    std::array<bool, 256> a{};
+    for (char c = '0'; c <= '9'; c++)
+    {
+        a[static_cast<unsigned char>(c)] = true;
+    }
+    for (char c = 'A'; c <= 'Z'; c++)
+    {
+        a[static_cast<unsigned char>(c)] = true;
+    }
+    for (char c = 'a'; c <= 'z'; c++)
+    {
+        a[static_cast<unsigned char>(c)] = true;
+    }
+
+    a['_'] = true;
+    a['-'] = true;
+
+    return a;
+}();
+
+// This must be ordered so that all ranked modes are together.
+enum class GameMode : uint8_t
+{
+    ClassicTwoPlayer = 0,
+    RankedTwoPlayer,
+    NO_MODE
+};
+
+// First GameMode which is ranked, for fast checks of a game mode.
+constexpr uint8_t RANKED_MODES_START = static_cast<uint8_t>(GameMode::RankedTwoPlayer);
+
+constexpr uint8_t NUMBER_OF_MODES = static_cast<uint8_t>(GameMode::NO_MODE);
+
+constexpr uint8_t RANKED_MODES_COUNT = static_cast<uint8_t>(GameMode::NO_MODE)
+                                       - RANKED_MODES_START;
+
+// Helpers to get the index for elo vectors.
+inline uint8_t elo_ranked_index(GameMode m)
+{
+    uint8_t idx = static_cast<uint8_t>(m);
+    return idx - RANKED_MODES_START;
+}
+
+inline uint8_t elo_ranked_index(uint8_t m)
+{
+    return m - RANKED_MODES_START;
+}
+
+constexpr std::array<uint8_t, NUMBER_OF_MODES> players_for_gamemode = []
+{
+    std::array<uint8_t, NUMBER_OF_MODES> a{};
+
+    a[static_cast<uint8_t>(GameMode::ClassicTwoPlayer)] = 2;
+    a[static_cast<uint8_t>(GameMode::RankedTwoPlayer)] = 2;
+
+    return a;
+}();
+
+struct QueueMatchRequest
+{
+    QueueMatchRequest(GameMode input_mode)
+    :mode(input_mode)
+    {
+    }
+
+    GameMode mode;
+};
+
+struct CancelMatchRequest
+{
+    CancelMatchRequest(GameMode input_mode)
+    :mode(input_mode)
+    {
+    }
+
+    GameMode mode;
+};
+
+struct BadRegNotification
+{
+    enum class Reason : uint8_t
+    {
+        NotUnique = 0,
+        InvalidUsername,
+        CurrentlyAuthenticated,
+        ServerError
+    };
+
+    BadRegNotification(Reason input_reason)
+    :reason(input_reason)
+    {
+    }
+
+    Reason reason;
+};
+
+struct BadAuthNotification
+{
+    enum class Reason : uint8_t
+    {
+        BadHash,
+        InvalidUsername,
+        CurrentlyAuthenticated,
+        ServerError
+    };
+
+    BadAuthNotification(Reason input_reason)
+    :reason(input_reason)
+    {
+    }
+
+    Reason reason;
+};
+
+
+struct MatchStartNotification
+{
+    uint8_t player_id;
+};
+
+struct LoginRequest
+{
+    std::array<uint8_t, HASH_LENGTH> hash;
+    std::string username;
+};
+
+struct RegisterRequest
+{
+    std::array<uint8_t, HASH_LENGTH> hash;
+    std::string username;
+};
+
+struct BanMessage
+{
+    std::chrono::system_clock::time_point time_till_unban;
+    std::string reason;
+};
+
+struct UserList
+{
+    std::vector<ExternalUser> users;
+};
+
+struct FriendRequest
+{
+    std::string username;
+};
+
+struct FriendDecision
+{
+    boost::uuids::uuid user_id;
+    bool decision;
+};
+
+struct UnfriendRequest
+{
+    boost::uuids::uuid user_id;
+};
+
+struct BlockRequest
+{
+    std::string username;
+};
+
+struct UnblockRequest
+{
+    boost::uuids::uuid user_id;
+};
+
+struct NotifyRelationUpdate
+{
+    ExternalUser user;
+};
+
+struct TextMessage
+{
+    // Sender/receiver based on context.
+    boost::uuids::uuid user_id;
+    std::string text;
+};
+
+struct InternalMatchMessage
+{
+    boost::uuids::uuid user_id;
+    std::string sender_username;
+    std::string text;
+};
+
+struct ExternalMatchMessage
+{
+    boost::uuids::uuid user_id;
+    uint8_t username_length;
+    std::string sender_username;
+    std::string text;
+};
+
+struct Message
+{
+public:
+    bool valid_matching_command() const;
+
+    LoginRequest to_login_request() const;
+
+    Command to_command();
+
+    // Modify view with success return type.
+    PlayerView to_player_view(bool & op_status);
+
+    BanMessage to_ban_message();
+
+    UserList to_user_list(bool & op_status);
+
+    std::string to_username();
+
+    boost::uuids::uuid to_uuid();
+
+    FriendDecision to_friend_decision();
+
+    ExternalUser to_user();
+
+    TextMessage to_text_message();
+
+    InternalMatchMessage to_match_message();
+
+    template <typename mType>
+    void create_serialized(const mType & req);
+
+    void create_serialized(HeaderType h_type);
+
+public:
+    Header header;
+    std::vector<uint8_t> payload;
+};

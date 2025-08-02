@@ -1,3 +1,16 @@
-add_executable(SilentTanks-Server main-server.cpp match-instance.cpp session.cpp message.cpp server.cpp match-maker.cpp match-strategy.cpp)
+add_executable(SilentTanks-Server main-server.cpp match-instance.cpp session.cpp server.cpp match-maker.cpp match-strategy.cpp user-manager.cpp database.cpp map-repository.cpp console.cpp elo-updates.cpp)
+
 target_include_directories(SilentTanks-Server PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(SilentTanks-Server PRIVATE libgame asio::asio)
+target_include_directories(SilentTanks-Server PRIVATE ${Boost_INCLUDE_DIRS})
+target_include_directories(SilentTanks-Server PRIVATE ${Argon2_INCLUDE_DIRS})
+target_include_directories(SilentTanks-Server PRIVATE ${libsodium_INCLUDE_DIRS})
+
+target_link_libraries(SilentTanks-Server PRIVATE
+    libgame
+    protocol
+    Boost::system
+    ${ARGON2_LIBRARIES}
+    ${libpqxx_LIBRARIES}
+    ${libsodium_LIBRARIES}
+    glaze::glaze
+)

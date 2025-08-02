@@ -23,6 +23,9 @@ public:
 
     void print_tank_state(uint8_t ID) const;
 
+    // Tank data members
+    //
+    // If this is modified, message.cpp must be modified as well.
 public:
     vec2 pos_;
 
@@ -38,6 +41,7 @@ public:
     uint8_t barrel_direction_;
 
     // information statistics for this tank entity
+    uint8_t id_;
     uint8_t health_;
     bool aim_focused_;
     bool loaded_;

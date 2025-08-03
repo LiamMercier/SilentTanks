@@ -282,7 +282,6 @@ void MatchMaker::make_match_on_strand(std::vector<Session::ptr> players,
                 queue_dropped.create_serialized(HeaderType::QueueDropped);
                 send_callback_(live_players[j]->id(), queue_dropped);
             }
-
             return;
         }
 

@@ -40,6 +40,7 @@ enum class HeaderType : uint8_t
     // Notifications for friending/blocking.
     NotifyFriendAdded,
     NotifyFriendRemoved,
+    NotifyFriendRequest,
     NotifyBlocked,
     NotifyUnblocked,
 

@@ -71,7 +71,7 @@ int main()
 
         std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
-        client.send_friend_request("testaccount");
+        client.send_friend_request("chungus");
 
         std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
@@ -110,6 +110,10 @@ int main()
             client.send_unfriend_request(user_id);
         }
         */
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+
+        client.queue_request(GameMode::ClassicTwoPlayer);
 
         std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 

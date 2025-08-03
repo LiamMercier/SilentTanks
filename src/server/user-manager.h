@@ -60,6 +60,9 @@ public:
     void on_unfriend_user(boost::uuids::uuid user_id,
                           boost::uuids::uuid friend_uuid);
 
+    void on_friend_request(boost::uuids::uuid sender,
+                           boost::uuids::uuid friend_id);
+
     void direct_message_user(boost::uuids::uuid sender,
                              TextMessage dm);
 

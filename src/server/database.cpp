@@ -1326,6 +1326,8 @@ void Database::do_send_friend_request(boost::uuids::uuid user,
                                       boost::uuids::to_string(friend_id),
                                       MAX_FRIEND_REQUESTS);
 
+                    user_manager_->on_friend_request(user, friend_id);
+
                     txn.commit();
                 }
                 catch (const std::exception & e)

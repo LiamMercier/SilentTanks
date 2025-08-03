@@ -368,6 +368,51 @@ void UserManager::on_unfriend_user(boost::uuids::uuid user_id,
     });
 }
 
+void UserManager::on_friend_request(boost::uuids::uuid sender,
+                                    boost::uuids::uuid friend_id)
+{
+    boost::asio::post(strand_,
+        [this,
+         sender = std::move(sender),
+         friend_id = std::move(friend_id)]{
+
+        // Find the person who is getting the friend request.
+        auto user_it = this->users_.find(friend_id);
+
+        // Do work if the user exists.
+        if (user_it != this->users_.end() && user_it->second)
+        {
+            NotifyRelationUpdate notification;
+
+            // Find the sender's username.
+            auto sender_it = this->users_.find(sender);
+
+            if (sender_it != this->users_.end() && sender_it->second)
+            {
+                notification.user.username = sender_it
+                                             ->second
+                                             ->user_data.username;
+            }
+
+            notification.user.user_id = std::move(sender);
+
+            Message request_notification;
+            request_notification.create_serialized(notification);
+            request_notification.header.type_ = HeaderType::NotifyFriendRequest;
+
+            // Send them the other person's info if possible.
+            if ((user_it->second)->current_session)
+            {
+                 (user_it->second)
+                 ->current_session
+                 ->deliver(request_notification);
+            }
+
+        }
+
+    });
+}
+
 void UserManager::direct_message_user(boost::uuids::uuid sender,
                                       TextMessage dm)
 {

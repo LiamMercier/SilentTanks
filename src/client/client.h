@@ -30,6 +30,12 @@ public:
 
     void send_unblock_request(boost::uuids::uuid user_id);
 
+    void queue_request(GameMode mode);
+
+    void cancel_request(GameMode mode);
+
+    void send_command(Command cmd);
+
 private:
     void on_message(const ptr & session, Message msg);
 

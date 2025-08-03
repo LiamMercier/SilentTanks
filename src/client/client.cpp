@@ -324,6 +324,57 @@ void Client::send_unblock_request(boost::uuids::uuid user_id)
     });
 }
 
+void Client::queue_request(GameMode mode)
+{
+    asio::post(client_strand_,
+        [this,
+        mode]{
+
+        std::cout << "Queued up for gamemode "
+                  << +static_cast<uint8_t>(mode)
+                  << "\n";
+
+        QueueMatchRequest queue_data(mode);
+
+        Message queue_request;
+        queue_request.create_serialized(queue_data);
+        current_session_->deliver(queue_request);
+
+    });
+}
+
+void Client::cancel_request(GameMode mode)
+{
+    asio::post(client_strand_,
+        [this,
+        mode]{
+
+        std::cout << "Cancelled queue for gamemode "
+                  << +static_cast<uint8_t>(mode)
+                  << "\n";
+
+        CancelMatchRequest cancel_data(mode);
+
+        Message cancel_request;
+        cancel_request.create_serialized(cancel_data);
+        current_session_->deliver(cancel_request);
+
+    });
+}
+
+void Client::send_command(Command cmd)
+{
+    asio::post(client_strand_,
+        [this,
+        cmd]{
+
+        Message command;
+        command.create_serialized(cmd);
+        current_session_->deliver(command);
+
+    });
+}
+
 // This function is used in session's strand. As such, it must not
 // modify any members outside of the session instance. All actions
 // should only post to the strand of the object being utilized.
@@ -547,6 +598,22 @@ try {
             }
             break;
         }
+        case HeaderType::NotifyFriendRequest:
+        {
+            ExternalUser user = msg.to_user();
+
+            std::cout << "Got friend request from "
+                      << user.username
+                      << " ("
+                      << user.user_id
+                      << ")\n";
+
+            {
+                std::lock_guard lock(data_mutex_);
+                client_data_.friend_requests.emplace(user.user_id, user);
+            }
+            break;
+        }
         case HeaderType::NotifyBlocked:
         {
             ExternalUser user = msg.to_user();
@@ -565,6 +632,128 @@ try {
                 std::lock_guard lock(data_mutex_);
                 client_data_.blocked_users.erase(user.user_id);
             }
+            break;
+        }
+        case HeaderType::BadQueue:
+        {
+            std::cerr << "Bad queue.\n";
+            break;
+        }
+        case HeaderType::BadCancel:
+        {
+            std::cerr << "Bad cancel.\n";
+            break;
+        }
+        case HeaderType::QueueDropped:
+        {
+            std::cerr << "Queue was dropped.\n";
+            break;
+        }
+        case HeaderType::MatchStarting:
+        {
+            std::cerr << "Match is starting.\n";
+            break;
+        }
+        case HeaderType::MatchCreationError:
+        {
+            std::cerr << "Error in match creation.\n";
+            break;
+        }
+        case HeaderType::NoMatchFound:
+        {
+            std::cerr << "Cannot send command, match not found.\n";
+            break;
+        }
+        case HeaderType::MatchInProgress:
+        {
+            std::cerr << "You have a match in progress.\n";
+            break;
+        }
+        case HeaderType::PlayerView:
+        {
+            std::cerr << "Player view update available.\n";
+            break;
+        }
+        case HeaderType::FailedMove:
+        {
+            std::cerr << "Failed to execute move.\n";
+            break;
+        }
+        case HeaderType::StaleMove:
+        {
+            std::cerr << "Stale move detected.\n";
+            break;
+        }
+        case HeaderType::Eliminated:
+        {
+            std::cerr << "You were eliminated from the game.\n";
+            break;
+        }
+        case HeaderType::TimedOut:
+        {
+            std::cerr << "You were eliminated from the game via timeout.\n";
+            break;
+        }
+        case HeaderType::Victory:
+        {
+            std::cerr << "You won your match.\n";
+            break;
+        }
+        case HeaderType::GameEnded:
+        {
+            std::cerr << "Game has already ended.\n";
+            break;
+        }
+        case HeaderType::BadMessage:
+        {
+            std::cerr << "Bad message, server terminating connection.\n";
+            break;
+        }
+        case HeaderType::PingTimeout:
+        {
+            std::cerr << "Connection dropped by server because heartbeat "
+                      << "ping was not responded to.\n";
+            break;
+        }
+        case HeaderType::RateLimited:
+        {
+            std::cerr << "You are being rate limited.\n";
+            break;
+        }
+        case HeaderType::Banned:
+        {
+            BanMessage banned = msg.to_ban_message();
+
+            std::time_t time = std::chrono::system_clock::to_time_t
+                                    (
+                                        banned.time_till_unban
+                                    );
+
+            std::tm tm;
+#ifdef _WIN32
+            localtime_s(&tm, &time);
+#else
+            localtime_r(&time, &tm);
+#endif
+            std::cout << "You are banned until "
+                      << std::put_time(&tm, "%Y-%m-%d %H:%M:%S")
+                      << "\n";
+
+            break;
+        }
+        case HeaderType::ServerFull:
+        {
+            std::cerr << "Server is full and cannot accept connections.\n";
+            break;
+        }
+        case HeaderType::DirectTextMessage:
+        {
+            std::cerr << "<DirectTextMessage>.\n";
+            break;
+        }
+        case HeaderType::MatchTextMessage:
+        {
+            std::cerr << "<MatchTextMessage>.\n";
             break;
         }
         default:

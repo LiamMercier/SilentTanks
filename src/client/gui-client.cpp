@@ -1,6 +1,6 @@
 #include "gui-client.h"
 
-GUIClient::GUIClient(asio::io_context & cntx, QObject* parent = nullptr)
+GUIClient::GUIClient(asio::io_context & cntx, QObject* parent)
 :QObject(parent),
 client_
 (
@@ -18,7 +18,7 @@ client_
 
 }
 
-ClientState state() const
+ClientState GUIClient::state() const
 {
     return static_cast<ClientState>(client_.get_state());
 }

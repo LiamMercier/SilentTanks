@@ -7,34 +7,58 @@
 #include <utility>
 #include <boost/asio.hpp>
 
-#include "client.h"
+#include <QGuiApplication>
+#include <QQmlApplicationEngine>
+#include <QQmlContext>
+#include <QUrl>
+#include <QStringLiteral>
+
+#include "gui-client.h"
 
 #include <boost/uuid/string_generator.hpp>
 
-int main()
+int main(int argc, char* argv[])
 {
     try
     {
+        QGuiApplication app(argc, argv);
+
         auto thread_count = std::thread::hardware_concurrency();
-
-        asio::io_context io_context;
-        auto work_guard = asio::make_work_guard(io_context);
-
-        asio::signal_set signals(io_context, SIGINT, SIGTERM);
-        signals.async_wait(
-            [&](auto const & ec, int i){
-            std::cerr << "\n" << "Client signaled for shutdown.\n";
-            work_guard.reset();
-            io_context.stop();
-        });
-
-        Client client(io_context, [](ClientState new_state){});
 
         if (thread_count == 0)
         {
             thread_count = 2;
         }
 
+        asio::io_context io_context;
+        auto work_guard = asio::make_work_guard(io_context);
+
+        asio::signal_set signal_handler(io_context, SIGINT, SIGTERM);
+        signal_handler.async_wait(
+            [&](auto const & ec, int i){
+            std::cerr << "\n" << "Client signaled for shutdown.\n";
+            work_guard.reset();
+            io_context.stop();
+        });
+
+        GUIClient client(io_context);
+
+        // Setup engine and point at our GUI client wrapper.
+        QQmlApplicationEngine engine;
+        engine.rootContext()->setContextProperty("Client", &client);
+
+        // Load our main QML file.
+        engine.load(QUrl(QStringLiteral("qrc:/Main.qml")));
+
+        // Ensure we can actually proceed with rendering.
+        if (engine.rootObjects().isEmpty())
+        {
+            return 1;
+        }
+
+        app.exec();
+
+        // Setup our ASIO thread pool.
         std::vector<std::thread> threads;
         threads.reserve(thread_count);
 
@@ -44,107 +68,6 @@ int main()
                 io_context.run();
             });
         }
-
-        // Tests
-        client.connect("127.0.0.1:12345");
-
-        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-
-        std::string username;
-        std::cin >> username;
-
-        // client.register_account(username, "123");
-
-        client.login(username, "123");
-
-        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-
-        client.request_user_list(UserListType::Friends);
-
-        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-
-        client.request_user_list(UserListType::FriendRequests);
-
-        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-
-        client.request_user_list(UserListType::Blocks);
-
-        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-
-        client.send_friend_request("yveltal");
-
-        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-
-        /*
-        {
-            std::string uuid_str = "910c77be-7ffe-4fbd-ba60-8c84a35a3f94";
-            boost::uuids::string_generator gen;
-            boost::uuids::uuid user_id = gen(uuid_str);
-            client.respond_friend_request(user_id, ACCEPT_FRIEND_REQUEST);
-        }
-        */
-
-        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-
-        /*
-        {
-            std::string username = "lobster";
-            client.send_block_request(username);
-        }
-
-        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-
-        {
-            std::string uuid_str = "16071a46-2856-4ba6-9c24-17732c1d8378";
-            boost::uuids::string_generator gen;
-            boost::uuids::uuid user_id = gen(uuid_str);
-            client.send_unblock_request(user_id);
-        }
-
-        */
-
-        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-
-        /*
-        {
-            std::string uuid_str = "3b7a2f4b-4d1e-4332-8b99-a57845098a13";
-            boost::uuids::string_generator gen;
-            boost::uuids::uuid user_id = gen(uuid_str);
-            client.send_unfriend_request(user_id);
-        }
-        */
-
-        {
-            std::string text = "hi yveltal!";
-            std::string uuid_str = "910c77be-7ffe-4fbd-ba60-8c84a35a3f94";
-            boost::uuids::string_generator gen;
-            boost::uuids::uuid user_id = gen(uuid_str);
-            client.send_direct_message(text, user_id);
-        }
-
-        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-
-        {
-            std::string text = "You can't see this, can you?!";
-            client.send_match_message(text);
-        }
-
-        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-
-        client.queue_request(GameMode::ClassicTwoPlayer);
-
-        std::this_thread::sleep_for(std::chrono::milliseconds(1500));
-
-        {
-            std::string text = "Lets have a good match!";
-            client.send_match_message(text);
-        }
-
-        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-
-        client.forfeit_request();
-
-        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
         // Once we stop the context, join our threads back
         for (auto & thread : threads)

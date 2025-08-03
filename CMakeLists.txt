@@ -15,7 +15,7 @@ set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
 set(CMAKE_CXX_FLAGS_DEBUG
     "${CMAKE_CXX_FLAGS_DEBUG} -fsanitize=address -fno-omit-frame-pointer")
 
-set(CMAKE_AUTOMOC ON)
+set(QML_RCC ${CMAKE_SOURCE_DIR}/qml/qml-resources.qrc)
 
 include(FetchContent)
 

@@ -15,6 +15,8 @@ set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
 set(CMAKE_CXX_FLAGS_DEBUG
     "${CMAKE_CXX_FLAGS_DEBUG} -fsanitize=address -fno-omit-frame-pointer")
 
+set(CMAKE_AUTOMOC ON)
+
 include(FetchContent)
 
 FetchContent_Declare(
@@ -36,6 +38,14 @@ find_package(libsodium REQUIRED)
 
 find_package(OpenSSL REQUIRED)
 
+find_package(Qt6 REQUIRED COMPONENTS
+  Core
+  Gui
+  Qml
+  Quick
+  QuickControls2
+)
+
 if(NOT Boost_FOUND)
   message(FATAL_ERROR "Boost not found!")
 endif()
@@ -54,6 +64,10 @@ endif()
 
 if(NOT OpenSSL_FOUND)
   message(FATAL_ERROR "OpenSSL not found!")
+endif()
+
+if(NOT Qt6_FOUND)
+  message(FATAL_ERROR "Qt6 not found!")
 endif()
 
 add_subdirectory(src/libgame)

@@ -1,5 +1,5 @@
  
-add_executable(SilentTanks-Client main-client.cpp client-session.cpp client.cpp client-data.cpp game-manager.cpp)
+add_executable(SilentTanks-Client main-client.cpp client-session.cpp client.cpp client-data.cpp game-manager.cpp gui-client.cpp)
 
 target_include_directories(SilentTanks-Client PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 target_include_directories(SilentTanks-Client PRIVATE ${Boost_INCLUDE_DIRS})
@@ -10,4 +10,9 @@ target_link_libraries(SilentTanks-Client PRIVATE
     Boost::system
     glaze::glaze
     ${ARGON2_LIBRARIES}
+    Qt6::Core
+    Qt6::Gui
+    Qt6::Qml
+    Qt6::Quick
+    Qt6::QuickControls2
 )

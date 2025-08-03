@@ -315,6 +315,7 @@ try {
             db_.authenticate(msg, session, client_ip);
             break;
         }
+        // TODO: consider PoW based limits for this or tokens?
         case HeaderType::RegistrationRequest:
         {
             // Prevent registration attempts when already logged in or

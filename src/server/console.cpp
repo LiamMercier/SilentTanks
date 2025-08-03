@@ -32,22 +32,6 @@ void restore_terminal()
     tcsetattr(STDIN_FILENO, TCSANOW, &g_original_termios);
 }
 
-void setup_signal_handlers()
-{
-    auto handle_sig = [](int sig){
-        restore_terminal();
-        std::signal(sig, SIG_DFL);
-        std::raise(sig);
-    };
-
-    std::signal(SIGINT, handle_sig);
-    std::signal(SIGTERM, handle_sig);
-    std::signal(SIGSEGV, handle_sig);
-    std::signal(SIGABRT, handle_sig);
-    std::signal(SIGHUP, handle_sig);
-
-}
-
 struct TermGuard {
     TermGuard()
     {
@@ -55,7 +39,6 @@ struct TermGuard {
         termios raw = g_original_termios;
         raw.c_lflag &= ~(ICANON | ECHO);
         tcsetattr(STDIN_FILENO, TCSANOW, &raw);
-        setup_signal_handlers();
     }
     ~TermGuard()
     {

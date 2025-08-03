@@ -32,6 +32,9 @@ constexpr std::array<std::string_view, NUMBER_OF_LOG_LEVELS> log_prefix = []
     return a;
 }();
 
+// For use in main.
+void restore_terminal();
+
 namespace asio = boost::asio;
 
 class Console

@@ -21,19 +21,11 @@
 
 class UserManager;
 
-constexpr size_t SALT_LENGTH = 16;
-
-constexpr uint32_t ARGON2_TIME = 4;
-constexpr uint32_t ARGON2_MEMORY = 65536;
-constexpr uint32_t ARGON2_PARALLEL = 1;
-
 // Limit how much memory we are consuming for logins.
 constexpr size_t MAX_CONCURRENT_AUTHS = 3;
 
 // Maximum number of requests to hold at one time, to prevent spam.
 constexpr int MAX_FRIEND_REQUESTS = 50;
-
-constexpr bool ACCEPT_REQUEST = true;
 
 namespace asio = boost::asio;
 

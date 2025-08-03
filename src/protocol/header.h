@@ -17,8 +17,8 @@ enum class HeaderType : uint8_t
     AlreadyAuthorized,
     GoodRegistration,
     BadRegistration,
-    BadAuth,
     GoodAuth,
+    BadAuth,
 
     // Fetch requests when the client connects.
     FetchFriends,

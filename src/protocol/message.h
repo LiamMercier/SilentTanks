@@ -4,6 +4,7 @@
 #include "player-view.h"
 #include "command.h"
 #include "external-user.h"
+#include "cryptography-constants.h"
 
 #include <type_traits>
 #include <vector>
@@ -13,8 +14,6 @@
 #include <chrono>
 #include <bit>
 #include <boost/uuid/uuid.hpp>
-
-constexpr size_t HASH_LENGTH = 32;
 
 // Construct a lookup table of valid username characters.
 constexpr std::array<bool, 256> allowed_username_characters = []
@@ -155,11 +154,6 @@ struct BanMessage
 {
     std::chrono::system_clock::time_point time_till_unban;
     std::string reason;
-};
-
-struct UserList
-{
-    std::vector<ExternalUser> users;
 };
 
 struct FriendRequest

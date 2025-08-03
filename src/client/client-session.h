@@ -23,11 +23,13 @@ public:
 
     // callback function to relay messages through
     using MessageHandler = std::function<void(const ptr & session, Message msg)>;
+    using ConnectionHandler = std::function<void()>;
     using DisconnectHandler = std::function<void()>;
 
     ClientSession(asio::io_context & cntx);
 
     void set_message_handler(MessageHandler handler,
+                             ConnectionHandler c_handler,
                              DisconnectHandler d_handler);
 
     void start(std::string host, std::string port);
@@ -92,6 +94,7 @@ private:
 
     // Callbacks.
     MessageHandler on_message_relay_;
+    ConnectionHandler on_connection_relay_;
     DisconnectHandler on_disconnect_relay_;
 };
 

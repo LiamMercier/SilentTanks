@@ -282,6 +282,7 @@ UserList Message::to_user_list(bool & op_status)
         // If we can't read another 17 bytes, stop.
         if (offset + 16 + 1 > total)
         {
+            std::cerr << "Invalid number of bytes, not 17.\n";
             op_status = false;
             return {};
         }
@@ -301,6 +302,7 @@ UserList Message::to_user_list(bool & op_status)
         // If invalid username length.
         if (username_len > MAX_USERNAME_LENGTH)
         {
+            std::cerr << "Username len " << +username_len  << " too long.\n";
             op_status = false;
             return {};
         }
@@ -308,6 +310,7 @@ UserList Message::to_user_list(bool & op_status)
         // If not enough data.
         if (username_len + offset > total)
         {
+            std::cerr << "Not enough data for username.\n";
             op_status = false;
             return {};
         }
@@ -319,6 +322,7 @@ UserList Message::to_user_list(bool & op_status)
             unsigned char c = static_cast<unsigned char>(payload[offset + i]);
             if (!allowed_username_characters[c])
             {
+                std::cerr << "Invalid username character.\n";
                 op_status = false;
                 return {};
             }
@@ -584,7 +588,8 @@ void Message::create_serialized(const mType & req)
             payload_buffer.insert(
                 payload_buffer.end(),
                 reinterpret_cast<const uint8_t*>(user.username.data()),
-                reinterpret_cast<const uint8_t*>(user.username.data()) + 16);
+                reinterpret_cast<const uint8_t*>(user.username.data())
+                                                 + username_len);
         }
     }
     else if constexpr (std::is_same_v<mType, FriendRequest>)

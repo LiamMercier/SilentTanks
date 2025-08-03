@@ -1,4 +1,5 @@
 #include "database.h"
+#include "cryptography-constants.h"
 #include "message.h"
 #include "user-manager.h"
 #include "elo-updates.h"
@@ -1374,7 +1375,7 @@ void Database::do_respond_friend_request(boost::uuids::uuid user,
 
         pqxx::work txn{*conn_};
 
-        if (decision == ACCEPT_REQUEST)
+        if (decision == ACCEPT_FRIEND_REQUEST)
         {
             // Check if this friend request exists.
             auto req_res = txn.exec_prepared(
@@ -1739,7 +1740,7 @@ void Database::do_fetch_friends(boost::uuids::uuid user,
             {
                 ExternalUser curr_friend;
 
-                curr_friend.user_id = gen(row["user_id"].c_str());
+                curr_friend.user_id = gen(row["friend_id"].c_str());
                 curr_friend.username = row["username"].as<std::string>();
 
                 friends.users.push_back(curr_friend);
@@ -2018,7 +2019,14 @@ void Database::try_finish_shutdown()
 
     if (pending_writes_.load(std::memory_order_acquire) > 0)
     {
-        std::cerr << pending_writes_.load(std::memory_order_acquire) << "\n";
+        std::string lmsg = std::to_string
+                                (
+                                    pending_writes_
+                                    .load(std::memory_order_acquire)
+                                )
+                            + " match writes remaining.";
+
+        Console::instance().log(lmsg, LogLevel::CONSOLE);
         return;
     }
 

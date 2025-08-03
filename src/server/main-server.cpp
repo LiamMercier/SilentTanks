@@ -862,6 +862,15 @@ try
 
     */
 
+    asio::signal_set signals(server_io_context, SIGINT, SIGTERM);
+        signals.async_wait(
+            [&](auto const & ec, int i){
+            std::string lmsg = "Got SIGINT/SIGTERM from terminal.";
+            Console::instance().log(lmsg, LogLevel::CONSOLE);
+            server.shutdown();
+            work_guard.reset();
+        });
+
     for (auto & thread : server_threads)
     {
         if (thread.joinable())
@@ -880,6 +889,7 @@ try
     std::cerr << "Server stopped. Press anything to return.\n";
 
     Console::instance().stop_command_loop();
+    restore_terminal();
 
     return 0;
 

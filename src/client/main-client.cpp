@@ -9,6 +9,8 @@
 
 #include "client.h"
 
+#include <boost/uuid/string_generator.hpp>
+
 int main()
 {
     try
@@ -48,7 +50,68 @@ int main()
 
         std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
+        std::string username;
+        std::cin >> username;
 
+        // client.register_account(username, "123");
+
+        client.login(username, "123");
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+
+        client.request_user_list(UserListType::Friends);
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+
+        client.request_user_list(UserListType::FriendRequests);
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+
+        client.request_user_list(UserListType::Blocks);
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+
+        client.send_friend_request("testaccount");
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+
+        /*
+        {
+            std::string uuid_str = "3b7a2f4b-4d1e-4332-8b99-a57845098a13";
+            boost::uuids::string_generator gen;
+            boost::uuids::uuid user_id = gen(uuid_str);
+            client.respond_friend_request(user_id, ACCEPT_FRIEND_REQUEST);
+        }
+        */
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+
+        /*
+        {
+            std::string username = "lobster";
+            client.send_block_request(username);
+        }
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+
+        {
+            std::string uuid_str = "16071a46-2856-4ba6-9c24-17732c1d8378";
+            boost::uuids::string_generator gen;
+            boost::uuids::uuid user_id = gen(uuid_str);
+            client.send_unblock_request(user_id);
+        }
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+
+        {
+            std::string uuid_str = "3b7a2f4b-4d1e-4332-8b99-a57845098a13";
+            boost::uuids::string_generator gen;
+            boost::uuids::uuid user_id = gen(uuid_str);
+            client.send_unfriend_request(user_id);
+        }
+        */
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
         // Once we stop the context, join our threads back
         for (auto & thread : threads)

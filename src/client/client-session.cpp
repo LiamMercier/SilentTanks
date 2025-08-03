@@ -10,9 +10,11 @@ connect_timer_(cntx)
 }
 
 void ClientSession::set_message_handler(MessageHandler m_handler,
-                                  DisconnectHandler d_handler)
+                                        ConnectionHandler c_handler,
+                                        DisconnectHandler d_handler)
 {
     on_message_relay_ = std::move(m_handler);
+    on_connection_relay_ = std::move(c_handler);
     on_disconnect_relay_ = std::move(d_handler);
 }
 
@@ -44,7 +46,7 @@ void ClientSession::deliver(Message msg)
 }
 
 void ClientSession::on_resolve(boost::system::error_code ec,
-                        asio::ip::tcp::resolver::results_type endpoints)
+                               asio::ip::tcp::resolver::results_type endpoints)
 {
     if (ec)
     {
@@ -82,6 +84,16 @@ void ClientSession::on_connect(boost::system::error_code ec,
     std::cout << "Successful connection to " << ep << "\n";
 
     live_.store(true);
+
+    // Tell the client that we connected.
+    if (on_connection_relay_)
+    {
+        on_connection_relay_();
+    }
+    else
+    {
+        std::cerr << "On connection handler not set!\n";
+    }
 
     do_read_header();
 }

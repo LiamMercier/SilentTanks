@@ -3,13 +3,21 @@
 #include "client-session.h"
 #include "client-state.h"
 #include "client-data.h"
+#include "game-manager.h"
 
 class Client
 {
 public:
     using ptr = ClientSession::ptr;
+
+    using StateChangeCallback = std::function<void(ClientState state)>;
 public:
-    Client(asio::io_context & cntx);
+    Client(asio::io_context & cntx,
+           StateChangeCallback state_change_callback);
+
+    inline ClientState get_state() const;
+
+    inline void change_state(ClientState new_state);
 
     void connect(std::string endpoint);
 
@@ -36,6 +44,13 @@ public:
 
     void send_command(Command cmd);
 
+    void forfeit_request();
+
+    void send_direct_message(std::string text,
+                             boost::uuids::uuid receiver);
+
+    void send_match_message(std::string text);
+
 private:
     void on_message(const ptr & session, Message msg);
 
@@ -55,5 +70,23 @@ private:
 
     ClientSession::ptr current_session_;
 
-    // TODO: game manager
+    GameManager game_manager_;
+
+    StateChangeCallback state_change_callback_;
 };
+
+inline ClientState Client::get_state() const
+{
+    std::lock_guard lock(state_mutex_);
+    return state_;
+}
+
+inline void Client::change_state(ClientState new_state)
+{
+    {
+        std::lock_guard lock(state_mutex_);
+        state_ = new_state;
+    }
+
+    state_change_callback_(new_state);
+}

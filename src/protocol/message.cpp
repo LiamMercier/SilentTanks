@@ -454,6 +454,9 @@ TextMessage Message::to_text_message()
     return dm;
 }
 
+// We can convert from the ExternalMatchMessage we got on the wire
+// and an internal version (no username length stored) by simply
+// parsing the external message and not saving the length.
 InternalMatchMessage Message::to_match_message()
 {
     InternalMatchMessage msg;

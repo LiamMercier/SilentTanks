@@ -1037,12 +1037,13 @@ void Database::do_record(std::vector<boost::uuids::uuid> user_ids,
 
                 elo_txn.commit();
 
-                // Record that we finished writing.
-                pending_writes_.fetch_sub(1, std::memory_order_acq_rel);
-
-                // Attempt to finish shutdown if necessary.
-                try_finish_shutdown();
             }
+
+            // Record that we finished writing.
+            pending_writes_.fetch_sub(1, std::memory_order_seq_cst);
+
+            // Attempt to finish shutdown if necessary.
+            try_finish_shutdown();
 
         }
         catch (const std::exception & e)
@@ -2019,12 +2020,12 @@ void Database::try_finish_shutdown()
         return;
     }
 
-    if (pending_writes_.load(std::memory_order_acquire) > 0)
+    if (pending_writes_.load(std::memory_order_seq_cst) > 0)
     {
         std::string lmsg = std::to_string
                                 (
                                     pending_writes_
-                                    .load(std::memory_order_acquire)
+                                    .load(std::memory_order_seq_cst)
                                 )
                             + " match writes remaining.";
 

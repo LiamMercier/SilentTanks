@@ -558,6 +558,15 @@ ApplyResult MatchInstance::apply_command(const Command & cmd)
     ApplyResult res;
     res.valid_move = true;
     res.op_status = false;
+
+    // Enforce setup moves.
+    if (current_state == GameState::Setup
+        && cmd.type != CommandType::Place)
+    {
+        res.valid_move = false;
+        return res;
+    }
+
     switch(cmd.type)
     {
         case CommandType::Move:

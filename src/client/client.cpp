@@ -3,10 +3,13 @@
 #include <argon2.h>
 #include <boost/uuid/uuid_io.hpp>
 
-Client::Client(asio::io_context & cntx)
+Client::Client(asio::io_context & cntx,
+               StateChangeCallback state_change_callback)
 :io_context_(cntx),
 client_strand_(cntx.get_executor()),
-state_(ClientState::ConnectScreen)
+state_(ClientState::ConnectScreen),
+game_manager_(cntx),
+state_change_callback_(std::move(state_change_callback))
 {
 
 }
@@ -38,19 +41,19 @@ void Client::connect(std::string endpoint)
 
 void Client::login(std::string username, std::string password)
 {
+    // Prevent trying to login early or late.
+    {
+        std::lock_guard lock(state_mutex_);
+        if (state_ != ClientState::LoginScreen)
+        {
+            return;
+        }
+    }
+
     asio::post(client_strand_,
         [this,
         username = std::move(username),
         password = std::move(password)]{
-
-        // Prevent trying to login early or late.
-        {
-            std::lock_guard lock(state_mutex_);
-            if (state_ != ClientState::LoginScreen)
-            {
-                return;
-            }
-        }
 
         // Copy the username first, then allow it to be moved.
         {
@@ -102,19 +105,19 @@ void Client::login(std::string username, std::string password)
 
 void Client::register_account(std::string username, std::string password)
 {
+    // Prevent trying to login early or late.
+    {
+        std::lock_guard lock(state_mutex_);
+        if (state_ != ClientState::LoginScreen)
+        {
+            return;
+        }
+    }
+
     asio::post(client_strand_,
         [this,
         username = std::move(username),
         password = std::move(password)]{
-
-        // Prevent trying to login early or late.
-        {
-            std::lock_guard lock(state_mutex_);
-            if (state_ != ClientState::LoginScreen)
-            {
-                return;
-            }
-        }
 
         RegisterRequest req;
         req.username = std::move(username);
@@ -326,6 +329,15 @@ void Client::send_unblock_request(boost::uuids::uuid user_id)
 
 void Client::queue_request(GameMode mode)
 {
+    // Prevent queue when not in lobby.
+    {
+        std::lock_guard lock(state_mutex_);
+        if (state_ != ClientState::Lobby)
+        {
+            return;
+        }
+    }
+
     asio::post(client_strand_,
         [this,
         mode]{
@@ -345,6 +357,15 @@ void Client::queue_request(GameMode mode)
 
 void Client::cancel_request(GameMode mode)
 {
+    // Prevent cancel when not in lobby.
+    {
+        std::lock_guard lock(state_mutex_);
+        if (state_ != ClientState::Lobby)
+        {
+            return;
+        }
+    }
+
     asio::post(client_strand_,
         [this,
         mode]{
@@ -364,6 +385,15 @@ void Client::cancel_request(GameMode mode)
 
 void Client::send_command(Command cmd)
 {
+    // Prevent commands when not playing.
+    {
+        std::lock_guard lock(state_mutex_);
+        if (state_ != ClientState::Playing)
+        {
+            return;
+        }
+    }
+
     asio::post(client_strand_,
         [this,
         cmd]{
@@ -375,9 +405,66 @@ void Client::send_command(Command cmd)
     });
 }
 
-// This function is used in session's strand. As such, it must not
-// modify any members outside of the session instance. All actions
-// should only post to the strand of the object being utilized.
+void Client::forfeit_request()
+{
+    // Prevent forfeit when not playing.
+    {
+        std::lock_guard lock(state_mutex_);
+        if (state_ != ClientState::Playing)
+        {
+            return;
+        }
+    }
+
+    asio::post(client_strand_,
+        [this]{
+
+        Message forfeit;
+        forfeit.create_serialized(HeaderType::ForfeitMatch);
+        current_session_->deliver(forfeit);
+
+    });
+}
+
+void Client::send_direct_message(std::string text,
+                                 boost::uuids::uuid receiver)
+{
+    asio::post(client_strand_,
+        [this,
+        text = std::move(text),
+        receiver = std::move(receiver)]{
+
+        TextMessage dm;
+        dm.user_id = receiver;
+        dm.text = std::move(text);
+
+        Message direct_message;
+        direct_message.create_serialized(dm);
+        direct_message.header.type_ = HeaderType::DirectTextMessage;
+        current_session_->deliver(direct_message);
+
+    });
+}
+
+void Client::send_match_message(std::string text)
+{
+    asio::post(client_strand_,
+        [this,
+        text = std::move(text)]{
+
+        TextMessage dm{};
+        dm.text = std::move(text);
+
+        Message direct_message;
+        direct_message.create_serialized(dm);
+        direct_message.header.type_ = HeaderType::MatchTextMessage;
+        current_session_->deliver(direct_message);
+
+    });
+}
+
+// This function is used in the session's strand. As such, all
+// actions should be protected from multi threading side effects.
 void Client::on_message(const ptr & session, Message msg)
 {
     // Prevent malformed or incorrect data.
@@ -459,6 +546,7 @@ try {
                 std::lock_guard lock(data_mutex_);
                 std::cerr << "Good auth. Logged in as: "
                           << client_data_.client_username << "\n";
+                change_state(ClientState::Lobby);
             }
             break;
         }
@@ -652,6 +740,11 @@ try {
         case HeaderType::MatchStarting:
         {
             std::cerr << "Match is starting.\n";
+
+            {
+                change_state(ClientState::Playing);
+            }
+
             break;
         }
         case HeaderType::MatchCreationError:
@@ -667,11 +760,84 @@ try {
         case HeaderType::MatchInProgress:
         {
             std::cerr << "You have a match in progress.\n";
+
+            {
+                change_state(ClientState::Playing);
+            }
+
             break;
         }
         case HeaderType::PlayerView:
         {
             std::cerr << "Player view update available.\n";
+
+            bool status;
+            PlayerView current_view = msg.to_player_view(status);
+
+            if (status == false)
+            {
+                std::cerr << "Failed to convert player view.\n";
+                break;
+            }
+
+
+            // TEMPORARY PRINT FOR VIEW
+            // TODO: remove this.
+
+        const static std::string colors_array[4] = {"\033[48;5;196m", "\033[48;5;21m", "\033[48;5;46m", "\033[48;5;226m"};
+
+        for (int y = 0; y < current_view.map_view.get_height(); y++)
+        {
+            for (int x = 0; x < current_view.map_view.get_width(); x++)
+            {
+                GridCell curr = current_view.map_view[current_view.map_view.idx(x,y)];
+
+                if (curr.visible_ == true)
+                {
+                    uint8_t occ = curr.occupant_;
+
+                    if (occ == NO_OCCUPANT)
+                    {
+                        std::cout << "\033[48;5;184m" << "_" << "\033[0m ";
+                    }
+                    else
+                    {
+                        auto this_tank = std::find_if(
+                            current_view.visible_tanks.begin(), current_view.visible_tanks.end(),
+                            [&](auto const & obj){return obj.id_ == occ;});
+
+                        if (this_tank != current_view.visible_tanks.end())
+                        {
+                            std::cout << colors_array[this_tank->owner_] << +this_tank->id_ << "\033[0m ";
+                        }
+                        else
+                        {
+                            std::cout << "\033[48;5;184m" << "_" << "\033[0m ";
+                        }
+
+                    }
+                }
+                else
+                {
+                    if (curr.type_ == CellType::Terrain)
+                    {
+                        std::cout << "\033[48;5;130m" << curr << "\033[0m ";
+                    }
+                    else
+                    {
+                        std::cout << "?" << " ";
+                    }
+                }
+            }
+            std::cout << "\n";
+        }
+
+        std::cout << "\n";
+
+
+
+            game_manager_.update_view(current_view);
+
             break;
         }
         case HeaderType::FailedMove:
@@ -748,12 +914,30 @@ try {
         }
         case HeaderType::DirectTextMessage:
         {
-            std::cerr << "<DirectTextMessage>.\n";
+            TextMessage dm = msg.to_text_message();
+            std::string sender_username;
+
+            {
+                std::lock_guard lock(data_mutex_);
+                auto user_ref = client_data_.friends.find(dm.user_id);
+                sender_username = (user_ref->second).username;
+            }
+
+            std::cout << "["
+                      << sender_username << "]: "
+                      << dm.text
+                      << "\n";
             break;
         }
         case HeaderType::MatchTextMessage:
         {
-            std::cerr << "<MatchTextMessage>.\n";
+            // Get an internal representation of the message.
+            InternalMatchMessage match_msg = msg.to_match_message();
+            std::cout << "["
+                      << match_msg.sender_username
+                      << "]: "
+                      << match_msg.text
+                      << "\n";
             break;
         }
         default:
@@ -773,8 +957,7 @@ catch (std::exception & e)
 void Client::on_connection()
 {
     {
-        std::lock_guard lock(state_mutex_);
-        state_ = ClientState::LoginScreen;
+        change_state(ClientState::LoginScreen);
     }
 }
 
@@ -786,8 +969,7 @@ void Client::on_disconnect()
         [this]{
 
         {
-            std::lock_guard lock(state_mutex_);
-            state_ = ClientState::Disconnected;
+            change_state(ClientState::Disconnected);
         }
 
         {

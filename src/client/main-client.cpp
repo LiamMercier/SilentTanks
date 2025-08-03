@@ -28,7 +28,7 @@ int main()
             io_context.stop();
         });
 
-        Client client(io_context);
+        Client client(io_context, [](ClientState new_state){});
 
         if (thread_count == 0)
         {
@@ -71,13 +71,13 @@ int main()
 
         std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
-        client.send_friend_request("chungus");
+        client.send_friend_request("yveltal");
 
         std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
         /*
         {
-            std::string uuid_str = "3b7a2f4b-4d1e-4332-8b99-a57845098a13";
+            std::string uuid_str = "910c77be-7ffe-4fbd-ba60-8c84a35a3f94";
             boost::uuids::string_generator gen;
             boost::uuids::uuid user_id = gen(uuid_str);
             client.respond_friend_request(user_id, ACCEPT_FRIEND_REQUEST);
@@ -101,8 +101,11 @@ int main()
             client.send_unblock_request(user_id);
         }
 
+        */
+
         std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
+        /*
         {
             std::string uuid_str = "3b7a2f4b-4d1e-4332-8b99-a57845098a13";
             boost::uuids::string_generator gen;
@@ -111,9 +114,35 @@ int main()
         }
         */
 
+        {
+            std::string text = "hi yveltal!";
+            std::string uuid_str = "910c77be-7ffe-4fbd-ba60-8c84a35a3f94";
+            boost::uuids::string_generator gen;
+            boost::uuids::uuid user_id = gen(uuid_str);
+            client.send_direct_message(text, user_id);
+        }
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+
+        {
+            std::string text = "You can't see this, can you?!";
+            client.send_match_message(text);
+        }
+
         std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
         client.queue_request(GameMode::ClassicTwoPlayer);
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(1500));
+
+        {
+            std::string text = "Lets have a good match!";
+            client.send_match_message(text);
+        }
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+
+        client.forfeit_request();
 
         std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 

@@ -58,6 +58,15 @@ try
     Console::instance().set_command_handler(cmd_handler);
     Console::instance().start_command_loop();
 
+    asio::signal_set signals(server_io_context, SIGINT, SIGTERM);
+        signals.async_wait(
+            [&](auto const & ec, int i){
+            std::string lmsg = "Got SIGINT/SIGTERM from terminal.";
+            Console::instance().log(lmsg, LogLevel::CONSOLE);
+            server.shutdown();
+            work_guard.reset();
+        });
+
     for (unsigned int i = 0; i < thread_count; i++)
     {
         server_threads.emplace_back([&]{
@@ -861,15 +870,6 @@ try
     }
 
     */
-
-    asio::signal_set signals(server_io_context, SIGINT, SIGTERM);
-        signals.async_wait(
-            [&](auto const & ec, int i){
-            std::string lmsg = "Got SIGINT/SIGTERM from terminal.";
-            Console::instance().log(lmsg, LogLevel::CONSOLE);
-            server.shutdown();
-            work_guard.reset();
-        });
 
     for (auto & thread : server_threads)
     {

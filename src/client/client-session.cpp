@@ -65,7 +65,8 @@ void ClientSession::on_resolve(boost::system::error_code ec,
     // Start async connection to server.
     asio::async_connect(socket_, endpoints,
         asio::bind_executor(strand_,
-            [self = shared_from_this()](auto ec, auto endpoints){
+            [self = shared_from_this()](boost::system::error_code ec,
+                                        asio::ip::tcp::endpoint endpoints){
                 self->on_connect(ec, endpoints);
         }));
 }

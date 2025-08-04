@@ -221,7 +221,8 @@ void Session::do_read_body()
 
         if (!ec)
         {
-            self->socket_.cancel();
+            boost::system::error_code ignored;
+            self->socket_.cancel(ignored);
         }
 
     }));

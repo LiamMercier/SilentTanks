@@ -151,7 +151,8 @@ void Server::handle_accept(const boost::system::error_code & ec,
         }
 
         // Handle IP bans.
-        auto client_ip = socket.remote_endpoint().address().to_string();
+        boost::system::error_code endpoint_ec;
+        auto client_ip = socket.remote_endpoint(endpoint_ec).address().to_string();
         auto ip_itr = bans_.find(client_ip);
         auto now = std::chrono::system_clock::now();
 
@@ -275,7 +276,9 @@ try {
             // Grab the current client IP.
             try
             {
-                client_ip = session->socket().remote_endpoint().address().to_string();
+                boost::system::error_code endpoint_ec;
+                client_ip = session->
+                            socket().remote_endpoint(endpoint_ec).address().to_string();
             }
             catch (const std::exception & e)
             {
@@ -335,7 +338,9 @@ try {
             // Grab the current client IP.
             try
             {
-                client_ip = session->socket().remote_endpoint().address().to_string();
+                boost::system::error_code endpoint_ec;
+                client_ip = session->
+                            socket().remote_endpoint(endpoint_ec).address().to_string();
             }
             catch (const std::exception & e)
             {

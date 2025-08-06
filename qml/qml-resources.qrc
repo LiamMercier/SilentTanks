@@ -2,4 +2,16 @@
     <qresource prefix="/">
         <file>Main.qml</file>
     </qresource>
+    <qresource prefix="/">
+        <file>ConnectPage.qml</file>
+    </qresource>
+    <qresource prefix="/">
+        <file>LoginPage.qml</file>
+    </qresource>
+    <qresource prefix="/">
+        <file>Lobby.qml</file>
+    </qresource>
+    <qresource prefix="/">
+        <file>InfoPopup.qml</file>
+    </qresource>
 </RCC>

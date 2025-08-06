@@ -651,14 +651,9 @@ void Server::on_auth(UserData data,
                blocks = std::move(blocked_users),
                s = std::move(session)]{
 
-        // First, check if the uuid is nil, if so then auth failed
-        // and we should tell the client to try again.
+        // First, check if the uuid is nil, if so then auth failed.
         if (user_data.user_id == boost::uuids::nil_uuid())
         {
-            // Notify session with BadAuth
-            Message bad_auth_msg;
-            bad_auth_msg.create_serialized(HeaderType::BadAuth);
-            s->deliver(bad_auth_msg);
             return;
         }
 

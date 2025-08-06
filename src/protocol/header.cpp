@@ -128,6 +128,22 @@ bool Header::valid_client()
             }
             break;
         }
+        case HeaderType::BadAuth:
+        {
+            if (payload_len != 1)
+            {
+                return false;
+            }
+            break;
+        }
+        case HeaderType::BadRegistration:
+        {
+            if (payload_len != 1)
+            {
+                return false;
+            }
+            break;
+        }
         default:
         {
             // do nothing, should never happen

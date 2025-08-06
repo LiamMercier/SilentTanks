@@ -666,6 +666,12 @@ void Database::do_auth(LoginRequest request,
                                     + std::string(argon2_error_message(result));
                 Console::instance().log(std::move(lmsg),
                                         LogLevel::ERROR);
+
+                Message bad_auth;
+                BadAuthNotification a_notif(BadAuthNotification::Reason::ServerError);
+                bad_auth.create_serialized(a_notif);
+
+                s->deliver(bad_auth);
             }
 
         txn.commit();

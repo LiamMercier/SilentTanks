@@ -4,12 +4,14 @@
 #include <boost/uuid/uuid_io.hpp>
 
 Client::Client(asio::io_context & cntx,
-               StateChangeCallback state_change_callback)
+               StateChangeCallback state_change_callback,
+               PopupCallback popup_callback)
 :io_context_(cntx),
 client_strand_(cntx.get_executor()),
 state_(ClientState::ConnectScreen),
 game_manager_(cntx),
-state_change_callback_(std::move(state_change_callback))
+state_change_callback_(std::move(state_change_callback)),
+popup_callback_(std::move(popup_callback))
 {
 
 }
@@ -105,7 +107,7 @@ void Client::login(std::string username, std::string password)
 
 void Client::register_account(std::string username, std::string password)
 {
-    // Prevent trying to login early or late.
+    // Prevent trying to register early or late.
     {
         std::lock_guard lock(state_mutex_);
         if (state_ != ClientState::LoginScreen)
@@ -118,6 +120,29 @@ void Client::register_account(std::string username, std::string password)
         [this,
         username = std::move(username),
         password = std::move(password)]{
+
+        if (username.length() < 1)
+        {
+            popup_callback_(Popup(
+                            PopupType::Info,
+                            "Bad registration.",
+                            "Your username must not be empty."),
+                            STANDARD_POPUP);
+            return;
+        }
+
+        if (username.length() > MAX_USERNAME_LENGTH)
+        {
+            std::string body = "Usernames can only be "
+                               + std::to_string(MAX_USERNAME_LENGTH)
+                               + " characters long.";
+            popup_callback_(Popup(
+                            PopupType::Info,
+                            "Bad registration.",
+                            body),
+                            STANDARD_POPUP);
+            return;
+        }
 
         RegisterRequest req;
         req.username = std::move(username);
@@ -151,7 +176,7 @@ void Client::register_account(std::string username, std::string password)
             return;
         }
 
-        std::cout << "Sending login req\n";
+        std::cout << "Sending registration request\n";
 
         // If everything went well, send this to the server.
         Message login_request;
@@ -500,7 +525,9 @@ try {
         }
         case HeaderType::BadRegistration:
         {
-            std::cerr << "Bad registration: ";
+            std::cerr << "Bad reg.\n";
+
+            std::string body;
 
             using Reason = BadRegNotification::Reason;
 
@@ -512,31 +539,36 @@ try {
             {
                 case Reason::NotUnique:
                 {
-                    std::cout << "Username was not unique.\n";
+                    body = "Username was not unique.";
                     break;
                 }
                 case Reason::InvalidUsername:
                 {
-                    std::cout << "Username was invalid.\n";
+                    body = "Username was invalid.";
                     break;
                 }
                 case Reason::CurrentlyAuthenticated:
                 {
-                    std::cout << "Currently authenticated.\n";
+                    body = "Currently authenticated.";
                     break;
                 }
                 case Reason::ServerError:
                 {
-                    std::cout << "Server error.\n";
+                    body = "Server error.";
                     break;
                 }
                 default:
                 {
-                    std::cout << "Server provided unknown "
-                                 "bad registration reason.\n";
+                    body = "Server provided unknown reason.";
                     break;
                 }
             }
+
+            popup_callback_(Popup(
+                            PopupType::Info,
+                            "Bad registration.",
+                            body),
+                            URGENT_POPUP);
 
             break;
         }
@@ -553,6 +585,50 @@ try {
         case HeaderType::BadAuth:
         {
             std::cerr << "Bad auth.\n";
+
+            std::string body;
+
+            using Reason = BadAuthNotification::Reason;
+
+            // We have exactly 1 byte here, or the header
+            // would have been rejected.
+            Reason reason = static_cast<Reason>(msg.payload[0]);
+
+            switch (reason)
+            {
+                case Reason::BadHash:
+                {
+                    body = "Password hash does not match.";
+                    break;
+                }
+                case Reason::InvalidUsername:
+                {
+                    body = "Username was invalid.";
+                    break;
+                }
+                case Reason::CurrentlyAuthenticated:
+                {
+                    body = "Currently authenticated.";
+                    break;
+                }
+                case Reason::ServerError:
+                {
+                    body = "Server error.";
+                    break;
+                }
+                default:
+                {
+                    body = "Server provided unknown reason.";
+                    break;
+                }
+            }
+
+            popup_callback_(Popup(
+                            PopupType::Info,
+                            "Bad login.",
+                            body),
+                            URGENT_POPUP);
+
             break;
         }
         case HeaderType::FriendList:

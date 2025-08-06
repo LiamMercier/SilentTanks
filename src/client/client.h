@@ -4,6 +4,10 @@
 #include "client-state.h"
 #include "client-data.h"
 #include "game-manager.h"
+#include "popup.h"
+
+constexpr bool URGENT_POPUP = true;
+constexpr bool STANDARD_POPUP = false;
 
 class Client
 {
@@ -11,9 +15,12 @@ public:
     using ptr = ClientSession::ptr;
 
     using StateChangeCallback = std::function<void(ClientState state)>;
+
+    using PopupCallback = std::function<void(Popup p, bool urgent)>;
 public:
     Client(asio::io_context & cntx,
-           StateChangeCallback state_change_callback);
+           StateChangeCallback state_change_callback,
+           PopupCallback popup_callback);
 
     inline ClientState get_state() const;
 
@@ -73,6 +80,7 @@ private:
     GameManager game_manager_;
 
     StateChangeCallback state_change_callback_;
+    PopupCallback popup_callback_;
 };
 
 inline ClientState Client::get_state() const

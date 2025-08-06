@@ -78,7 +78,6 @@ void ClientSession::on_connect(boost::system::error_code ec,
 
     if (ec)
     {
-        std::cerr << "Connection failed: " << ec.message() << "\n";
         return;
     }
 

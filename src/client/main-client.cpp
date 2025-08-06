@@ -39,6 +39,8 @@ int main(int argc, char* argv[])
             std::cerr << "\n" << "Client signaled for shutdown.\n";
             work_guard.reset();
             io_context.stop();
+            // Also shutdown the GUI.
+            QMetaObject::invokeMethod(qApp, "quit", Qt::QueuedConnection);
         });
 
         GUIClient client(io_context);
@@ -47,16 +49,30 @@ int main(int argc, char* argv[])
         QQmlApplicationEngine engine;
         engine.rootContext()->setContextProperty("Client", &client);
 
+        qmlRegisterUncreatableMetaObject(GUI::staticMetaObject,
+                                         "GUICommon",
+                                         1,
+                                         0,
+                                         "ClientState",
+                                         "Tried to create GUI namespace enum.");
+
+        qmlRegisterUncreatableMetaObject(GUI::staticMetaObject,
+                                         "GUICommon",
+                                         1,
+                                         0,
+                                         "PopupType",
+                                         "Tried to create GUI namespace enum.");
+
         // Load our main QML file.
         engine.load(QUrl(QStringLiteral("qrc:/Main.qml")));
+
+        qDebug() << "Enum keys:" << GUI::staticMetaObject.enumeratorCount();
 
         // Ensure we can actually proceed with rendering.
         if (engine.rootObjects().isEmpty())
         {
             return 1;
         }
-
-        app.exec();
 
         // Setup our ASIO thread pool.
         std::vector<std::thread> threads;
@@ -68,6 +84,9 @@ int main(int argc, char* argv[])
                 io_context.run();
             });
         }
+
+        // Start the GUI, this thread is now being used.
+        app.exec();
 
         // Once we stop the context, join our threads back
         for (auto & thread : threads)

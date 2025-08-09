@@ -4,14 +4,20 @@
 #include <boost/uuid/uuid_io.hpp>
 
 Client::Client(asio::io_context & cntx,
+               LoginCallback login_callback,
                StateChangeCallback state_change_callback,
-               PopupCallback popup_callback)
+               PopupCallback popup_callback,
+               UsersUpdatedCallback users_updated_callback,
+               QueueUpdateCallback queue_update_callback)
 :io_context_(cntx),
 client_strand_(cntx.get_executor()),
 state_(ClientState::ConnectScreen),
 game_manager_(cntx),
+login_callback_(std::move(login_callback)),
 state_change_callback_(std::move(state_change_callback)),
-popup_callback_(std::move(popup_callback))
+popup_callback_(std::move(popup_callback)),
+users_updated_callback_(std::move(users_updated_callback)),
+queue_update_callback_(std::move(queue_update_callback))
 {
 
 }
@@ -57,6 +63,39 @@ void Client::login(std::string username, std::string password)
         username = std::move(username),
         password = std::move(password)]{
 
+        if (username.length() < 1)
+        {
+            popup_callback_(Popup(
+                            PopupType::Info,
+                            "Login Failed",
+                            "Your username must not be empty!"),
+                            STANDARD_POPUP);
+            return;
+        }
+
+        if (password.length() < 1)
+        {
+            popup_callback_(Popup(
+                            PopupType::Info,
+                            "Login Failed",
+                            "Your password must not be empty!"),
+                            STANDARD_POPUP);
+            return;
+        }
+
+        if (username.length() > MAX_USERNAME_LENGTH)
+        {
+            std::string body = "Usernames can only be "
+                               + std::to_string(MAX_USERNAME_LENGTH)
+                               + " characters long.";
+            popup_callback_(Popup(
+                            PopupType::Info,
+                            "Login Failed",
+                            body),
+                            STANDARD_POPUP);
+            return;
+        }
+
         // Copy the username first, then allow it to be moved.
         {
             std::lock_guard lock(data_mutex_);
@@ -91,7 +130,12 @@ void Client::login(std::string username, std::string password)
 
         if (result != ARGON2_OK)
         {
-            std::cerr << "Argon2 error!\n";
+            std::string body = "Argon2 encountered an error during password hashing.";
+            popup_callback_(Popup(
+                            PopupType::Info,
+                            "Login Failed",
+                            body),
+                            URGENT_POPUP);
             return;
         }
 
@@ -125,8 +169,18 @@ void Client::register_account(std::string username, std::string password)
         {
             popup_callback_(Popup(
                             PopupType::Info,
-                            "Bad registration.",
+                            "Registration Failed",
                             "Your username must not be empty."),
+                            STANDARD_POPUP);
+            return;
+        }
+
+        if (password.length() < 1)
+        {
+            popup_callback_(Popup(
+                            PopupType::Info,
+                            "Registration Failed",
+                            "Your password must not be empty."),
                             STANDARD_POPUP);
             return;
         }
@@ -138,7 +192,7 @@ void Client::register_account(std::string username, std::string password)
                                + " characters long.";
             popup_callback_(Popup(
                             PopupType::Info,
-                            "Bad registration.",
+                            "Registration Failed",
                             body),
                             STANDARD_POPUP);
             return;
@@ -172,7 +226,12 @@ void Client::register_account(std::string username, std::string password)
 
         if (result != ARGON2_OK)
         {
-            std::cerr << "Argon2 error!\n";
+            std::string body = "Argon2 encountered an error during password hashing.";
+            popup_callback_(Popup(
+                            PopupType::Info,
+                            "Registration Failed",
+                            body),
+                            URGENT_POPUP);
             return;
         }
 
@@ -510,7 +569,13 @@ try {
     {
         case HeaderType::Unauthorized:
         {
-            std::cerr << "Unauthorized action, login first?\n";
+            std::string body = std::string("The server is not accepting your request.")
+                               + std::string(" Try logging in first?");
+            popup_callback_(Popup(
+                            PopupType::Info,
+                            "Action Unauthorized",
+                            body),
+                            STANDARD_POPUP);
             break;
         }
         case HeaderType::AlreadyAuthorized:
@@ -566,7 +631,7 @@ try {
 
             popup_callback_(Popup(
                             PopupType::Info,
-                            "Bad registration.",
+                            "Registration Failed",
                             body),
                             URGENT_POPUP);
 
@@ -579,7 +644,15 @@ try {
                 std::cerr << "Good auth. Logged in as: "
                           << client_data_.client_username << "\n";
                 change_state(ClientState::Lobby);
+                login_callback_(client_data_.client_username);
             }
+
+            // Request user lists on good auth.
+            request_user_list(UserListType::Friends);
+
+            request_user_list(UserListType::FriendRequests);
+
+            request_user_list(UserListType::Blocks);
             break;
         }
         case HeaderType::BadAuth:
@@ -625,7 +698,7 @@ try {
 
             popup_callback_(Popup(
                             PopupType::Info,
-                            "Bad login.",
+                            "Login Failed",
                             body),
                             URGENT_POPUP);
 
@@ -664,6 +737,9 @@ try {
                 std::lock_guard lock(data_mutex_);
                 client_data_.load_user_list(friends,
                                             UserListType::Friends);
+                // Callback to GUI.
+                users_updated_callback_(client_data_.friends,
+                                        UserListType::Friends);
             }
 
             break;
@@ -701,6 +777,10 @@ try {
                 std::lock_guard lock(data_mutex_);
                 client_data_.load_user_list(friend_requests,
                                             UserListType::FriendRequests);
+
+                // Callback to GUI.
+                users_updated_callback_(client_data_.friend_requests,
+                                        UserListType::FriendRequests);
             }
 
             break;
@@ -738,6 +818,9 @@ try {
                 std::lock_guard lock(data_mutex_);
                 client_data_.load_user_list(block_list,
                                             UserListType::Blocks);
+                // Callback to GUI.
+                users_updated_callback_(client_data_.blocked_users,
+                                        UserListType::Blocks);
             }
 
             break;
@@ -749,6 +832,8 @@ try {
             {
                 std::lock_guard lock(data_mutex_);
                 client_data_.friends.emplace(user.user_id, user);
+                users_updated_callback_(client_data_.friends,
+                                        UserListType::Friends);
             }
             break;
         }
@@ -759,6 +844,8 @@ try {
             {
                 std::lock_guard lock(data_mutex_);
                 client_data_.friends.erase(user.user_id);
+                users_updated_callback_(client_data_.friends,
+                                        UserListType::Friends);
             }
             break;
         }
@@ -775,6 +862,8 @@ try {
             {
                 std::lock_guard lock(data_mutex_);
                 client_data_.friend_requests.emplace(user.user_id, user);
+                users_updated_callback_(client_data_.friend_requests,
+                                        UserListType::FriendRequests);
             }
             break;
         }
@@ -785,6 +874,8 @@ try {
             {
                 std::lock_guard lock(data_mutex_);
                 client_data_.blocked_users.emplace(user.user_id, user);
+                users_updated_callback_(client_data_.blocked_users,
+                                        UserListType::Blocks);
             }
             break;
         }
@@ -795,22 +886,38 @@ try {
             {
                 std::lock_guard lock(data_mutex_);
                 client_data_.blocked_users.erase(user.user_id);
+                users_updated_callback_(client_data_.blocked_users,
+                                        UserListType::Blocks);
             }
             break;
         }
         case HeaderType::BadQueue:
         {
             std::cerr << "Bad queue.\n";
+            {
+                std::lock_guard lock(data_mutex_);
+                last_queued_mode_ = GameMode::NO_MODE;
+                queue_update_callback_(last_queued_mode_);
+            }
             break;
         }
         case HeaderType::BadCancel:
         {
             std::cerr << "Bad cancel.\n";
+            {
+                std::lock_guard lock(data_mutex_);
+                queue_update_callback_(last_queued_mode_);
+            }
             break;
         }
         case HeaderType::QueueDropped:
         {
             std::cerr << "Queue was dropped.\n";
+            {
+                std::lock_guard lock(data_mutex_);
+                last_queued_mode_ = GameMode::NO_MODE;
+                queue_update_callback_(last_queued_mode_);
+            }
             break;
         }
         case HeaderType::MatchStarting:
@@ -818,6 +925,10 @@ try {
             std::cerr << "Match is starting.\n";
 
             {
+                std::lock_guard lock(data_mutex_);
+                last_queued_mode_ = GameMode::NO_MODE;
+                queue_update_callback_(last_queued_mode_);
+
                 change_state(ClientState::Playing);
             }
 
@@ -826,6 +937,11 @@ try {
         case HeaderType::MatchCreationError:
         {
             std::cerr << "Error in match creation.\n";
+            {
+                std::lock_guard lock(data_mutex_);
+                last_queued_mode_ = GameMode::NO_MODE;
+                queue_update_callback_(last_queued_mode_);
+            }
             break;
         }
         case HeaderType::NoMatchFound:
@@ -1053,7 +1169,11 @@ void Client::on_disconnect()
             client_data_.client_username.clear();
         }
 
-        std::cout << "Disconnected\n";
+        popup_callback_(Popup(
+                            PopupType::Info,
+                            "Session Disconnected",
+                            "The session was disconnected."),
+                            URGENT_POPUP);
 
         // TODO: figure out how disconnects should work later.
     });

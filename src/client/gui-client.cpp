@@ -5,6 +5,15 @@ GUIClient::GUIClient(asio::io_context & cntx, QObject* parent)
 client_
 (
     cntx,
+    // construct callback for when client logs in.
+    [this](std::string username)
+    {
+        QMetaObject::invokeMethod(this, [this, username]{
+            this->username_ = QString::fromStdString(username);
+            emit username_changed(this->username_);
+        },
+        Qt::QueuedConnection);
+    },
     // construct client callback for state changes.
     [this](ClientState new_state)
     {
@@ -29,8 +38,41 @@ client_
         }
         // Try to send popup to Qt.
         try_show_popup();
+    },
+    [this](const UserMap & users, UserListType type){
+        QMetaObject::invokeMethod(this, [this, users, type](){
+            switch (type)
+            {
+                case UserListType::Friends:
+                {
+                    friends_.set_users(users);
+                }
+                case UserListType::FriendRequests:
+                {
+                    friend_requests_.set_users(users);
+                }
+                case UserListType::Blocks:
+                {
+                    blocked_.set_users(users);
+                }
+                default:
+                {
+                    return;
+                }
+            }
+        }, Qt::QueuedConnection);
+    },
+    [this](GameMode mode){
+        QMetaObject::invokeMethod(this, [this, mode]{
+            this->queued_mode_ = static_cast<QueueType>(mode);
+            emit queue_updated(this->queued_mode_);
+        },
+        Qt::QueuedConnection);
     }
-)
+),
+friends_(this),
+friend_requests_(this),
+blocked_(this)
 {
 
 }
@@ -38,6 +80,26 @@ client_
 ClientState GUIClient::state() const
 {
     return static_cast<ClientState>(client_.get_state());
+}
+
+QString GUIClient::username() const
+{
+    return username_;
+}
+
+UserListModel* GUIClient::friends_model()
+{
+    return & friends_;
+}
+
+UserListModel* GUIClient::requests_model()
+{
+    return & friend_requests_;
+}
+
+UserListModel* GUIClient::blocked_model()
+{
+    return & blocked_;
 }
 
 Q_INVOKABLE void GUIClient::notify_popup_closed()
@@ -64,6 +126,16 @@ Q_INVOKABLE void GUIClient::register_account(const QString & username,
                                              const QString & password)
 {
     client_.register_account(username.toStdString(), password.toStdString());
+}
+
+Q_INVOKABLE void GUIClient::join_queue(QueueType mode)
+{
+    client_.queue_request(static_cast<GameMode>(mode));
+}
+
+Q_INVOKABLE void GUIClient::cancel_queue(QueueType mode)
+{
+    client_.cancel_request(static_cast<GameMode>(mode));
 }
 
 void GUIClient::try_show_popup()

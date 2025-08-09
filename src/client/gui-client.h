@@ -1,6 +1,7 @@
 #pragma once
 
 #include "client.h"
+#include "user-list-model.h"
 
 #include <queue>
 
@@ -18,9 +19,43 @@ public:
                READ state
                NOTIFY state_changed)
 
+    Q_PROPERTY(QString username
+                READ username
+                NOTIFY username_changed)
+
+    enum class QueueType : uint8_t
+    {
+        ClassicTwoPlayer = 0,
+        RankedTwoPlayer,
+        NO_MODE
+    };
+
+    // Ensure these line up.
+    static_assert(static_cast<uint8_t>(QueueType::NO_MODE)
+                  == static_cast<uint8_t>(GameMode::NO_MODE));
+
+    Q_ENUM(QueueType)
+
+    Q_PROPERTY(UserListModel* friendsModel
+               READ friends_model CONSTANT)
+
+    Q_PROPERTY(UserListModel* requestsModel
+               READ requests_model CONSTANT)
+
+    Q_PROPERTY(UserListModel* blockedModel
+               READ blocked_model CONSTANT)
+
     explicit GUIClient(asio::io_context& ctx, QObject* parent = nullptr);
 
     ClientState state() const;
+
+    QString username() const;
+
+    UserListModel* friends_model();
+
+    UserListModel* requests_model();
+
+    UserListModel* blocked_model();
 
     Q_INVOKABLE void notify_popup_closed();
 
@@ -32,12 +67,20 @@ public:
     Q_INVOKABLE void register_account(const QString & username,
                                       const QString & password);
 
+    Q_INVOKABLE void join_queue(QueueType mode);
+
+    Q_INVOKABLE void cancel_queue(QueueType mode);
+
 private:
     void try_show_popup();
 
 signals:
     // Defined by compiler.
     void state_changed(ClientState new_state);
+
+    void username_changed(QString username);
+
+    void queue_updated(QueueType mode);
 
     void show_popup(PopupType type,
                     QString title,
@@ -52,4 +95,11 @@ private:
     std::queue<Popup> standard_popup_queue_;
     bool showing_popup_{false};
 
+    UserListModel friends_;
+    UserListModel friend_requests_;
+    UserListModel blocked_;
+
+    QString username_;
+
+    QueueType queued_mode_;
 };

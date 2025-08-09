@@ -7,12 +7,20 @@ import GUICommon 1.0
 Window
 {
     id: infoPopup
+
     // TODO: decide on sizes
-    width: 300
+    width: 350
     height: 150
 
+    // Prevent resizing.
+    minimumWidth: width
+    maximumWidth: width
+    minimumHeight: height
+    maximumHeight: height
+
     // Stop the main application until response occurs.
-    modality: Qt.ApplicationModal
+    // modality: Qt.ApplicationModal
+    modality: Qt.WindowModal
 
     // Flags to setup a popup style environment.
     flags: Qt.Dialog | Qt.WindowTitleHint | Qt.WindowSystemMenuHint
@@ -26,35 +34,38 @@ Window
         Client.notify_popup_closed()
     }
 
-    // TODO: make this look good.
-    Rectangle {
+    ColumnLayout {
         anchors.fill: parent
-        color: "white"
-        border.color: "#444"
-        radius: 8
+        anchors.margins: 16
+        spacing: 12
 
-        Column {
-            anchors.fill: parent
-            anchors.margins: 16
-            spacing: 12
+        Label {
+            id: titleText
+            text: ""
+            font.bold: true
 
-            Text {
-                id: titleText
-                font.bold: true
-                horizontalAlignment: Text.AlignHCenter
-                wrapMode: Text.WordWrap
-            }
+            horizontalAlignment: Text.AlignHCenter
+            wrapMode: Text.WordWrap
 
-            Text {
-                id: bodyText
-                wrapMode: Text.WordWrap
-            }
+            Layout.fillWidth: true
+            palette: infoPopup.palette
+        }
 
-            Button {
-                text: qsTr("Ok")
-                anchors.horizontalCenter: parent.horizontalCenter
-                onClicked: infoPopup.close()
-            }
+        Label {
+            id: bodyText
+            text: ""
+
+            horizontalAlignment: Text.AlignHCenter
+            wrapMode: Text.WordWrap
+
+            Layout.fillWidth: true
+            palette: infoPopup.palette
+        }
+
+        Button {
+            text: qsTr("Ok")
+            Layout.alignment: Qt.AlignHCenter
+            onClicked: infoPopup.close()
         }
     }
 }

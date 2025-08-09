@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Dialogs
 import QtQuick.Window
 
 import GUICommon 1.0
@@ -7,7 +8,7 @@ import GUICommon 1.0
 ApplicationWindow {
     id: root
     visible: true
-    width: Screen.width * 0.6
+    width: Screen.width * 0.8
     height: Screen.height * 0.75
 
     // Load our client interface based on the client state.
@@ -28,6 +29,9 @@ ApplicationWindow {
                 case ClientState.LoginScreen:
                     pageLoader.source = "LoginPage.qml"
                     break;
+                case ClientState.Lobby:
+                    pageLoader.source = "Lobby.qml"
+                    break;
                 default:
                     pageLoader.source = ""
                     break;
@@ -37,7 +41,7 @@ ApplicationWindow {
 
     // Declare popups now.
     InfoPopup {
-        id: infoPopup;
+        id: infoPopup
     }
 
     // Show popups when C++ code calls us to do so.
@@ -58,5 +62,31 @@ ApplicationWindow {
             popup.show();
         }
     }
+
+    // Handle application close. TODO: implement later.
+    /*
+    property bool calledClose: false
+
+    onClosing:
+    function (close) {
+        if (!calledClose){
+            close.accepted = false
+            if (!confirmDialog.opened){
+                confirmDialog.open()
+            }
+        }
+    }
+
+    Dialog {
+        id: confirmDialog
+        title: "Confirm Exit"
+        modal: true
+        standardButtons: Dialog.Yes | Dialog.No
+        onAccepted: {
+            calledClose = true
+            Qt.quit()
+        }
+    }
+    */
 
 }

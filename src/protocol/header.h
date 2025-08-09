@@ -84,7 +84,7 @@ enum class HeaderType : uint8_t
 
 static constexpr uint32_t MAX_PAYLOAD_LEN = 3000;
 
-constexpr size_t MAX_USERNAME_LENGTH = 30;
+constexpr size_t MAX_USERNAME_LENGTH = 24;
 
 struct Header
 {

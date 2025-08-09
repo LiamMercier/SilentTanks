@@ -49,6 +49,10 @@ int main(int argc, char* argv[])
         QQmlApplicationEngine engine;
         engine.rootContext()->setContextProperty("Client", &client);
 
+        // Setup user lists.
+        engine.rootContext()->setContextProperty("FriendsModel",
+                                                 client.friends_model());
+
         qmlRegisterUncreatableMetaObject(GUI::staticMetaObject,
                                          "GUICommon",
                                          1,

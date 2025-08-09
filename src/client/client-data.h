@@ -5,9 +5,13 @@
 #include <unordered_map>
 #include <boost/functional/hash.hpp>
 
+using UserMap = std::unordered_map<boost::uuids::uuid,
+                       ExternalUser,
+                       boost::hash<boost::uuids::uuid>>;
+
 struct ClientData
 {
-    void load_user_list(UserList friends,
+    void load_user_list(UserList user_list,
                         UserListType list_type);
 
     std::string client_username;
@@ -15,15 +19,9 @@ struct ClientData
     // If iteration is bottlenecked, we could potentially store both a
     // vector and a map to speed both up, since client memory is cheap vs
     // computation power (only so many friends to store).
-    std::unordered_map<boost::uuids::uuid,
-                       ExternalUser,
-                       boost::hash<boost::uuids::uuid>> friends;
+    UserMap friends;
 
-    std::unordered_map<boost::uuids::uuid,
-                       ExternalUser,
-                       boost::hash<boost::uuids::uuid>> friend_requests;
+    UserMap friend_requests;
 
-    std::unordered_map<boost::uuids::uuid,
-                       ExternalUser,
-                       boost::hash<boost::uuids::uuid>> blocked_users;
+    UserMap blocked_users;
 };

@@ -14,13 +14,23 @@ class Client
 public:
     using ptr = ClientSession::ptr;
 
+    using LoginCallback = std::function<void(std::string username)>;
+
     using StateChangeCallback = std::function<void(ClientState state)>;
 
     using PopupCallback = std::function<void(Popup p, bool urgent)>;
+
+    using UsersUpdatedCallback = std::function<void(const UserMap & map,
+                                                    UserListType type)>;
+
+    using QueueUpdateCallback = std::function<void(GameMode mode)>;
 public:
     Client(asio::io_context & cntx,
+           LoginCallback login_callback,
            StateChangeCallback state_change_callback,
-           PopupCallback popup_callback);
+           PopupCallback popup_callback,
+           UsersUpdatedCallback users_updated_callback,
+           QueueUpdateCallback queue_update_callback);
 
     inline ClientState get_state() const;
 
@@ -74,13 +84,17 @@ private:
 
     mutable std::mutex data_mutex_;
     ClientData client_data_;
+    GameMode last_queued_mode_{GameMode::NO_MODE};
 
     ClientSession::ptr current_session_;
 
     GameManager game_manager_;
 
+    LoginCallback login_callback_;
     StateChangeCallback state_change_callback_;
     PopupCallback popup_callback_;
+    UsersUpdatedCallback users_updated_callback_;
+    QueueUpdateCallback queue_update_callback_;
 };
 
 inline ClientState Client::get_state() const

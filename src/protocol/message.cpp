@@ -408,9 +408,9 @@ FriendDecision Message::to_friend_decision()
 ExternalUser Message::to_user()
 {
     ExternalUser user{};
-    if (payload.size() < 16)
+    if (payload.size() < 16 || payload.size() > 16 + MAX_USERNAME_LENGTH)
     {
-        return user;
+        return {};
     }
 
     // Copy the UUID.
@@ -423,6 +423,11 @@ ExternalUser Message::to_user()
     // Copy username bytes, if any.
     size_t start = 16;
     size_t len = payload.size() - start;
+
+    if (len > MAX_USERNAME_LENGTH)
+    {
+        return {};
+    }
 
     user.username.assign(reinterpret_cast<const char*>(&payload[start]), len);
 

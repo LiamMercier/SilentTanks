@@ -87,6 +87,35 @@ QString GUIClient::username() const
     return username_;
 }
 
+QueueType GUIClient::queued_mode() const
+{
+    return queued_mode_;
+}
+
+QueueType GUIClient::selected_mode() const
+{
+    std::lock_guard lock(selection_mutex_);
+    return selected_mode_;
+}
+
+Q_INVOKABLE void GUIClient::set_selected_mode(QueueType mode)
+{
+    QMetaObject::invokeMethod(this, [this, mode]{
+            {
+                std::lock_guard lock(this->selection_mutex_);
+
+                if (this->selected_mode_ == mode)
+                {
+                    return;
+                }
+
+                this->selected_mode_ = mode;
+            }
+            emit selected_mode_changed(this->selected_mode_);
+        },
+        Qt::QueuedConnection);
+}
+
 UserListModel* GUIClient::friends_model()
 {
     return & friends_;

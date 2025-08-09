@@ -23,18 +23,17 @@ public:
                 READ username
                 NOTIFY username_changed)
 
-    enum class QueueType : uint8_t
-    {
-        ClassicTwoPlayer = 0,
-        RankedTwoPlayer,
-        NO_MODE
-    };
-
     // Ensure these line up.
     static_assert(static_cast<uint8_t>(QueueType::NO_MODE)
                   == static_cast<uint8_t>(GameMode::NO_MODE));
 
-    Q_ENUM(QueueType)
+    Q_PROPERTY(QueueType queued_mode
+               READ queued_mode
+               NOTIFY queue_updated)
+
+    Q_PROPERTY(QueueType selected_mode
+               READ selected_mode
+               NOTIFY selected_mode_changed)
 
     Q_PROPERTY(UserListModel* friendsModel
                READ friends_model CONSTANT)
@@ -51,11 +50,17 @@ public:
 
     QString username() const;
 
+    QueueType queued_mode() const;
+
+    QueueType selected_mode() const;
+
     UserListModel* friends_model();
 
     UserListModel* requests_model();
 
     UserListModel* blocked_model();
+
+    Q_INVOKABLE void set_selected_mode(QueueType mode);
 
     Q_INVOKABLE void notify_popup_closed();
 
@@ -82,6 +87,8 @@ signals:
 
     void queue_updated(QueueType mode);
 
+    void selected_mode_changed(QueueType mode);
+
     void show_popup(PopupType type,
                     QString title,
                     QString body);
@@ -101,5 +108,12 @@ private:
 
     QString username_;
 
-    QueueType queued_mode_;
+    // Handle concurrent mode changes.
+    mutable std::mutex selection_mutex_;
+
+    // Mode the user has selected.
+    QueueType selected_mode_{QueueType::NO_MODE};
+
+    // Server-client negotiated mode
+    QueueType queued_mode_{QueueType::NO_MODE};
 };

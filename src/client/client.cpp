@@ -422,6 +422,12 @@ void Client::queue_request(GameMode mode)
         }
     }
 
+    if (mode >= GameMode::NO_MODE)
+    {
+        // TODO: show bad selection
+        return;
+    }
+
     asio::post(client_strand_,
         [this,
         mode]{
@@ -448,6 +454,12 @@ void Client::cancel_request(GameMode mode)
         {
             return;
         }
+    }
+
+    if (mode >= GameMode::NO_MODE)
+    {
+        // TODO: show bad selection
+        return;
     }
 
     asio::post(client_strand_,

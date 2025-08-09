@@ -56,6 +56,16 @@ Item {
                     text: "Queue selection"
                     anchors.centerIn: parent
                 }
+
+                QueueMenus {
+                    id: queueMenus
+                    Layout.preferredHeight: 140
+
+                    onSelectedModeChanged:
+                    {
+                        console.log("Selected mode: ", queueMenus.selectedMode)
+                    }
+                }
             }
 
             // Bottom UI row.
@@ -102,6 +112,16 @@ Item {
                     text: "Queue status"
                 }
 
+                Button {
+                        text: "Queue for match"
+                        implicitHeight: 20
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        onClicked: {
+                            console.log("Here we would queue for match")
+
+                        }
+                    }
+
             }
 
             }
@@ -133,13 +153,10 @@ Item {
                         text: Client.username !== "" ? Client.username : "Not signed in"
                         horizontalAlignment: Text.AlignHCenter
                         anchors.horizontalCenter: parent.horizontalCenter
-                        //verticalAlignment: Text.AlignVCenter
-                        //Layout.alignment: Qt.AlignHCenter
                     }
 
                     Button {
                         text: "Profile"
-                        // Layout.alignment: Qt.AlignHCenter
                         implicitHeight: 20
                         anchors.horizontalCenter: parent.horizontalCenter
                         onClicked: {

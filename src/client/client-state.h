@@ -24,8 +24,19 @@ enum class PopupType : uint8_t
 
 Q_ENUM_NS(PopupType)
 
+enum class QueueType : uint8_t
+{
+    ClassicTwoPlayer = 0,
+    RankedTwoPlayer,
+    NO_MODE
+};
+
+Q_ENUM_NS(QueueType)
+
 }
 
 using ClientState = GUI::ClientState;
 
 using PopupType = GUI::PopupType;
+
+using QueueType = GUI::QueueType;

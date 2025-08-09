@@ -17,4 +17,7 @@
     <qresource prefix="/">
         <file>FriendsList.qml</file>
     </qresource>
+    <qresource prefix="/">
+        <file>QueueMenus.qml</file>
+    </qresource>
 </RCC>

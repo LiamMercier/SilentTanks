@@ -6,44 +6,42 @@ import GUICommon 1.0
 
 Item {
     id: rootQueueMenu
-    implicitWidth: 400
-    implicitHeight: 250
 
     // Hold the selected mode, possibly a no-op.
     property int selectedMode: Client.selected_mode
 
+    implicitWidth: contentRow.implicitWidth
+    implicitHeight: contentRow.implicitHeight
+
     // Start of queue buttons, lay them out in
     // a row for the user.
     RowLayout {
-        anchors.fill: parent
+        id: contentRow
         spacing: 6
+        anchors.centerIn: parent
 
         ListModel {
-            id: modeModel
+            id: casualModel
+        }
+
+        ListModel {
+            id: rankedModel
         }
 
         Component.onCompleted:
         {
-            modeModel.append({label:"Casual 1v1", mode: QueueType.ClassicTwoPlayer})
-            modeModel.append({label:"Ranked 1v1", mode: QueueType.RankedTwoPlayer})
+            casualModel.append({label:"Casual 1v1", mode: QueueType.ClassicTwoPlayer})
+            rankedModel.append({label:"Ranked 1v1", mode: QueueType.RankedTwoPlayer})
         }
 
-        ComboBox {
-            id: modeCombo
-            model: modeModel
-            textRole: "label"
-            Layout.preferredWidth: 140
+        ModeMenus {
+            label: "Casual Modes"
+            model: casualModel
+        }
 
-            onCurrentIndexChanged:
-            {
-                var newMode = modeModel.get(currentIndex).mode
-
-                if (Client.selected_mode !== newMode)
-                {
-                    // Write mode change to C++ client.
-                    Client.set_selected_mode(newMode)
-                }
-            }
+        ModeMenus {
+            label: "Ranked Modes"
+            model: rankedModel
         }
 
     }

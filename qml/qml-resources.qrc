@@ -20,4 +20,7 @@
     <qresource prefix="/">
         <file>QueueMenus.qml</file>
     </qresource>
+    <qresource prefix="/">
+        <file>ModeMenus.qml</file>
+    </qresource>
 </RCC>

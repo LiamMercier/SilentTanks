@@ -10,13 +10,70 @@ Item {
     ColumnLayout {
         anchors.fill: parent
 
-        Label {
-            text: "Friends"
-            font.pointSize: 12
-            font.bold: true
+        // Friend requests and blocked users buttons.
+        Item
+        {
+            id: friendsLabelRow
+            Layout.fillWidth: true
+            implicitHeight: Math.max(friendsLabel.implicitHeight, buttonsRow.implicitHeight)
 
-            Layout.alignment: Qt.AlignHCenter
-            padding: 4
+            GridLayout {
+                anchors.fill: parent
+                columns: 3
+                columnSpacing: 0
+
+            Item {
+                id: leftSpacer
+                // Button row width plus right margin.
+                Layout.preferredWidth: buttonsRow.implicitWidth + 8
+                Layout.fillHeight: true
+            }
+
+            Label {
+                id: friendsLabel
+                text: "Friends"
+                font.pointSize: 12
+                font.bold: true
+
+                horizontalAlignment: Text.AlignHCenter
+                verticalAlignment: Text.AlignVCenter
+                Layout.alignment: Qt.AlignCenter
+                Layout.fillWidth: true
+                padding: 4
+            }
+
+            // Friend request and blocks related buttons.
+            Row
+            {
+                id: buttonsRow
+                spacing: 4
+
+                Layout.alignment: Qt.AlignVCenter | Qt.AlignRight
+
+                Layout.rightMargin: 8
+
+                Button {
+                    text: "+"
+                    font.pointSize: 8
+                    implicitHeight: 20
+                    implicitWidth: 20
+                    onClicked: {
+
+                    }
+                }
+
+                Button {
+                    text: "X"
+                    font.pointSize: 6
+                    implicitHeight: 20
+                    implicitWidth: 20
+                    onClicked: {
+
+                    }
+                }
+            }
+            }
+
         }
 
         ListView {
@@ -31,10 +88,9 @@ Item {
                 height: friendsListView.height / 10
 
                 // Give some variety to the elements.
+                //
+                // TODO: replace this with a graphic.
                 color: index % 2 === 0 ? "#f9f9f9" : "#ffffff"
-
-                //border.color: Qt.rgba(0, 0, 0, 0.3)
-                //border.width: 1
 
                 Text {
                     anchors.fill: parent

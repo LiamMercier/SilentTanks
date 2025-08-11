@@ -424,7 +424,12 @@ void Client::queue_request(GameMode mode)
 
     if (mode >= GameMode::NO_MODE)
     {
-        // TODO: show bad selection
+        std::string body = std::string("Selected mode for queue does not exist.");
+        popup_callback_(Popup(
+                        PopupType::Info,
+                        "Queue Failed",
+                        body),
+                        URGENT_POPUP);
         return;
     }
 
@@ -442,6 +447,10 @@ void Client::queue_request(GameMode mode)
         queue_request.create_serialized(queue_data);
         current_session_->deliver(queue_request);
 
+        // Set the current queued mode to this mode. Updated to
+        // NO_MODE if the server sends BadQueue after.
+        queue_update_callback_(mode);
+
     });
 }
 
@@ -458,7 +467,12 @@ void Client::cancel_request(GameMode mode)
 
     if (mode >= GameMode::NO_MODE)
     {
-        // TODO: show bad selection
+        std::string body = std::string("Selected mode for cancel does not exist.");
+        popup_callback_(Popup(
+                        PopupType::Info,
+                        "Cancel Failed",
+                        body),
+                        URGENT_POPUP);
         return;
     }
 
@@ -476,6 +490,9 @@ void Client::cancel_request(GameMode mode)
         cancel_request.create_serialized(cancel_data);
         current_session_->deliver(cancel_request);
 
+        // Set the current queued mode to NO_MODE. Updated if the
+        // server sends BadCancel after.
+        queue_update_callback_(GameMode::NO_MODE);
     });
 }
 
@@ -592,18 +609,26 @@ try {
         }
         case HeaderType::AlreadyAuthorized:
         {
-            std::cerr << "Already authorized, no need to login again.\n";
+            std::string body = "You are already logged into an account.";
+            popup_callback_(Popup(
+                            PopupType::Info,
+                            "Already Authorized",
+                            body),
+                            STANDARD_POPUP);
             break;
         }
         case HeaderType::GoodRegistration:
         {
-            std::cerr << "Account registered.\n";
+            std::string body = "Your account has been registered successfully.";
+            popup_callback_(Popup(
+                            PopupType::Info,
+                            "Account Registered",
+                            body),
+                            STANDARD_POPUP);
             break;
         }
         case HeaderType::BadRegistration:
         {
-            std::cerr << "Bad reg.\n";
-
             std::string body;
 
             using Reason = BadRegNotification::Reason;
@@ -905,31 +930,48 @@ try {
         }
         case HeaderType::BadQueue:
         {
-            std::cerr << "Bad queue.\n";
             {
                 std::lock_guard lock(data_mutex_);
                 last_queued_mode_ = GameMode::NO_MODE;
                 queue_update_callback_(last_queued_mode_);
             }
+            std::string body = std::string("The server failed to enqueue you.");
+            popup_callback_(Popup(
+                            PopupType::Info,
+                            "Queue Failed",
+                            body),
+                            URGENT_POPUP);
             break;
         }
         case HeaderType::BadCancel:
         {
-            std::cerr << "Bad cancel.\n";
             {
                 std::lock_guard lock(data_mutex_);
                 queue_update_callback_(last_queued_mode_);
             }
+            std::string body = std::string("You are not queued up or the ")
+                               + std::string("server failed cancel the queue.");
+            popup_callback_(Popup(
+                            PopupType::Info,
+                            "Cancel Failed",
+                            body),
+                            URGENT_POPUP);
             break;
         }
         case HeaderType::QueueDropped:
         {
-            std::cerr << "Queue was dropped.\n";
             {
                 std::lock_guard lock(data_mutex_);
                 last_queued_mode_ = GameMode::NO_MODE;
                 queue_update_callback_(last_queued_mode_);
             }
+
+            std::string body = std::string("Your queue was dropped by the server.");
+            popup_callback_(Popup(
+                            PopupType::Info,
+                            "Queue Dropped",
+                            body),
+                            URGENT_POPUP);
             break;
         }
         case HeaderType::MatchStarting:
@@ -948,12 +990,17 @@ try {
         }
         case HeaderType::MatchCreationError:
         {
-            std::cerr << "Error in match creation.\n";
             {
                 std::lock_guard lock(data_mutex_);
                 last_queued_mode_ = GameMode::NO_MODE;
                 queue_update_callback_(last_queued_mode_);
             }
+            std::string body = std::string("There was an error in match creation.");
+            popup_callback_(Popup(
+                            PopupType::Info,
+                            "Match Creation Error",
+                            body),
+                            URGENT_POPUP);
             break;
         }
         case HeaderType::NoMatchFound:

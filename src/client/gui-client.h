@@ -72,9 +72,7 @@ public:
     Q_INVOKABLE void register_account(const QString & username,
                                       const QString & password);
 
-    Q_INVOKABLE void join_queue(QueueType mode);
-
-    Q_INVOKABLE void cancel_queue(QueueType mode);
+    Q_INVOKABLE void toggle_queue();
 
 private:
     void try_show_popup();
@@ -113,6 +111,8 @@ private:
 
     // Mode the user has selected.
     QueueType selected_mode_{QueueType::NO_MODE};
+
+    mutable std::mutex queued_mutex_;
 
     // Server-client negotiated mode
     QueueType queued_mode_{QueueType::NO_MODE};

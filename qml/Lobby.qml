@@ -45,25 +45,60 @@ Item {
                 id: queueArea
                 border.color: "purple"
                 border.width: 1
+                opacity: 0.8
 
                 Layout.fillWidth: true
                 // Give queues area 60% of height
                 Layout.preferredHeight: lobbyBackground.height * 0.6
 
-                opacity: 0.8
+                ColumnLayout {
 
-                Text {
-                    text: "Queue selection"
-                    anchors.centerIn: parent
-                }
+                    anchors.fill: parent
+                    spacing: 0
 
-                QueueMenus {
-                    id: queueMenus
-                    Layout.preferredHeight: 140
+                    Rectangle {
+                        id: topQueueBar
+                        Layout.preferredHeight: 56
+                        Layout.fillWidth: true
+                        border.width: 1
+                        clip: true
 
-                    onSelectedModeChanged:
-                    {
-                        console.log("Selected mode: ", queueMenus.selectedMode)
+                        RowLayout {
+                            anchors.fill: parent
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true
+
+                            spacing: 8
+
+                            Item {
+                                Layout.fillWidth: true
+                            }
+
+                            QueueMenus {
+                                id: queueMenus
+                                Layout.alignment: Qt.AlignVCenter | Qt.AlignHCenter
+
+                                onSelectedModeChanged:
+                                {
+                                    console.log("Selected mode: ",  queueMenus.selectedMode)
+                                }
+                            }
+
+                            Item {
+                                Layout.fillWidth: true
+                            }
+
+                        }
+                    }
+
+                    Rectangle {
+                        Layout.fillHeight: true
+                        Layout.fillWidth: true
+                        color: "transparent"
+                        Text {
+                            text: "Queue selection"
+                            anchors.centerIn: parent
+                        }
                     }
                 }
             }
@@ -113,12 +148,15 @@ Item {
                 }
 
                 Button {
-                        text: "Queue for match"
-                        implicitHeight: 20
+                        text: Client.queued_mode === QueueType.NO_MODE ? "Queue for match" : "Cancel queue"
+                        font.pointSize: 16
+                        implicitHeight: parent.height * 0.175
                         anchors.horizontalCenter: parent.horizontalCenter
-                        onClicked: {
-                            console.log("Here we would queue for match")
 
+                        y: parent.height * 0.70
+
+                        onClicked: {
+                            Client.toggle_queue()
                         }
                     }
 

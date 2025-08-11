@@ -64,7 +64,10 @@ client_
     },
     [this](GameMode mode){
         QMetaObject::invokeMethod(this, [this, mode]{
-            this->queued_mode_ = static_cast<QueueType>(mode);
+            {
+                std::lock_guard lock(this->queued_mutex_);
+                this->queued_mode_ = static_cast<QueueType>(mode);
+            }
             emit queue_updated(this->queued_mode_);
         },
         Qt::QueuedConnection);
@@ -157,14 +160,23 @@ Q_INVOKABLE void GUIClient::register_account(const QString & username,
     client_.register_account(username.toStdString(), password.toStdString());
 }
 
-Q_INVOKABLE void GUIClient::join_queue(QueueType mode)
+Q_INVOKABLE void GUIClient::toggle_queue()
 {
-    client_.queue_request(static_cast<GameMode>(mode));
-}
+    std::lock_guard lock(queued_mutex_);
 
-Q_INVOKABLE void GUIClient::cancel_queue(QueueType mode)
-{
-    client_.cancel_request(static_cast<GameMode>(mode));
+    std::cout << "queued_mode_: " << +static_cast<uint8_t>(queued_mode_) << "\n";
+
+    // If not in queue, treat as queue request.
+    if (queued_mode_ == QueueType::NO_MODE)
+    {
+        std::lock_guard lock(selection_mutex_);
+        client_.queue_request(static_cast<GameMode>(selected_mode_));
+    }
+    // Otherwise, treat as cancel request.
+    else
+    {
+        client_.cancel_request(static_cast<GameMode>(queued_mode_));
+    }
 }
 
 void GUIClient::try_show_popup()

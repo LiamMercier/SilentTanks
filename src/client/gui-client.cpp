@@ -1,5 +1,7 @@
 #include "gui-client.h"
 
+#include <boost/uuid/uuid_generators.hpp>
+
 GUIClient::GUIClient(asio::io_context & cntx, QObject* parent)
 :QObject(parent),
 client_
@@ -46,14 +48,17 @@ client_
                 case UserListType::Friends:
                 {
                     friends_.set_users(users);
+                    break;
                 }
                 case UserListType::FriendRequests:
                 {
                     friend_requests_.set_users(users);
+                    break;
                 }
                 case UserListType::Blocks:
                 {
                     blocked_.set_users(users);
+                    break;
                 }
                 default:
                 {
@@ -177,6 +182,30 @@ Q_INVOKABLE void GUIClient::toggle_queue()
     {
         client_.cancel_request(static_cast<GameMode>(queued_mode_));
     }
+}
+
+Q_INVOKABLE void GUIClient::friend_user(const QString & username)
+{
+    client_.send_friend_request(username.toStdString());
+}
+
+Q_INVOKABLE void GUIClient::block_user(const QString & username)
+{
+    client_.send_block_request(username.toStdString());
+}
+
+Q_INVOKABLE void GUIClient::respond_friend_request(const QString & uuid, bool decision)
+{
+    boost::uuids::string_generator gen;
+    boost::uuids::uuid user_id = gen(uuid.toStdString());
+    client_.respond_friend_request(user_id, decision);
+}
+
+Q_INVOKABLE void GUIClient::unblock_user(const QString & uuid)
+{
+    boost::uuids::string_generator gen;
+    boost::uuids::uuid user_id = gen(uuid.toStdString());
+    client_.send_unblock_request(user_id);
 }
 
 void GUIClient::try_show_popup()

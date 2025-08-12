@@ -259,6 +259,30 @@ void UserManager::on_block_user(boost::uuids::uuid blocker,
 
         }
 
+        // Do the update for the other user as well.
+        auto blocked_it = this->users_.find(blocked);
+
+        if (blocked_it != this->users_.end() && blocked_it->second)
+        {
+            // If friends, remove friendship.
+            blocked_it->second->friends.erase(blocker);
+
+            // Notify this session if they are online.
+            if (blocked_it->second->current_session)
+            {
+                NotifyRelationUpdate notification;
+                notification.user.user_id = std::move(blocker);
+                // Not needed.
+                notification.user.username.clear();
+
+                Message notify_unfriend;
+                notify_unfriend.header.type_ = HeaderType::NotifyFriendRemoved;
+                notify_unfriend.create_serialized(notification);
+
+                blocked_it->second->current_session->deliver(notify_unfriend);
+            }
+        }
+
     });
 }
 

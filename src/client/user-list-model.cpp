@@ -1,5 +1,7 @@
 #include "user-list-model.h"
 
+#include <boost/uuid/uuid_io.hpp>
+
 UserListModel::UserListModel(QObject* parent)
 :QAbstractListModel(parent)
 {
@@ -37,6 +39,8 @@ QVariant UserListModel::data(const QModelIndex & index, int role) const
     {
         case UsernameRole:
             return QString::fromStdString(user.username);
+        case UUIDRole:
+            return QString::fromStdString(boost::uuids::to_string(user.user_id));
         default:
             return {};
     }
@@ -44,5 +48,8 @@ QVariant UserListModel::data(const QModelIndex & index, int role) const
 
 QHash<int, QByteArray> UserListModel::roleNames() const
 {
-    return {{ UsernameRole, "username"}};
+    QHash<int, QByteArray> roles;
+    roles[UsernameRole] = "username";
+    roles[UUIDRole] = "uuid";
+    return roles;
 }

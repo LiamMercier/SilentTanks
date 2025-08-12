@@ -293,6 +293,28 @@ void Client::send_friend_request(std::string username)
         [this,
         username = std::move(username)]{
 
+        if (username.length() < 1)
+        {
+            std::string body = "Username was empty.";
+            popup_callback_(Popup(
+                            PopupType::Info,
+                            "Friend Request Failed",
+                            body),
+                            STANDARD_POPUP);
+            return;
+        }
+
+        if (username.length() > MAX_USERNAME_LENGTH)
+        {
+            std::string body = "Username is too long to exist.";
+            popup_callback_(Popup(
+                            PopupType::Info,
+                            "Friend Request Failed",
+                            body),
+                            STANDARD_POPUP);
+            return;
+        }
+
         FriendRequest friend_data;
         friend_data.username = std::move(username);
 
@@ -321,6 +343,15 @@ void Client::respond_friend_request(boost::uuids::uuid user_id,
         Message friend_decision;
         friend_decision.create_serialized(decision_data);
         current_session_->deliver(friend_decision);
+
+        // Remove friend request and update GUI.
+        {
+            std::lock_guard lock(data_mutex_);
+            client_data_.friend_requests.erase(user_id);
+        }
+
+        users_updated_callback_(client_data_.friend_requests,
+                                UserListType::FriendRequests);
 
     });
 }
@@ -366,6 +397,28 @@ void Client::send_block_request(std::string username)
     asio::post(client_strand_,
         [this,
         username = std::move(username)]{
+
+        if (username.length() < 1)
+        {
+            std::string body = "Username was empty.";
+            popup_callback_(Popup(
+                            PopupType::Info,
+                            "Block Failed",
+                            body),
+                            STANDARD_POPUP);
+            return;
+        }
+
+        if (username.length() > MAX_USERNAME_LENGTH)
+        {
+            std::string body = "Username is too long to exist.";
+            popup_callback_(Popup(
+                            PopupType::Info,
+                            "Block Failed",
+                            body),
+                            STANDARD_POPUP);
+            return;
+        }
 
         BlockRequest block_data;
         block_data.username = std::move(username);
@@ -911,8 +964,18 @@ try {
             {
                 std::lock_guard lock(data_mutex_);
                 client_data_.blocked_users.emplace(user.user_id, user);
+                client_data_.friends.erase(user.user_id);
+                client_data_.friend_requests.erase(user.user_id);
+
                 users_updated_callback_(client_data_.blocked_users,
                                         UserListType::Blocks);
+
+                // Also notify friends and requests since blocking removes entries.
+                users_updated_callback_(client_data_.friends,
+                                        UserListType::Friends);
+
+                users_updated_callback_(client_data_.friend_requests,
+                                        UserListType::FriendRequests);
             }
             break;
         }

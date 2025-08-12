@@ -74,6 +74,13 @@ public:
 
     Q_INVOKABLE void toggle_queue();
 
+    Q_INVOKABLE void friend_user(const QString & username);
+
+    Q_INVOKABLE void block_user(const QString & username);
+
+    Q_INVOKABLE void respond_friend_request(const QString & uuid, bool decision);
+
+    Q_INVOKABLE void unblock_user(const QString & uuid);
 private:
     void try_show_popup();
 

@@ -53,6 +53,12 @@ int main(int argc, char* argv[])
         engine.rootContext()->setContextProperty("FriendsModel",
                                                  client.friends_model());
 
+        engine.rootContext()->setContextProperty("RequestsModel",
+                                                 client.requests_model());
+
+        engine.rootContext()->setContextProperty("BlockedModel",
+                                                 client.blocked_model());
+
         qmlRegisterUncreatableMetaObject(GUI::staticMetaObject,
                                          "GUICommon",
                                          1,

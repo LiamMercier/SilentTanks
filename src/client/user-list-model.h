@@ -12,7 +12,8 @@ class UserListModel : public QAbstractListModel
 public:
 
     enum Roles {
-        UsernameRole = Qt::UserRole + 1
+        UsernameRole = Qt::UserRole + 1,
+        UUIDRole
     };
 
     Q_ENUM(Roles)

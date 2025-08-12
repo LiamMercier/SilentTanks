@@ -7,6 +7,21 @@ Item {
     width: parent.width
     height: parent.height
 
+    // Friend requests popup.
+    UserListPopup {
+        id: friendRequestsPopup
+        headerText: "Requests"
+        listModel: RequestsModel
+    }
+
+    // Blocked users popup.
+    UserListPopup {
+        id: blockedUsersPopup
+        headerText: "Blocked"
+        listModel: BlockedModel
+        showActionButtons: false
+    }
+
     ColumnLayout {
         anchors.fill: parent
 
@@ -58,7 +73,8 @@ Item {
                     implicitHeight: 20
                     implicitWidth: 20
                     onClicked: {
-
+                        console.log("Trying to open friend requests")
+                        friendRequestsPopup.open()
                     }
                 }
 
@@ -68,7 +84,8 @@ Item {
                     implicitHeight: 20
                     implicitWidth: 20
                     onClicked: {
-
+                        console.log("Trying to open block list")
+                        blockedUsersPopup.open()
                     }
                 }
             }
@@ -84,7 +101,7 @@ Item {
             clip: true
 
             delegate: Rectangle {
-                width: parent.width
+                width: ListView.view.width
                 height: friendsListView.height / 10
 
                 // Give some variety to the elements.

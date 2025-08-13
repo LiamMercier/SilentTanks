@@ -26,4 +26,7 @@
     <qresource prefix="/">
         <file>ModeMenus.qml</file>
     </qresource>
+    <qresource prefix="/">
+        <file>ChatBox.qml</file>
+    </qresource>
 </RCC>

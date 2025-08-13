@@ -129,6 +129,11 @@ Item {
                     text: "Chat area"
                 }
 
+                ChatBox {
+                    Layout.fillHeight: true
+                    Layout.fillWidth: true
+                }
+
             }
 
             // Queue status area.

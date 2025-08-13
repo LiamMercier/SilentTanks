@@ -76,6 +76,12 @@ client_
             emit queue_updated(this->queued_mode_);
         },
         Qt::QueuedConnection);
+    },
+    [this](std::string message){
+        QMetaObject::invokeMethod(this, [this, message]{
+            this->messages_.add_message(message);
+        },
+        Qt::QueuedConnection);
     }
 ),
 friends_(this),
@@ -137,6 +143,11 @@ UserListModel* GUIClient::requests_model()
 UserListModel* GUIClient::blocked_model()
 {
     return & blocked_;
+}
+
+ChatMessageModel* GUIClient::messages_model()
+{
+    return & messages_;
 }
 
 Q_INVOKABLE void GUIClient::notify_popup_closed()
@@ -206,6 +217,11 @@ Q_INVOKABLE void GUIClient::unblock_user(const QString & uuid)
     boost::uuids::string_generator gen;
     boost::uuids::uuid user_id = gen(uuid.toStdString());
     client_.send_unblock_request(user_id);
+}
+
+Q_INVOKABLE void GUIClient::write_message(const QString & msg)
+{
+    client_.interpret_message(msg.toStdString());
 }
 
 void GUIClient::try_show_popup()

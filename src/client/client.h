@@ -24,13 +24,16 @@ public:
                                                     UserListType type)>;
 
     using QueueUpdateCallback = std::function<void(GameMode mode)>;
+
+    using DisplayMessageCallback = std::function<void(std::string message)>;
 public:
     Client(asio::io_context & cntx,
            LoginCallback login_callback,
            StateChangeCallback state_change_callback,
            PopupCallback popup_callback,
            UsersUpdatedCallback users_updated_callback,
-           QueueUpdateCallback queue_update_callback);
+           QueueUpdateCallback queue_update_callback,
+           DisplayMessageCallback display_message_callback);
 
     inline ClientState get_state() const;
 
@@ -63,12 +66,14 @@ public:
 
     void forfeit_request();
 
+    void interpret_message(std::string message);
+
+private:
     void send_direct_message(std::string text,
                              boost::uuids::uuid receiver);
 
     void send_match_message(std::string text);
 
-private:
     void on_message(const ptr & session, Message msg);
 
     void on_connection();
@@ -95,6 +100,7 @@ private:
     PopupCallback popup_callback_;
     UsersUpdatedCallback users_updated_callback_;
     QueueUpdateCallback queue_update_callback_;
+    DisplayMessageCallback display_message_callback_;
 };
 
 inline ClientState Client::get_state() const

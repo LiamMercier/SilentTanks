@@ -18,9 +18,14 @@ Item {
             id: endpointField
             placeholderText: "Enter server address"
             width: 300
+
+            onAccepted: {
+                Client.connect_to_server(endpointField.text)
+            }
         }
 
         Button {
+            id: connectButton
             text: "Connect"
             onClicked: {
                 Client.connect_to_server(endpointField.text)

@@ -2,6 +2,7 @@
 
 #include "client.h"
 #include "user-list-model.h"
+#include "message-model.h"
 
 #include <queue>
 
@@ -44,6 +45,9 @@ public:
     Q_PROPERTY(UserListModel* blockedModel
                READ blocked_model CONSTANT)
 
+    Q_PROPERTY(ChatMessageModel* messagesModel
+               READ messages_model CONSTANT)
+
     explicit GUIClient(asio::io_context& ctx, QObject* parent = nullptr);
 
     ClientState state() const;
@@ -59,6 +63,8 @@ public:
     UserListModel* requests_model();
 
     UserListModel* blocked_model();
+
+    ChatMessageModel* messages_model();
 
     Q_INVOKABLE void set_selected_mode(QueueType mode);
 
@@ -81,6 +87,8 @@ public:
     Q_INVOKABLE void respond_friend_request(const QString & uuid, bool decision);
 
     Q_INVOKABLE void unblock_user(const QString & uuid);
+
+    Q_INVOKABLE void write_message(const QString & msg);
 private:
     void try_show_popup();
 
@@ -123,4 +131,7 @@ private:
 
     // Server-client negotiated mode
     QueueType queued_mode_{QueueType::NO_MODE};
+
+    // Message view for GUI.
+    ChatMessageModel messages_;
 };

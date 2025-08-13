@@ -2,13 +2,42 @@
 
 #include <argon2.h>
 #include <boost/uuid/uuid_io.hpp>
+#include <boost/uuid/nil_generator.hpp>
+
+// Helper function to see if a prefix is in a message.
+constexpr size_t found_prefix(std::string_view text, std::string_view prefix)
+{
+    // Return 0 if prefix not found.
+    if (text.size() < prefix.size()
+        || (text.substr(0, prefix.size()) != prefix))
+    {
+        return 0;
+    }
+
+    // Otherwise, return the size.
+    return prefix.size();
+}
+
+// Helper to convert an entire string to lowercase.
+constexpr std::string to_lower(std::string_view s)
+{
+    std::string result(s);
+
+    std::transform(result.begin(), result.end(), result.begin(),
+                   [](unsigned char c) {
+                       return std::tolower(c);
+                });
+
+    return result;
+}
 
 Client::Client(asio::io_context & cntx,
                LoginCallback login_callback,
                StateChangeCallback state_change_callback,
                PopupCallback popup_callback,
                UsersUpdatedCallback users_updated_callback,
-               QueueUpdateCallback queue_update_callback)
+               QueueUpdateCallback queue_update_callback,
+               DisplayMessageCallback display_message_callback)
 :io_context_(cntx),
 client_strand_(cntx.get_executor()),
 state_(ClientState::ConnectScreen),
@@ -17,7 +46,8 @@ login_callback_(std::move(login_callback)),
 state_change_callback_(std::move(state_change_callback)),
 popup_callback_(std::move(popup_callback)),
 users_updated_callback_(std::move(users_updated_callback)),
-queue_update_callback_(std::move(queue_update_callback))
+queue_update_callback_(std::move(queue_update_callback)),
+display_message_callback_(std::move(display_message_callback))
 {
 
 }
@@ -592,6 +622,121 @@ void Client::forfeit_request()
     });
 }
 
+void Client::interpret_message(std::string message)
+{
+    if (message.size() < 1)
+    {
+        return;
+    }
+
+    asio::post(client_strand_,
+        [this,
+        text = std::move(message)]{
+
+        // We are given a message that may either be a direct message
+        // or a message to the game. If the text starts with "/msg" or
+        // "/dm" or "/pm" then we convert this into a private message
+        // assuming we can find the user on the friends list.
+        constexpr std::string_view msg = "/msg";
+        constexpr std::string_view dm = "/dm";
+        constexpr std::string_view pm = "/pm";
+
+        std::string_view text_view = text;
+
+        // Hold the length of the prefix, if we find one.
+        size_t prefix_len = 0;
+
+        // If direct message, do not send to lobby.
+        if ((prefix_len = found_prefix(text_view, msg))
+            || (prefix_len = found_prefix(text_view, dm))
+            || (prefix_len = found_prefix(text_view, pm)))
+        {
+            // We need to extract the username. A properly
+            // formatted dm will have form:
+            //
+            // <DM command> <username> <content>
+
+            // Start by removing the prefix and whitespace.
+            text_view.remove_prefix(prefix_len);
+
+            while (!text_view.empty()
+                    && std::isspace(static_cast<unsigned char>(text_view.front())))
+            {
+                text_view.remove_prefix(1);
+            }
+
+            // Find next space. If it does not exist, message is malformed.
+            size_t pos = text_view.find(' ');
+            if (pos == std::string_view::npos)
+            {
+                return;
+            }
+
+            // Grab username.
+            std::string_view username_view = text_view.substr(0, pos);
+            std::string username = to_lower(username_view);
+            text_view.remove_prefix(pos + 1);
+
+            // Check that text content is not empty.
+            if (text_view.size() < 1)
+            {
+                return;
+            }
+
+            boost::uuids::uuid friend_id;
+
+            // Find the UUID for this user in our list of friends.
+            //
+            // We could also store username -> user in our client data,
+            // but this shouldn't be too slow with a reasonable number of friends.
+            {
+                std::lock_guard lock(data_mutex_);
+                for (const auto & [uuid, user] : client_data_.friends)
+                {
+                    if (to_lower(user.username) == username)
+                    {
+                        friend_id = user.user_id;
+                        break;
+                    }
+                }
+            }
+
+            // If we cannot find the friend, stop now.
+            if (friend_id == boost::uuids::nil_uuid())
+            {
+                return;
+            }
+
+            // Write the contents to our callback listener.
+            std::string callback_formatted_string = "[To: "
+                                                    + std::string(username_view)
+                                                    + "]: "
+                                                    + std::string(text_view);
+            display_message_callback_(std::move(callback_formatted_string));
+
+            // Send the message.
+            this->send_direct_message(std::string(text_view), friend_id);
+            return;
+        }
+
+        // Otherwise, check if the message starts with "/" to prevent
+        // typos from exposing dm's to the lobby.
+        if (text_view[0] == '/')
+        {
+            return;
+        }
+
+        // Finally, send message to lobby if we are sure it is
+        // not a direct message.
+        //
+        // We also must write the contents.
+        std::string callback_formatted_string = "[You]: " + std::string(text_view);
+        display_message_callback_(std::move(callback_formatted_string));
+
+        this->send_match_message(text);
+    });
+}
+
 void Client::send_direct_message(std::string text,
                                  boost::uuids::uuid receiver)
 {
@@ -608,7 +753,6 @@ void Client::send_direct_message(std::string text,
         direct_message.create_serialized(dm);
         direct_message.header.type_ = HeaderType::DirectTextMessage;
         current_session_->deliver(direct_message);
-
     });
 }
 
@@ -1241,6 +1385,12 @@ try {
                       << sender_username << "]: "
                       << dm.text
                       << "\n";
+
+            std::string callback_formatted_string = "[From: "
+                                                    + sender_username
+                                                    + "]: "
+                                                    + dm.text;
+            display_message_callback_(std::move(callback_formatted_string));
             break;
         }
         case HeaderType::MatchTextMessage:
@@ -1252,6 +1402,12 @@ try {
                       << "]: "
                       << match_msg.text
                       << "\n";
+
+            std::string callback_formatted_string = "["
+                                                    + match_msg.sender_username
+                                                    + "]: "
+                                                    + match_msg.text;
+            display_message_callback_(std::move(callback_formatted_string));
             break;
         }
         default:

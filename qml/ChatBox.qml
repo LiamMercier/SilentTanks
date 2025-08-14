@@ -21,13 +21,12 @@ ColumnLayout {
         interactive: true
         highlightFollowsCurrentItem: false
 
-        // TODO: actually solve padding, not working right now.
         delegate: Rectangle {
-            property int padding: 2
+            property int padding: 4
 
             width: messageList.width
             // draw the text height + padding on both sides.
-            implicitHeight: messageText.paintedHeight + padding * 2
+            height: messageText.paintedHeight + padding * 2
 
             color: "transparent"
             border.width: 1
@@ -40,7 +39,9 @@ ColumnLayout {
                 font.pixelSize: 14
 
                 anchors.fill: parent
-                anchors.margins: padding
+                anchors.margins: parent.padding
+
+                verticalAlignment: Text.AlignVCenter
             }
         }
     }
@@ -48,6 +49,7 @@ ColumnLayout {
     // Input area for new messages.
     RowLayout {
         Layout.fillWidth: true
+        spacing: 0
 
         TextArea {
             id: messageInput
@@ -73,7 +75,7 @@ ColumnLayout {
             }
 
             // Submit text when pressing enter, but not shift enter.
-            Keys.onReleased: {
+            Keys.onReleased: function(event) {
                 if (event.key === Qt.Key_Return
                     && !(event.modifiers & Qt.ShiftModifier)) {
 

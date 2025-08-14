@@ -39,6 +39,7 @@ Item {
             anchors.fill: parent
             Layout.fillWidth: true
             Layout.fillHeight: true
+            spacing: 0
 
             // Queue selection area
             Rectangle {
@@ -108,6 +109,7 @@ Item {
             {
                 id: bottomBar
                 z: 1
+                spacing: 0
 
                 // Allocate remaining 40% of height
                 Layout.fillWidth: true
@@ -120,7 +122,10 @@ Item {
                 border.width: 1
 
                 Layout.preferredWidth: lobbyBackground.width * 0.5
-                Layout.preferredHeight: lobbyBackground.height * 0.4
+                Layout.fillHeight: true
+
+                Layout.margins: 6
+                Layout.rightMargin: 3
 
                 opacity: 0.8
 
@@ -143,7 +148,10 @@ Item {
                 border.width: 1
 
                 Layout.fillWidth: true
-                Layout.preferredHeight: lobbyBackground.height * 0.4
+                Layout.fillHeight: true
+
+                Layout.margins: 6
+                Layout.leftMargin: 3
 
                 opacity: 0.8
 

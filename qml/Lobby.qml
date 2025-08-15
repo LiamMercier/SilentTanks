@@ -41,67 +41,12 @@ Item {
             Layout.fillHeight: true
             spacing: 0
 
-            // Queue selection area
-            Rectangle {
-                id: queueArea
-                border.color: "purple"
-                border.width: 1
-                opacity: 0.8
-
+            // Queue area / profile area
+            Loader {
+                id: focusAreaLoader
                 Layout.fillWidth: true
-                // Give queues area 60% of height
                 Layout.preferredHeight: lobbyBackground.height * 0.6
-
-                ColumnLayout {
-
-                    anchors.fill: parent
-                    spacing: 0
-
-                    Rectangle {
-                        id: topQueueBar
-                        Layout.preferredHeight: 56
-                        Layout.fillWidth: true
-                        border.width: 1
-                        clip: true
-
-                        RowLayout {
-                            anchors.fill: parent
-                            Layout.fillWidth: true
-                            Layout.fillHeight: true
-
-                            spacing: 8
-
-                            Item {
-                                Layout.fillWidth: true
-                            }
-
-                            QueueMenus {
-                                id: queueMenus
-                                Layout.alignment: Qt.AlignVCenter | Qt.AlignHCenter
-
-                                onSelectedModeChanged:
-                                {
-                                    console.log("Selected mode: ",  queueMenus.selectedMode)
-                                }
-                            }
-
-                            Item {
-                                Layout.fillWidth: true
-                            }
-
-                        }
-                    }
-
-                    Rectangle {
-                        Layout.fillHeight: true
-                        Layout.fillWidth: true
-                        color: "transparent"
-                        Text {
-                            text: "Queue selection"
-                            anchors.centerIn: parent
-                        }
-                    }
-                }
+                source: "QueueArea.qml"
             }
 
             // Bottom UI row.
@@ -135,6 +80,7 @@ Item {
                 }
 
                 ChatBox {
+                    id: chatBoxRoot
                     Layout.fillHeight: true
                     Layout.fillWidth: true
                 }
@@ -210,9 +156,19 @@ Item {
                         text: "Profile"
                         implicitHeight: 20
                         anchors.horizontalCenter: parent.horizontalCenter
+
+                        property bool showingProfile: false
+
                         onClicked: {
-                            // TODO: profile button
-                            console.log("Trying to open profile")
+                            if (showingProfile)
+                            {
+                                focusAreaLoader.source = "QueueArea.qml"
+                                showingProfile = false
+                            }
+                            else {
+                                focusAreaLoader.source = "Profile.qml"
+                                showingProfile = true
+                            }
 
                         }
                     }
@@ -224,6 +180,13 @@ Item {
             FriendsList {
                 Layout.fillHeight: true
                 Layout.fillWidth: true
+                onMessageFriend: function(username) {
+                    let input = chatBoxRoot.messageInput
+                    input.text = "/msg " + username + " "
+                    // Set current position of cursor to the end instead of start.
+                    input.cursorPosition = input.length
+                    input.forceActiveFocus()
+                }
             }
         }
     }

@@ -22,6 +22,15 @@ Item {
         showActionButtons: false
     }
 
+    signal messageFriend(string username)
+
+    FriendMenu {
+        id: friendMenu
+        onMessageFriend: function(username) {
+            friendsListRoot.messageFriend(username)
+        }
+    }
+
     ColumnLayout {
         anchors.fill: parent
 
@@ -73,7 +82,6 @@ Item {
                     implicitHeight: 20
                     implicitWidth: 20
                     onClicked: {
-                        console.log("Trying to open friend requests")
                         friendRequestsPopup.open()
                     }
                 }
@@ -84,7 +92,6 @@ Item {
                     implicitHeight: 20
                     implicitWidth: 20
                     onClicked: {
-                        console.log("Trying to open block list")
                         blockedUsersPopup.open()
                     }
                 }
@@ -124,15 +131,34 @@ Item {
                     horizontalAlignment: Text.AlignHCenter
 
                     width: parent.width - 12
-
-                    ToolTip.visible: mouseArea.containsMouse
-                    ToolTip.text: model.username
                 }
 
                 MouseArea {
                         id: mouseArea
                         anchors.fill: parent
                         hoverEnabled: true
+                        acceptedButtons: Qt.RightButton
+
+                        // Center the friend menu and open it.
+                        onPressed: function(mouse) {
+                            var center = mouseArea.mapToItem(friendsListRoot,
+                                                             mouseArea.width / 2,
+                                                             mouseArea.height / 2)
+
+                            // Push to the left of the area.
+                            var targetX = -friendMenu.implicitWidth
+                            // Center vertically against the friend element.
+                            var targetY = center.y - friendMenu.implicitHeight / 2
+
+                            friendMenu.friendUsername = model.username
+                            friendMenu.friendID = model.uuid
+
+                            friendMenu.x = targetX
+                            friendMenu.y = targetY
+
+                            friendMenu.open()
+                        }
+
                     }
 
                 Rectangle {

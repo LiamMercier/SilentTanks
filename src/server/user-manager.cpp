@@ -437,6 +437,7 @@ void UserManager::on_friend_request(boost::uuids::uuid sender,
     });
 }
 
+// TODO: notify user not online.
 void UserManager::direct_message_user(boost::uuids::uuid sender,
                                       TextMessage dm)
 {

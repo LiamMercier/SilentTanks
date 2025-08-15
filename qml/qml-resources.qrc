@@ -18,6 +18,9 @@
         <file>FriendsList.qml</file>
     </qresource>
     <qresource prefix="/">
+        <file>FriendMenu.qml</file>
+    </qresource>
+    <qresource prefix="/">
         <file>UserListPopup.qml</file>
     </qresource>
     <qresource prefix="/">
@@ -28,5 +31,11 @@
     </qresource>
     <qresource prefix="/">
         <file>ChatBox.qml</file>
+    </qresource>
+    <qresource prefix="/">
+        <file>Profile.qml</file>
+    </qresource>
+    <qresource prefix="/">
+        <file>QueueArea.qml</file>
     </qresource>
 </RCC>

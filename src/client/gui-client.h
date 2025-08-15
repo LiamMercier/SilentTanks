@@ -88,6 +88,8 @@ public:
 
     Q_INVOKABLE void unblock_user(const QString & uuid);
 
+    Q_INVOKABLE void unfriend_user(const QString & uuid);
+
     Q_INVOKABLE void write_message(const QString & msg);
 private:
     void try_show_popup();

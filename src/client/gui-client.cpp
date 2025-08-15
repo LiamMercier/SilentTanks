@@ -219,6 +219,13 @@ Q_INVOKABLE void GUIClient::unblock_user(const QString & uuid)
     client_.send_unblock_request(user_id);
 }
 
+Q_INVOKABLE void GUIClient::unfriend_user(const QString & uuid)
+{
+    boost::uuids::string_generator gen;
+    boost::uuids::uuid user_id = gen(uuid.toStdString());
+    client_.send_unfriend_request(user_id);
+}
+
 Q_INVOKABLE void GUIClient::write_message(const QString & msg)
 {
     client_.interpret_message(msg.toStdString());

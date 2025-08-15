@@ -8,6 +8,8 @@ ColumnLayout {
     anchors.fill: parent
     spacing: 0
 
+    property alias messageInput: messageInput
+
     // Display all messages in a scrollable area.
     ListView {
         id: messageList
@@ -75,13 +77,13 @@ ColumnLayout {
             }
 
             // Submit text when pressing enter, but not shift enter.
-            Keys.onReleased: function(event) {
+            Keys.onPressed: function(event) {
                 if (event.key === Qt.Key_Return
                     && !(event.modifiers & Qt.ShiftModifier)) {
 
+                    event.accepted = true
                     Client.write_message(text)
                     messageInput.text = ""
-                    event.accepted = true
                 }
             }
         }

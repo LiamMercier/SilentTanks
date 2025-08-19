@@ -7,6 +7,8 @@
 #include <arpa/inet.h>
 #endif
 
+#include "gamemodes.h"
+
 enum class HeaderType : uint8_t
 {
     LoginRequest,
@@ -78,6 +80,11 @@ enum class HeaderType : uint8_t
     // Communication.
     DirectTextMessage,
     MatchTextMessage,
+
+    // Match related headers
+    FetchMatchHistory,
+    MatchHistory,
+    NoNewMatches,
 
     MAX_TYPE
 };

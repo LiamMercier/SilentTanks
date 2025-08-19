@@ -25,7 +25,7 @@ public:
     // number of players
     uint8_t num_players;
 
-    // Type of map. 0 is for 2 player for now.
+    // Type of map, linked to GameMode.
     uint8_t mode;
 
 };

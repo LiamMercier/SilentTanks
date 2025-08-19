@@ -105,6 +105,10 @@ public:
     void fetch_friend_requests(boost::uuids::uuid user,
                                std::shared_ptr<Session> session);
 
+    void fetch_new_matches(boost::uuids::uuid user,
+                           GameMode mode,
+                           std::shared_ptr<Session> session);
+
     std::unordered_map<std::string, std::chrono::system_clock::time_point>
     load_bans();
 
@@ -165,6 +169,10 @@ private:
 
     void do_fetch_friend_requests(boost::uuids::uuid user,
                                   std::shared_ptr<Session> session);
+
+    void do_fetch_new_matches(boost::uuids::uuid user,
+                              GameMode mode,
+                              std::shared_ptr<Session> session);
 
     void prepares();
 

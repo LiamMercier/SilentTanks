@@ -82,6 +82,14 @@ client_
             this->messages_.add_message(message);
         },
         Qt::QueuedConnection);
+    },
+    [this](MatchResultList results){
+        QMetaObject::invokeMethod(this, [this, results]{
+            {
+                this->match_history_.set_history_row(results);
+            }
+        },
+        Qt::QueuedConnection);
     }
 ),
 friends_(this),
@@ -148,6 +156,11 @@ UserListModel* GUIClient::blocked_model()
 ChatMessageModel* GUIClient::messages_model()
 {
     return & messages_;
+}
+
+MatchHistoryModel* GUIClient::history_model()
+{
+    return & match_history_;
 }
 
 Q_INVOKABLE void GUIClient::notify_popup_closed()
@@ -229,6 +242,24 @@ Q_INVOKABLE void GUIClient::unfriend_user(const QString & uuid)
 Q_INVOKABLE void GUIClient::write_message(const QString & msg)
 {
     client_.interpret_message(msg.toStdString());
+}
+
+Q_INVOKABLE QVariant GUIClient::get_elo(QueueType mode)
+{
+    int elo = client_.get_elo(static_cast<GameMode>(mode));
+    if (elo <= 0)
+    {
+        return QVariant();
+    }
+    else
+    {
+        return QVariant(elo);
+    }
+}
+
+Q_INVOKABLE void GUIClient::fetch_match_history(QueueType mode)
+{
+    client_.fetch_match_history(static_cast<GameMode>(mode));
 }
 
 void GUIClient::try_show_popup()

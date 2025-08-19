@@ -46,6 +46,7 @@ Item {
                 id: focusAreaLoader
                 Layout.fillWidth: true
                 Layout.preferredHeight: lobbyBackground.height * 0.6
+                Layout.margins: 6
                 source: "QueueArea.qml"
             }
 
@@ -71,6 +72,7 @@ Item {
 
                 Layout.margins: 6
                 Layout.rightMargin: 3
+                Layout.topMargin: 0
 
                 opacity: 0.8
 
@@ -98,6 +100,7 @@ Item {
 
                 Layout.margins: 6
                 Layout.leftMargin: 3
+                Layout.topMargin: 0
 
                 opacity: 0.8
 

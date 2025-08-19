@@ -42,6 +42,9 @@ constexpr uint64_t weight_of_cmd(Header h)
         case HeaderType::BlockUser: return 20;
         case HeaderType::UnblockUser: return 20;
 
+        // Match result requests (involves database calls).
+        case HeaderType::FetchMatchHistory: return 20;
+
         // Message passing variable string for text.
         case HeaderType::DirectTextMessage: return 2 + (h.payload_len / 100);
         case HeaderType::MatchTextMessage: return 2 + (h.payload_len / 100);
@@ -110,6 +113,10 @@ public:
 
     inline void update_elo(int new_elo, uint8_t mode_idx);
 
+    inline bool has_matches(GameMode mode);
+
+    inline void set_has_matches(bool value, GameMode mode);
+
 private:
     void start_ping();
 
@@ -171,6 +178,12 @@ private:
     // For managing game queues.
     std::atomic<bool> live_;
 
+    // For preventing unnecessary history fetching.
+    //
+    // Storing as bit flags could be useful, potential optimization.
+    mutable std::mutex has_new_matches_mutex_;
+    std::array<bool, NUMBER_OF_MODES> has_new_matches_{true};
+
     bool awaiting_pong_;
 
     // Mutex to prevent needing a strand call for this data
@@ -229,5 +242,18 @@ inline void Session::update_elo(int new_elo, uint8_t mode_idx)
 {
     std::lock_guard<std::mutex> lock(user_data_mutex_);
     user_data_.matching_elos[mode_idx] = new_elo;
+    return;
+}
+
+inline bool Session::has_matches(GameMode mode)
+{
+    std::lock_guard<std::mutex> lock(has_new_matches_mutex_);
+    return has_new_matches_[static_cast<uint8_t>(mode)];
+}
+
+inline void Session::set_has_matches(bool value, GameMode mode)
+{
+    std::lock_guard<std::mutex> lock(has_new_matches_mutex_);
+    has_new_matches_[static_cast<uint8_t>(mode)] = value;
     return;
 }

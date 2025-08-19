@@ -26,6 +26,8 @@ public:
     using QueueUpdateCallback = std::function<void(GameMode mode)>;
 
     using DisplayMessageCallback = std::function<void(std::string message)>;
+
+    using MatchHistoryCallback = std::function<void(MatchResultList results)>;
 public:
     Client(asio::io_context & cntx,
            LoginCallback login_callback,
@@ -33,11 +35,14 @@ public:
            PopupCallback popup_callback,
            UsersUpdatedCallback users_updated_callback,
            QueueUpdateCallback queue_update_callback,
-           DisplayMessageCallback display_message_callback);
+           DisplayMessageCallback display_message_callback,
+           MatchHistoryCallback match_history_callback);
 
     inline ClientState get_state() const;
 
     inline void change_state(ClientState new_state);
+
+    inline int get_elo(GameMode mode);
 
     void connect(std::string endpoint);
 
@@ -67,6 +72,8 @@ public:
     void forfeit_request();
 
     void interpret_message(std::string message);
+
+    void fetch_match_history(GameMode mode);
 
 private:
     void send_direct_message(std::string text,
@@ -101,6 +108,7 @@ private:
     UsersUpdatedCallback users_updated_callback_;
     QueueUpdateCallback queue_update_callback_;
     DisplayMessageCallback display_message_callback_;
+    MatchHistoryCallback match_history_callback_;
 };
 
 inline ClientState Client::get_state() const
@@ -117,4 +125,22 @@ inline void Client::change_state(ClientState new_state)
     }
 
     state_change_callback_(new_state);
+}
+
+inline int Client::get_elo(GameMode mode)
+{
+    int elo = 0;
+    if (static_cast<uint8_t>(mode) < RANKED_MODES_START)
+    {
+        return elo;
+    }
+    else
+    {
+        uint8_t indx = elo_ranked_index(mode);
+        {
+            std::lock_guard lock(data_mutex_);
+            elo = client_data_.display_elos[indx];
+        }
+        return elo;
+    }
 }

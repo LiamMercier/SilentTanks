@@ -30,7 +30,8 @@ public:
     void disconnect(std::shared_ptr<Session> session);
 
     // Notify of forfeit or match end
-    void notify_match_finished(boost::uuids::uuid user_id);
+    void notify_match_finished(boost::uuids::uuid user_id,
+                               GameMode mode);
 
     // Notify match start.
     void notify_match_start(boost::uuids::uuid user_id,

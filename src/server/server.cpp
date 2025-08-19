@@ -619,6 +619,40 @@ try {
             matcher_.forfeit(session);
             break;
         }
+        case HeaderType::FetchMatchHistory:
+        {
+            // Prevent actions before login.
+            if (!session->is_authenticated())
+            {
+                Message not_authorized;
+                not_authorized.create_serialized(HeaderType::Unauthorized);
+                session->deliver(not_authorized);
+                break;
+            }
+
+            GameMode mode = msg.to_gamemode();
+
+            if (!session->has_matches(mode))
+            {
+                Message no_matches;
+                no_matches.create_serialized(HeaderType::NoNewMatches);
+                session->deliver(no_matches);
+                break;
+            }
+
+            // Otherwise, fetch results and set has_new_matches to false.
+            if (mode == GameMode::NO_MODE)
+            {
+                // TODO: disconnect client? Decide on result.
+                return;
+            }
+
+            boost::uuids::uuid user_id = (session->get_user_data()).user_id;
+            db_.fetch_new_matches(user_id, mode, session);
+
+            // TODO: set true in game finish callback.
+            session->set_has_matches(false, mode);
+        }
         default:
             // do nothing, should never happen
             break;
@@ -657,6 +691,8 @@ void Server::on_auth(UserData data,
             return;
         }
 
+        GoodAuthNotification good_auth(user_data.matching_elos);
+
         // Otherwise, we authenticated correctly, lets add this user
         // to the user manager.
         user_manager_->on_login(std::move(user_data),
@@ -666,7 +702,7 @@ void Server::on_auth(UserData data,
 
         // Notify session of good auth
         Message good_auth_msg;
-        good_auth_msg.create_serialized(HeaderType::GoodAuth);
+        good_auth_msg.create_serialized(good_auth);
         s->deliver(good_auth_msg);
 
     });

@@ -357,7 +357,11 @@ void MatchMaker::make_match_on_strand(std::vector<Session::ptr> players,
                 {
                     boost::uuids::uuid u_id = result.user_ids[i];
                     uuid_to_match_.erase(u_id);
-                    user_manager_->notify_match_finished(u_id);
+                    user_manager_->notify_match_finished
+                                        (
+                                            u_id,
+                                            static_cast<GameMode>(result.settings.mode)
+                                        );
                 }
 
                 // Remove from live matches
@@ -431,5 +435,6 @@ void MatchMaker::forfeit_impl(const Session::ptr & p)
     // Remove from the map and notify the user manager.
     uuid_to_match_.erase(u_id);
 
-    user_manager_->notify_match_finished(u_id);
+    // No need to update the mode at this time, a match never got recorded.
+    user_manager_->notify_match_finished(u_id, GameMode::NO_MODE);
 }

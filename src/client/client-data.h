@@ -1,9 +1,11 @@
 #pragma once
 
 #include "external-user.h"
+#include "message.h"
 
 #include <unordered_map>
 #include <boost/functional/hash.hpp>
+#include <array>
 
 using UserMap = std::unordered_map<boost::uuids::uuid,
                        ExternalUser,
@@ -24,4 +26,6 @@ struct ClientData
     UserMap friend_requests;
 
     UserMap blocked_users;
+
+    std::array<int, RANKED_MODES_COUNT> display_elos;
 };

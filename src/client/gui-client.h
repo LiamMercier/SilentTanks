@@ -3,6 +3,7 @@
 #include "client.h"
 #include "user-list-model.h"
 #include "message-model.h"
+#include "match-history-model.h"
 
 #include <queue>
 
@@ -66,6 +67,8 @@ public:
 
     ChatMessageModel* messages_model();
 
+    MatchHistoryModel* history_model();
+
     Q_INVOKABLE void set_selected_mode(QueueType mode);
 
     Q_INVOKABLE void notify_popup_closed();
@@ -91,6 +94,10 @@ public:
     Q_INVOKABLE void unfriend_user(const QString & uuid);
 
     Q_INVOKABLE void write_message(const QString & msg);
+
+    Q_INVOKABLE QVariant get_elo(QueueType mode);
+
+    Q_INVOKABLE void fetch_match_history(QueueType mode);
 private:
     void try_show_popup();
 
@@ -136,4 +143,6 @@ private:
 
     // Message view for GUI.
     ChatMessageModel messages_;
+
+    MatchHistoryModel match_history_;
 };

@@ -388,6 +388,18 @@ void Database::fetch_friend_requests(boost::uuids::uuid user,
     do_fetch_friend_requests(std::move(user), std::move(session));
 }
 
+void Database::fetch_new_matches(boost::uuids::uuid user,
+                       GameMode mode,
+                       std::shared_ptr<Session> session)
+{
+    if (shutting_down_.load(std::memory_order_relaxed))
+    {
+        return;
+    }
+
+    do_fetch_new_matches(user, mode, session);
+}
+
 std::unordered_map<std::string, std::chrono::system_clock::time_point>
 Database::load_bans()
 {
@@ -636,15 +648,6 @@ void Database::do_auth(LoginRequest request,
 
                         data.matching_elos[idx] =  row["current_elo"]
                                                     .as<int>();
-
-                        // TODO: remove
-                        std::string lmsg = "Loaded elo "
-                                            + std::to_string(
-                                                data.matching_elos[idx])
-                                            + " for game mode "
-                                            + std::to_string(mode);
-
-                        Console::instance().log(lmsg, LogLevel::INFO);
                     }
 
                 }
@@ -1883,6 +1886,72 @@ void Database::do_fetch_friend_requests(boost::uuids::uuid user,
     });
 }
 
+void Database::do_fetch_new_matches(boost::uuids::uuid user,
+                                    GameMode mode,
+                                    std::shared_ptr<Session> session)
+{
+uuid_strands_.post(user,
+        [this,
+        user = std::move(user),
+        mode,
+        s = std::move(session)]() mutable {
+
+    try
+    {
+        prepares();
+
+        pqxx::work txn{*conn_};
+
+        auto matches_res = txn.exec(pqxx::prepped{"fetch_latest_matches"},
+                                        pqxx::params{
+                                        boost::uuids::to_string(user),
+                                        static_cast<int16_t>(mode),
+                                        LATEST_MATCHES_COUNT
+                                        });
+
+        // This transaction is read only. Commit now.
+        txn.commit();
+
+        // Inform client that nothing exists.
+        if (matches_res.empty())
+        {
+            Message match_history_message;
+            match_history_message.create_serialized(HeaderType::NoNewMatches);
+            s->deliver(match_history_message);
+        }
+
+        // Iterate through the rows and extract results.
+        MatchResultList results;
+        results.mode = mode;
+
+        for (const auto & row : matches_res)
+        {
+            MatchResultRow result;
+            result.match_id = row["match_id"].as<std::int64_t>();
+            result.placement = row["placement"].as<std::uint16_t>();
+            result.elo_change = row["elo_change"].as<std::int32_t>();
+
+            auto finished_at = row["finished_at"].as<std::time_t>();
+            result.finished_at = std::chrono::system_clock::from_time_t(finished_at);
+
+            results.match_results.push_back(std::move(result));
+        }
+
+        Message match_history_message;
+        match_history_message.create_serialized(results);
+        s->deliver(match_history_message);
+
+    }
+    catch (const std::exception & e)
+    {
+        std::string lmsg = "Exception in do_fetch_new_matches: "
+                            + std::string(e.what());
+        Console::instance().log(std::move(lmsg),
+                                LogLevel::ERROR);
+    }
+    });
+}
+
 void Database::prepares()
 {
     if (!conn_)
@@ -2070,6 +2139,26 @@ void Database::prepares()
             "SELECT b.blocked as blocked "
             "FROM BlockedUsers b "
             "WHERE b.blocker = $1"
+            );
+        conn_->prepare("fetch_latest_matches",
+            "SELECT m.match_id, "
+            "FLOOR(EXTRACT(epoch from m.finished_at))::bigint as finished_at, "
+            "mp.placement, "
+            "COALESCE(eh.elo_change, 0) AS elo_change "
+            "FROM matches m JOIN MatchPlayers mp ON mp.match_id = m.match_id "
+            "LEFT JOIN LATERAL ( "
+            "SELECT (new_elo - old_elo) AS elo_change "
+            "FROM EloHistory eh "
+            "WHERE eh.match_id = m.match_id "
+            "AND eh.user_id = mp.user_id "
+            "AND eh.game_mode = m.game_mode "
+            "ORDER BY history_id DESC "
+            "LIMIT 1 "
+            ") eh ON true "
+            "WHERE mp.user_id = $1::uuid "
+            "AND m.game_mode = $2::int "
+            "ORDER BY m.finished_at DESC "
+            "LIMIT $3"
             );
     }
 }

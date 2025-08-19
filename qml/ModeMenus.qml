@@ -9,6 +9,7 @@ Item {
 
     property string label: "modes label"
     property var model: null
+    property var callback: null
 
     implicitWidth: triggerButton.implicitWidth
     implicitHeight: triggerButton.implicitHeight
@@ -59,7 +60,10 @@ Item {
                     font.pointSize: 12
 
                     onClicked: {
-                        Client.set_selected_mode(mode)
+                        if (modeMenuRoot.callback)
+                        {
+                            modeMenuRoot.callback(mode)
+                        }
                         popup.close()
                     }
 

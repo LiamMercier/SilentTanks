@@ -37,11 +37,17 @@ Item {
         ModeMenus {
             label: "Casual Modes"
             model: casualModel
+            callback: function (selectedMode) {
+                Client.set_selected_mode(selectedMode)
+            }
         }
 
         ModeMenus {
             label: "Ranked Modes"
             model: rankedModel
+            callback: function (selectedMode) {
+                Client.set_selected_mode(selectedMode)
+            }
         }
 
     }

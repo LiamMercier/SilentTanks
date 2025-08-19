@@ -36,6 +36,9 @@
         <file>Profile.qml</file>
     </qresource>
     <qresource prefix="/">
+        <file>MatchHistory.qml</file>
+    </qresource>
+    <qresource prefix="/">
         <file>QueueArea.qml</file>
     </qresource>
 </RCC>

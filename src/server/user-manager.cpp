@@ -113,10 +113,11 @@ void UserManager::disconnect(std::shared_ptr<Session> session)
     });
 }
 
-void UserManager::notify_match_finished(boost::uuids::uuid user_id)
+void UserManager::notify_match_finished(boost::uuids::uuid user_id,
+                                        GameMode mode)
 {
     boost::asio::post(strand_,
-    [this, user_id]{
+    [this, user_id, mode]{
 
         // Find the User and void its weak pointer.
         auto user_itr = users_.find(user_id);
@@ -137,6 +138,14 @@ void UserManager::notify_match_finished(boost::uuids::uuid user_id)
         if (!user->current_session || !(user->current_session->is_live()))
         {
             users_.erase(user_itr);
+        }
+        // Otherwise, session exists and is live. Set it as having match
+        // history to grab.
+        else
+        {
+            user
+            ->current_session
+            ->set_has_matches(true, mode);
         }
 
     });

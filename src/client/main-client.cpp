@@ -62,6 +62,9 @@ int main(int argc, char* argv[])
         engine.rootContext()->setContextProperty("MessagesModel",
                                                  client.messages_model());
 
+        engine.rootContext()->setContextProperty("HistoryModel",
+                                                 client.history_model());
+
         qmlRegisterUncreatableMetaObject(GUI::staticMetaObject,
                                          "GUICommon",
                                          1,

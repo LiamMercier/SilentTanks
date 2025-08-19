@@ -37,7 +37,8 @@ Client::Client(asio::io_context & cntx,
                PopupCallback popup_callback,
                UsersUpdatedCallback users_updated_callback,
                QueueUpdateCallback queue_update_callback,
-               DisplayMessageCallback display_message_callback)
+               DisplayMessageCallback display_message_callback,
+               MatchHistoryCallback match_history_callback)
 :io_context_(cntx),
 client_strand_(cntx.get_executor()),
 state_(ClientState::ConnectScreen),
@@ -47,7 +48,8 @@ state_change_callback_(std::move(state_change_callback)),
 popup_callback_(std::move(popup_callback)),
 users_updated_callback_(std::move(users_updated_callback)),
 queue_update_callback_(std::move(queue_update_callback)),
-display_message_callback_(std::move(display_message_callback))
+display_message_callback_(std::move(display_message_callback)),
+match_history_callback_(std::move(match_history_callback))
 {
 
 }
@@ -737,6 +739,20 @@ void Client::interpret_message(std::string message)
     });
 }
 
+void Client::fetch_match_history(GameMode mode)
+{
+    asio::post(client_strand_,
+        [this,
+        mode]{
+
+        MatchHistoryRequest history_req(mode);
+
+        Message match_history_request;
+        match_history_request.create_serialized(history_req);
+        current_session_->deliver(match_history_request);
+    });
+}
+
 void Client::send_direct_message(std::string text,
                                  boost::uuids::uuid receiver)
 {
@@ -877,6 +893,11 @@ try {
                 std::lock_guard lock(data_mutex_);
                 std::cerr << "Good auth. Logged in as: "
                           << client_data_.client_username << "\n";
+
+                // Set user elo's.
+                std::array<int, RANKED_MODES_COUNT> elos = msg.to_elos();
+                client_data_.display_elos = std::move(elos);
+
                 change_state(ClientState::Lobby);
                 login_callback_(client_data_.client_username);
             }
@@ -1342,6 +1363,15 @@ try {
         case HeaderType::RateLimited:
         {
             std::cerr << "You are being rate limited.\n";
+
+            std::string body = "You are being rate limited.";
+
+            popup_callback_(Popup(
+                            PopupType::Info,
+                            "Rate Limited",
+                            body),
+                            URGENT_POPUP);
+
             break;
         }
         case HeaderType::Banned:
@@ -1408,6 +1438,22 @@ try {
                                                     + "]: "
                                                     + match_msg.text;
             display_message_callback_(std::move(callback_formatted_string));
+            break;
+        }
+        case HeaderType::MatchHistory:
+        {
+            MatchResultList results = msg.to_results_list();
+
+            for (const auto & result : results.match_results)
+            {
+                std::cout << "ID: " << result.match_id
+                          << " placement: " << result.placement
+                          << " elo diff: " << result.elo_change
+                          << " result.finished_at " << result.finished_at
+                          << "\n";
+            }
+
+            match_history_callback_(std::move(results));
             break;
         }
         default:

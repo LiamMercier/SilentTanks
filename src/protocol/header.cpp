@@ -32,6 +32,14 @@ bool Header::valid_server()
             }
             break;
         }
+        case HeaderType::FetchMatchHistory:
+        {
+            if (payload_len != 1)
+            {
+                return false;
+            }
+            break;
+        }
         case HeaderType::SendCommand:
         {
             if (payload_len != Command::COMMAND_SIZE)
@@ -98,7 +106,6 @@ bool Header::valid_server()
         }
         default:
         {
-            // do nothing, should never happen
             break;
         }
     }
@@ -120,6 +127,14 @@ bool Header::valid_client()
 
     switch(type_)
     {
+        case HeaderType::GoodAuth:
+        {
+            if (payload_len != RANKED_MODES_COUNT * sizeof(uint32_t))
+            {
+                return false;
+            }
+            break;
+        }
         case HeaderType::DirectTextMessage:
         {
             if (payload_len < 17)
@@ -144,9 +159,16 @@ bool Header::valid_client()
             }
             break;
         }
+        case HeaderType::MatchHistory:
+        {
+            if (payload_len < 1)
+            {
+                return false;
+            }
+            break;
+        }
         default:
         {
-            // do nothing, should never happen
             break;
         }
     }

@@ -21,9 +21,13 @@ bool Message::valid_matching_command() const
     return (payload[0] < uint8_t(GameMode::NO_MODE));
 }
 
+template void Message::create_serialized<GoodAuthNotification>(GoodAuthNotification const&);
+
 template void Message::create_serialized<QueueMatchRequest>(QueueMatchRequest const&);
 
 template void Message::create_serialized<CancelMatchRequest>(CancelMatchRequest const&);
+
+template void Message::create_serialized<MatchHistoryRequest>(MatchHistoryRequest const&);
 
 template void Message::create_serialized<MatchStartNotification>(MatchStartNotification const&);
 
@@ -58,6 +62,38 @@ template void Message::create_serialized<NotifyRelationUpdate>(NotifyRelationUpd
 template void Message::create_serialized<TextMessage>(TextMessage const&);
 
 template void Message::create_serialized<ExternalMatchMessage>(ExternalMatchMessage const&);
+
+template void Message::create_serialized<MatchResultList>(MatchResultList const&);
+
+std::array<int, RANKED_MODES_COUNT> Message::to_elos()
+{
+    std::array<int, RANKED_MODES_COUNT> elos{};
+
+    if (payload.size() != RANKED_MODES_COUNT * sizeof(uint32_t))
+    {
+        return {};
+    }
+
+    size_t offset = 0;
+
+    // Go through each elo.
+    for (size_t i = 0; i < RANKED_MODES_COUNT; i++)
+    {
+        // Copy 4 bytes and increase offset.
+        uint32_t net_elo;
+        std::memcpy(&net_elo,
+                    payload.data() + offset,
+                    sizeof(uint32_t));
+
+        offset += sizeof(uint32_t);
+
+        // Convert to host values.
+        uint32_t host_elo = ntohl(net_elo);
+        elos[i] = static_cast<int>(host_elo);
+    }
+
+    return elos;
+}
 
 LoginRequest Message::to_login_request() const
 {
@@ -510,6 +546,76 @@ InternalMatchMessage Message::to_match_message()
     return msg;
 }
 
+GameMode Message::to_gamemode()
+{
+    // Just in case, but header should be rejected anyways.
+    if (payload.size() != 1)
+    {
+        return GameMode::NO_MODE;
+    }
+
+    // Clip mode values that are too high.
+    if (payload[0] >= static_cast<uint8_t>(GameMode::NO_MODE))
+    {
+        return GameMode::NO_MODE;
+    }
+
+    return static_cast<GameMode>(payload[0]);
+}
+
+MatchResultList Message::to_results_list()
+{
+    MatchResultList results;
+
+    if (payload.size() < 1)
+    {
+        return {};
+    }
+
+    // Fetch the first byte, will always exist from header check
+    // and holds the mode.
+    results.mode = static_cast<GameMode>(payload[0]);
+
+    size_t index = 1;
+
+    // While remaining bytes is at least one MatchResultRow in size.
+    while (payload.size() - index >= MatchResultRow::DATA_SIZE)
+    {
+        MatchResultRow row{};
+
+        // Copy and convert id from network.
+        int64_t net_id;
+        std::memcpy(&net_id, payload.data() + index, sizeof(net_id));
+        index += sizeof(net_id);
+        row.match_id = htonll(net_id);
+
+        // Copy and convert network time.
+        int64_t net_time;
+        std::memcpy(&net_time, payload.data() + index, sizeof(net_time));
+        index += sizeof(net_time);
+
+        int64_t host_time = htonll(net_time);
+        std::time_t finish_time = static_cast<std::time_t>(host_time);
+        row.finished_at = std::chrono::system_clock::from_time_t(finish_time);
+
+        // Copy and convert placement.
+        uint16_t net_placement;
+        std::memcpy(&net_placement, payload.data() + index, sizeof(net_placement));
+        index += sizeof(net_placement);
+        row.placement = ntohs(net_placement);
+
+        // Copy and convert elo change.
+        int32_t net_elo;
+        std::memcpy(&net_elo, payload.data() + index, sizeof(net_elo));
+        index += sizeof(net_elo);
+        row.elo_change = ntohl(net_elo);
+
+        results.match_results.push_back(row);
+    }
+
+    return results;
+}
+
 // Function to create a network serialized message for a message type.
 template <typename mType>
 void Message::create_serialized(const mType & req)
@@ -517,8 +623,24 @@ void Message::create_serialized(const mType & req)
     std::vector<uint8_t> payload_buffer;
 
     // pack the payload based on the message type
+    if constexpr (std::is_same_v<mType, GoodAuthNotification>)
+    {
+        header.type_ = HeaderType::GoodAuth;
 
-    if constexpr (std::is_same_v<mType, QueueMatchRequest>)
+        // Iterate through user elos, converting them to network ready form.
+        for (int elo : req.elos)
+        {
+            uint32_t net_elo = htonl(static_cast<uint32_t>(elo));
+
+            // cast to "array" and insert it.
+            uint8_t * bytes = reinterpret_cast<uint8_t*>(&net_elo);
+            payload_buffer.insert(payload_buffer.end(),
+                                  bytes,
+                                  bytes + sizeof(net_elo));
+        }
+
+    }
+    else if constexpr (std::is_same_v<mType, QueueMatchRequest>)
     {
         header.type_ = HeaderType::QueueMatch;
         payload_buffer.push_back(static_cast<uint8_t>(req.mode));
@@ -527,6 +649,56 @@ void Message::create_serialized(const mType & req)
     {
         header.type_ = HeaderType::CancelMatch;
         payload_buffer.push_back(static_cast<uint8_t>(req.mode));
+    }
+    else if constexpr (std::is_same_v<mType, MatchHistoryRequest>)
+    {
+        header.type_ = HeaderType::FetchMatchHistory;
+        payload_buffer.push_back(static_cast<uint8_t>(req.mode));
+    }
+    else if constexpr (std::is_same_v<mType, MatchResultList>)
+    {
+        header.type_ = HeaderType::MatchHistory;
+        payload_buffer.push_back(static_cast<uint8_t>(req.mode));
+
+        // For each result in the result list, push back each data
+        // element using network order.
+        for (const MatchResultRow & result : req.match_results)
+        {
+            // Insert match ID.
+            int64_t net_match_id = htonll(result.match_id);
+
+            uint8_t* id_bytes = reinterpret_cast<uint8_t*>(&net_match_id);
+            payload_buffer.insert(payload_buffer.end(),
+                                  id_bytes,
+                                  id_bytes + sizeof(net_match_id));
+
+            // Insert finished at time.
+            int64_t network_time = htonll(static_cast<int64_t>(
+                                        std::chrono::system_clock::to_time_t(
+                                            result.finished_at
+                                        )));
+
+            uint8_t* time_bytes = reinterpret_cast<uint8_t*>(&network_time);
+            payload_buffer.insert(payload_buffer.end(),
+                                  time_bytes,
+                                  time_bytes + sizeof(network_time));
+
+            // Insert placement.
+            uint16_t net_placement = htons(result.placement);
+
+            uint8_t* placement_bytes = reinterpret_cast<uint8_t*>(&net_placement);
+            payload_buffer.insert(payload_buffer.end(),
+                                  placement_bytes,
+                                  placement_bytes + sizeof(net_placement));
+
+            // Insert elo.
+            uint32_t net_elo = htonl(static_cast<uint32_t>(result.elo_change));
+
+            uint8_t* elo_bytes = reinterpret_cast<uint8_t*>(&net_elo);
+            payload_buffer.insert(payload_buffer.end(),
+                                  elo_bytes,
+                                  elo_bytes + sizeof(net_elo));
+        }
     }
     // Create a message to notify the player of their
     // player ID and match status.

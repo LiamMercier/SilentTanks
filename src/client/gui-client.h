@@ -98,6 +98,8 @@ public:
     Q_INVOKABLE QVariant get_elo(QueueType mode);
 
     Q_INVOKABLE void fetch_match_history(QueueType mode);
+
+    Q_INVOKABLE void download_match_by_id(qint64 match_id);
 private:
     void try_show_popup();
 

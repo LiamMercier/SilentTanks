@@ -262,6 +262,12 @@ Q_INVOKABLE void GUIClient::fetch_match_history(QueueType mode)
     client_.fetch_match_history(static_cast<GameMode>(mode));
 }
 
+Q_INVOKABLE void GUIClient::download_match_by_id(qint64 match_id)
+{
+    std::cout << static_cast<uint64_t>(match_id) << "\n";
+    //client_.request_match_replay(static_cast<uint64_t>(match_id));
+}
+
 void GUIClient::try_show_popup()
 {
     Popup p;

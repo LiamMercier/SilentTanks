@@ -90,20 +90,120 @@ Item {
         }
 
         Rectangle {
+            id: matchHistoryRoot
             border.color: "black"
             border.width: 1
 
             Layout.fillHeight: true
             Layout.fillWidth: true
 
-            Text {
-                text: "Match History"
-                anchors.centerIn: parent
-            }
+            // Width values to keep header and items in same width.
+            property int matchIDWidth: 70
+            property int timeWidth: 130
+            property int placementWidth: 80
+            property int eloWidth: 70
+            property int actionRowWidth: 120
 
             ColumnLayout {
                 anchors.fill: parent
-                spacing: 4
+                spacing: 0
+
+                Text {
+                    text: "Match History"
+                    font.pixelSize: 20
+                    font.bold: true
+                    Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
+                }
+
+                // Header row.
+                Rectangle {
+                    border.color: "black"
+                    border.width: 1
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 40
+
+                    RowLayout {
+                        anchors.fill: parent
+                        anchors.margins: 0
+                        spacing: 0
+
+                        Rectangle {
+                            Layout.preferredWidth: matchHistoryRoot.matchIDWidth
+                            Layout.fillHeight: true
+                            Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
+                            border.width: 1
+
+                            Text {
+                                text: "Match ID"
+                                font.bold: true
+                                anchors.centerIn: parent
+                                horizontalAlignment: Text.AlignHCenter
+                                verticalAlignment: Text.AlignVCenter
+                            }
+                        }
+
+                        Rectangle {
+                            Layout.preferredWidth: matchHistoryRoot.timeWidth
+                            Layout.fillHeight: true
+                            Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
+                            border.width: 1
+
+                            Text {
+                                text: "Finished Time"
+                                font.bold: true
+                                anchors.centerIn: parent
+                                horizontalAlignment: Text.AlignHCenter
+                                verticalAlignment: Text.AlignVCenter
+                            }
+                        }
+
+                        Rectangle {
+                            Layout.preferredWidth: matchHistoryRoot.placementWidth
+                            Layout.fillHeight: true
+                            Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
+                            border.width: 1
+
+                            Text {
+                                text: "Placement"
+                                font.bold: true
+                                anchors.centerIn: parent
+                                horizontalAlignment: Text.AlignHCenter
+                                verticalAlignment: Text.AlignVCenter
+                            }
+                        }
+
+                        Rectangle {
+                            Layout.preferredWidth: matchHistoryRoot.eloWidth
+                            Layout.fillHeight: true
+                            Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
+                            border.width: 1
+
+                            Text {
+                                text: "Elo\nChange"
+                                font.bold: true
+                                anchors.centerIn: parent
+                                horizontalAlignment: Text.AlignHCenter
+                                verticalAlignment: Text.AlignVCenter
+                            }
+                        }
+
+                        Rectangle {
+                            Layout.preferredWidth: matchHistoryRoot.actionRowWidth
+                            Layout.fillHeight: true
+                            Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
+                            border.width: 1
+
+                            Text {
+                                text: "Actions"
+                                font.bold: true
+                                anchors.centerIn: parent
+                                horizontalAlignment: Text.AlignHCenter
+                                verticalAlignment: Text.AlignVCenter
+                            }
+                        }
+
+                    }
+                }
 
                 ListView {
                     id: historyList
@@ -121,22 +221,78 @@ Item {
                         // [ID | Placement | Elo diff | Time | Download Button]
                         RowLayout {
                             anchors.fill: parent
-                            spacing: 8
+                            spacing: 0
 
-                            Text {
-                                text: model.MatchID
+                            Rectangle {
+                                Layout.preferredWidth: matchHistoryRoot.matchIDWidth
+                                Layout.fillHeight: true
+                                Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
+                                border.width: 1
+
+                                Text {
+                                    text: model.MatchID
+                                    anchors.centerIn: parent
+                                    horizontalAlignment: Text.AlignHCenter
+                                    verticalAlignment: Text.AlignVCenter
+                                }
                             }
 
-                            Text {
-                                text: model.finished_at
+                            Rectangle {
+                                Layout.preferredWidth: matchHistoryRoot.timeWidth
+                                Layout.fillHeight: true
+                                Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
+                                border.width: 1
+
+                                Text {
+                                    text: model.finished_at
+                                    anchors.centerIn: parent
+                                    horizontalAlignment: Text.AlignHCenter
+                                    verticalAlignment: Text.AlignVCenter
+                                }
                             }
 
-                            Text {
-                                text: model.placement
+                            Rectangle {
+                                Layout.preferredWidth: matchHistoryRoot.placementWidth
+                                Layout.fillHeight: true
+                                Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
+                                border.width: 1
+
+                                Text {
+                                    text: model.placement
+                                    anchors.centerIn: parent
+                                    horizontalAlignment: Text.AlignHCenter
+                                    verticalAlignment: Text.AlignVCenter
+                                }
                             }
 
-                            Text {
-                                text: model.elo_change
+                            Rectangle {
+                                Layout.preferredWidth: matchHistoryRoot.eloWidth
+                                Layout.fillHeight: true
+                                Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
+                                border.width: 1
+
+                                Text {
+                                    text: model.elo_change
+                                    anchors.centerIn: parent
+                                    horizontalAlignment: Text.AlignHCenter
+                                    verticalAlignment: Text.AlignVCenter
+                                }
+                            }
+
+                            Rectangle {
+                                Layout.preferredWidth: matchHistoryRoot.actionRowWidth
+                                Layout.fillHeight: true
+                                Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
+                                border.width: 1
+
+                                Button {
+                                    icon.name: "download"
+                                    anchors.centerIn: parent
+                                    onClicked: {
+                                        console.log("trying to download match id", model.MatchID)
+                                        Client.download_match_by_id(model.MatchID)
+                                    }
+                                }
                             }
 
                         }

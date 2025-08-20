@@ -1,7 +1,7 @@
 #pragma once
 
 #include "external-user.h"
-#include "message.h"
+#include "gamemodes.h"
 
 #include <unordered_map>
 #include <boost/functional/hash.hpp>

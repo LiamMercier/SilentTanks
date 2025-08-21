@@ -753,6 +753,23 @@ void Client::fetch_match_history(GameMode mode)
     });
 }
 
+void Client::request_match_replay(uint64_t match_id)
+{
+    asio::post(client_strand_,
+        [this,
+        match_id]{
+
+        std::cout << "Trying to download match " << static_cast<uint64_t>(match_id) << "\n";
+
+        ReplayRequest replay_req(match_id);
+
+        Message replay_request_msg;
+        replay_request_msg.create_serialized(replay_req);
+        current_session_->deliver(replay_request_msg);
+
+    });
+}
+
 void Client::send_direct_message(std::string text,
                                  boost::uuids::uuid receiver)
 {

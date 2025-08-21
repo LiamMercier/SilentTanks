@@ -41,4 +41,7 @@
     <qresource prefix="/">
         <file>QueueArea.qml</file>
     </qresource>
+    <qresource prefix="/">
+        <file>GamePage.qml</file>
+    </qresource>
 </RCC>

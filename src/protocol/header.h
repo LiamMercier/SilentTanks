@@ -85,6 +85,8 @@ enum class HeaderType : uint8_t
     FetchMatchHistory,
     MatchHistory,
     NoNewMatches,
+    MatchReplayRequest,
+    MatchReplay,
 
     MAX_TYPE
 };

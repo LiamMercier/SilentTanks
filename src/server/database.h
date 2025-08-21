@@ -109,6 +109,9 @@ public:
                            GameMode mode,
                            std::shared_ptr<Session> session);
 
+    void fetch_replay(ReplayRequest req,
+                      std::shared_ptr<Session> session);
+
     std::unordered_map<std::string, std::chrono::system_clock::time_point>
     load_bans();
 
@@ -173,6 +176,9 @@ private:
     void do_fetch_new_matches(boost::uuids::uuid user,
                               GameMode mode,
                               std::shared_ptr<Session> session);
+
+    void do_fetch_replay(ReplayRequest req,
+                         std::shared_ptr<Session> session);
 
     void prepares();
 

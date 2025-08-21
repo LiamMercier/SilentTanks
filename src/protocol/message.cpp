@@ -65,6 +65,8 @@ template void Message::create_serialized<ExternalMatchMessage>(ExternalMatchMess
 
 template void Message::create_serialized<MatchResultList>(MatchResultList const&);
 
+template void Message::create_serialized<ReplayRequest>(ReplayRequest const&);
+
 std::array<int, RANKED_MODES_COUNT> Message::to_elos()
 {
     std::array<int, RANKED_MODES_COUNT> elos{};
@@ -616,6 +618,23 @@ MatchResultList Message::to_results_list()
     return results;
 }
 
+ReplayRequest Message::to_replay_request()
+{
+    ReplayRequest req(0);
+
+    if (payload.size() < sizeof(uint64_t))
+    {
+        return req;
+    }
+
+    uint64_t net_match_id;
+    std::memcpy(&net_match_id, payload.data(), sizeof(net_match_id));
+
+    req.match_id = htonll(net_match_id);
+
+    return req;
+}
+
 // Function to create a network serialized message for a message type.
 template <typename mType>
 void Message::create_serialized(const mType & req)
@@ -699,6 +718,16 @@ void Message::create_serialized(const mType & req)
                                   elo_bytes,
                                   elo_bytes + sizeof(net_elo));
         }
+    }
+    else if constexpr (std::is_same_v<mType, ReplayRequest>)
+    {
+        header.type_ = HeaderType::MatchReplayRequest;
+
+        uint64_t net_match_id = htonll(req.match_id);
+        uint8_t* id_bytes = reinterpret_cast<uint8_t*>(&net_match_id);
+        payload_buffer.insert(payload_buffer.end(),
+                              id_bytes,
+                              id_bytes + sizeof(net_match_id));
     }
     // Create a message to notify the player of their
     // player ID and match status.

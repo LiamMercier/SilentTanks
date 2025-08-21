@@ -653,6 +653,20 @@ try {
             // TODO: set true in game finish callback.
             session->set_has_matches(false, mode);
         }
+        case HeaderType::MatchReplayRequest:
+        {
+            // Prevent actions before login.
+            if (!session->is_authenticated())
+            {
+                Message not_authorized;
+                not_authorized.create_serialized(HeaderType::Unauthorized);
+                session->deliver(not_authorized);
+                break;
+            }
+
+            ReplayRequest req = msg.to_replay_request();
+            db_.fetch_replay(req, session);
+        }
         default:
             // do nothing, should never happen
             break;

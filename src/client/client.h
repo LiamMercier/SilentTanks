@@ -75,6 +75,8 @@ public:
 
     void fetch_match_history(GameMode mode);
 
+    void request_match_replay(uint64_t match_id);
+
 private:
     void send_direct_message(std::string text,
                              boost::uuids::uuid receiver);

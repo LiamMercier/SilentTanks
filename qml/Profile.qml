@@ -98,7 +98,7 @@ Item {
             Layout.fillWidth: true
 
             // Width values to keep header and items in same width.
-            property int matchIDWidth: 70
+            property int matchIDWidth: 80
             property int timeWidth: 130
             property int placementWidth: 80
             property int eloWidth: 70
@@ -289,7 +289,6 @@ Item {
                                     icon.name: "download"
                                     anchors.centerIn: parent
                                     onClicked: {
-                                        console.log("trying to download match id", model.MatchID)
                                         Client.download_match_by_id(model.MatchID)
                                     }
                                 }

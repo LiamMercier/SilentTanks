@@ -400,6 +400,17 @@ void Database::fetch_new_matches(boost::uuids::uuid user,
     do_fetch_new_matches(user, mode, session);
 }
 
+void Database::fetch_replay(ReplayRequest req,
+                            std::shared_ptr<Session> session)
+{
+    if (shutting_down_.load(std::memory_order_relaxed))
+    {
+        return;
+    }
+
+    do_fetch_replay(req, session);
+}
+
 std::unordered_map<std::string, std::chrono::system_clock::time_point>
 Database::load_bans()
 {
@@ -1952,6 +1963,83 @@ uuid_strands_.post(user,
     });
 }
 
+void Database::do_fetch_replay(ReplayRequest req,
+                               std::shared_ptr<Session> session)
+{
+    asio::post(thread_pool_,
+        [this,
+        req,
+        s = std::move(session)](){
+
+    try
+    {
+        prepares();
+
+        pqxx::work txn{*conn_};
+
+        auto replay_res = txn.exec(pqxx::prepped{"fetch_replay"},
+                                    pqxx::params{
+                                    req.match_id
+                                    });
+
+        // This transaction is read only. Commit now.
+        txn.commit();
+
+        // Handle the match ID being bad, shouldn't happen with correct
+        // clients.
+        if (replay_res.empty())
+        {
+            Message empty_replay;
+            empty_replay.create_serialized(HeaderType::MatchReplay);
+            s->deliver(empty_replay);
+            return;
+        }
+
+        // Otherwise, take our json bytes and deserialize into a list of commands.
+        std::string moves_json = replay_res[0]["move_history"].as<std::string>();
+        std::vector<CommandHead> moves;
+
+        // TODO: implement JSON deserialization.
+
+        std::cout << "Logged json found: " << moves_json << "\n";
+
+        auto ec = glz::read_json(moves, moves_json);
+
+        if (ec) {
+            std::string lmsg = "Failed to parse moves. Input: " + moves_json;
+            Console::instance().log(std::move(lmsg),
+                                    LogLevel::ERROR);
+            return;
+        }
+
+        for (size_t i = 0; i < moves.size(); i++)
+        {
+            const auto & m = moves[i];
+            std::cout << "Move " << i
+                      << " type: " << +static_cast<uint8_t>(m.type)
+                      << " sender: " << +m.sender
+                      << " tank id: " << +m.tank_id
+                      << " payload_first: " << +m.payload_first
+                      << " payload_second: " << +m.payload_second << "\n";
+        }
+
+        if (moves.size() == 0)
+        {
+            std::cout << "no moves detected, error...";
+        }
+
+    }
+    catch (const std::exception & e)
+    {
+        std::string lmsg = "Exception in do_fetch_replay: "
+                            + std::string(e.what());
+        Console::instance().log(std::move(lmsg),
+                                LogLevel::ERROR);
+    }
+
+    });
+}
+
 void Database::prepares()
 {
     if (!conn_)
@@ -2159,6 +2247,11 @@ void Database::prepares()
             "AND m.game_mode = $2::int "
             "ORDER BY m.finished_at DESC "
             "LIMIT $3"
+            );
+        conn_->prepare("fetch_replay",
+            "SELECT move_history, settings "
+            "FROM Matches "
+            "WHERE match_id = $1"
             );
     }
 }

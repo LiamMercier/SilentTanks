@@ -104,6 +104,14 @@ bool Header::valid_server()
             }
             break;
         }
+        case HeaderType::MatchReplayRequest:
+        {
+            if (payload_len != sizeof(uint64_t))
+            {
+                return false;
+            }
+            break;
+        }
         default:
         {
             break;

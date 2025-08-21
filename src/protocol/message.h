@@ -91,6 +91,16 @@ struct MatchHistoryRequest
     GameMode mode;
 };
 
+struct ReplayRequest
+{
+    ReplayRequest(uint64_t id)
+    :match_id(id)
+    {
+    }
+
+    uint64_t match_id;
+};
+
 struct BadRegNotification
 {
     enum class Reason : uint8_t
@@ -237,6 +247,8 @@ public:
     GameMode to_gamemode();
 
     MatchResultList to_results_list();
+
+    ReplayRequest to_replay_request();
 
     template <typename mType>
     void create_serialized(const mType & req);

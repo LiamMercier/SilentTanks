@@ -1,7 +1,7 @@
-import QtQuick
-import QtQuick.Controls
-import QtQuick.Dialogs
-import QtQuick.Window
+import QtQuick 2.15
+import QtQuick.Controls 2.15
+import QtQuick.Dialogs 2.15
+import QtQuick.Window 2.15
 
 import GUICommon 1.0
 
@@ -31,6 +31,9 @@ ApplicationWindow {
                     break;
                 case ClientState.Lobby:
                     pageLoader.source = "Lobby.qml"
+                    break;
+                case ClientState.Playing:
+                    pageLoader.source = "GamePage.qml"
                     break;
                 default:
                     pageLoader.source = ""

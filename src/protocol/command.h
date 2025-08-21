@@ -42,6 +42,14 @@ struct CommandHead
     payload_second(cmd.payload_second)
     {}
 
+    CommandHead()
+    :sender(0),
+    type(static_cast<CommandType>(0)),
+    tank_id(0),
+    payload_first(0),
+    payload_second(0)
+    {}
+
     uint8_t sender;
     CommandType type;
     uint8_t tank_id;

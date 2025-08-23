@@ -38,18 +38,19 @@ Client::Client(asio::io_context & cntx,
                UsersUpdatedCallback users_updated_callback,
                QueueUpdateCallback queue_update_callback,
                DisplayMessageCallback display_message_callback,
-               MatchHistoryCallback match_history_callback)
+               MatchHistoryCallback match_history_callback,
+               ViewUpdateCallback view_callback)
 :io_context_(cntx),
 client_strand_(cntx.get_executor()),
 state_(ClientState::ConnectScreen),
-game_manager_(cntx),
 login_callback_(std::move(login_callback)),
 state_change_callback_(std::move(state_change_callback)),
 popup_callback_(std::move(popup_callback)),
 users_updated_callback_(std::move(users_updated_callback)),
 queue_update_callback_(std::move(queue_update_callback)),
 display_message_callback_(std::move(display_message_callback)),
-match_history_callback_(std::move(match_history_callback))
+match_history_callback_(std::move(match_history_callback)),
+view_callback_(std::move(view_callback))
 {
 
 }
@@ -1330,9 +1331,7 @@ try {
 
         std::cout << "\n";
 
-
-
-            game_manager_.update_view(current_view);
+            view_callback_(current_view);
 
             break;
         }

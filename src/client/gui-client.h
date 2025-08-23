@@ -4,6 +4,7 @@
 #include "user-list-model.h"
 #include "message-model.h"
 #include "match-history-model.h"
+#include "game-manager.h"
 
 #include <queue>
 
@@ -49,6 +50,9 @@ public:
     Q_PROPERTY(ChatMessageModel* messagesModel
                READ messages_model CONSTANT)
 
+    Q_PROPERTY(GameManager* gameManager
+               READ game_manager CONSTANT)
+
     explicit GUIClient(asio::io_context& ctx, QObject* parent = nullptr);
 
     ClientState state() const;
@@ -68,6 +72,8 @@ public:
     ChatMessageModel* messages_model();
 
     MatchHistoryModel* history_model();
+
+    GameManager* game_manager();
 
     Q_INVOKABLE void set_selected_mode(QueueType mode);
 
@@ -147,4 +153,6 @@ private:
     ChatMessageModel messages_;
 
     MatchHistoryModel match_history_;
+
+    GameManager game_manager_;
 };

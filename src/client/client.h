@@ -3,7 +3,7 @@
 #include "client-session.h"
 #include "client-state.h"
 #include "client-data.h"
-#include "game-manager.h"
+#include "player-view.h"
 #include "popup.h"
 
 constexpr bool URGENT_POPUP = true;
@@ -28,6 +28,8 @@ public:
     using DisplayMessageCallback = std::function<void(std::string message)>;
 
     using MatchHistoryCallback = std::function<void(MatchResultList results)>;
+
+    using ViewUpdateCallback = std::function<void(PlayerView new_view)>;
 public:
     Client(asio::io_context & cntx,
            LoginCallback login_callback,
@@ -36,7 +38,8 @@ public:
            UsersUpdatedCallback users_updated_callback,
            QueueUpdateCallback queue_update_callback,
            DisplayMessageCallback display_message_callback,
-           MatchHistoryCallback match_history_callback);
+           MatchHistoryCallback match_history_callback,
+           ViewUpdateCallback view_callback);
 
     inline ClientState get_state() const;
 
@@ -102,8 +105,6 @@ private:
 
     ClientSession::ptr current_session_;
 
-    GameManager game_manager_;
-
     LoginCallback login_callback_;
     StateChangeCallback state_change_callback_;
     PopupCallback popup_callback_;
@@ -111,6 +112,7 @@ private:
     QueueUpdateCallback queue_update_callback_;
     DisplayMessageCallback display_message_callback_;
     MatchHistoryCallback match_history_callback_;
+    ViewUpdateCallback view_callback_;
 };
 
 inline ClientState Client::get_state() const

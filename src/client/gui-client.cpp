@@ -90,6 +90,14 @@ client_
             }
         },
         Qt::QueuedConnection);
+    },
+    [this](PlayerView new_view){
+        QMetaObject::invokeMethod(this, [this, view = std::move(new_view)]{
+            {
+                this->game_manager_.update_view(view);
+            }
+        },
+        Qt::QueuedConnection);
     }
 ),
 friends_(this),
@@ -161,6 +169,11 @@ ChatMessageModel* GUIClient::messages_model()
 MatchHistoryModel* GUIClient::history_model()
 {
     return & match_history_;
+}
+
+GameManager* GUIClient::game_manager()
+{
+    return & game_manager_;
 }
 
 Q_INVOKABLE void GUIClient::notify_popup_closed()

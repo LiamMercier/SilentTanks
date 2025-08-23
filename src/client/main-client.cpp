@@ -65,6 +65,9 @@ int main(int argc, char* argv[])
         engine.rootContext()->setContextProperty("HistoryModel",
                                                  client.history_model());
 
+        engine.rootContext()->setContextProperty("GameManager",
+                                                 client.game_manager());
+
         qmlRegisterUncreatableMetaObject(GUI::staticMetaObject,
                                          "GUICommon",
                                          1,

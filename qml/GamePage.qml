@@ -15,17 +15,19 @@ Item {
         // Map area (80% of screen)
         Rectangle {
             id: mapArea
-            Layout.prefferedWidth: parent.width * 0.8
+            Layout.preferredWidth: parent.width * 0.8
             Layout.fillHeight: true
             border.width: 1
 
             // TODO: map canvas.
-
+            BoardView {
+                anchors.fill: parent
+            }
         }
 
         Rectangle {
             id: sidePanel
-            Layout.prefferedWidth: parent.width * 0.2
+            Layout.preferredWidth: parent.width * 0.2
             Layout.fillHeight: true
             border.color: "green"
             border.width: 1

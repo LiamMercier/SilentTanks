@@ -5,7 +5,6 @@ import QtQuick.Layouts 2.15
 import GUICommon 1.0
 
 ColumnLayout {
-    anchors.fill: parent
     spacing: 0
 
     property alias messageInput: messageInput

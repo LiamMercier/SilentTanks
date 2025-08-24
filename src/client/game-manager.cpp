@@ -84,6 +84,15 @@ void GameManager::update_view(PlayerView new_view)
     }
 
     emit view_changed();
+    emit state_changed();
+    emit fuel_changed();
+}
+
+void GameManager::update_match_data(StaticMatchData data)
+{
+    current_data_ = data;
+
+    emit player_changed();
 }
 
 int GameManager::map_width() const
@@ -94,4 +103,28 @@ int GameManager::map_width() const
 int GameManager::map_height() const
 {
     return static_cast<int>(current_view_.height());
+}
+
+int GameManager::state() const
+{
+    return static_cast<int>(current_view_.current_state);
+}
+
+int GameManager::fuel() const
+{
+    return static_cast<int>(current_view_.current_fuel);
+}
+
+QString GameManager::player() const
+{
+    uint8_t current_player = current_view_.current_player;
+
+    if (current_player >= current_data_.player_list.users.size())
+    {
+        return QString();
+    }
+
+    const auto & user = current_data_.player_list.users[current_player];
+    std::string username = user.username;
+    return QString::fromStdString(username);
 }

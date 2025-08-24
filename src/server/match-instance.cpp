@@ -1,7 +1,14 @@
 #include "match-instance.h"
 
-PlayerInfo::PlayerInfo(uint8_t id, uint64_t s_id, boost::uuids::uuid u_id)
-:PlayerID(id), session_id(s_id), user_id(u_id), alive(true)
+PlayerInfo::PlayerInfo(uint8_t id,
+                       uint64_t s_id,
+                       boost::uuids::uuid u_id,
+                       std::string user_string)
+:PlayerID(id),
+session_id(s_id),
+user_id(u_id),
+alive(true),
+username(user_string)
 {
 
 }
@@ -211,6 +218,14 @@ void MatchInstance::sync_player(uint64_t session_id,
             std::priority_queue<Command, std::vector<Command>, seq_comp> none;
             std::swap(self->command_queues_[correct_id], none);
 
+            // Compute static data and send.
+            StaticMatchData match_data = self->compute_static_data();
+
+            Message static_data_msg;
+            static_data_msg.create_serialized(match_data);
+            self->send_callback_(self->players_[correct_id].session_id,
+                                 static_data_msg);
+
             // Views were already computed in previous strand call
             // because we always compute everyone's view at
             // the end of an operation. Just grab this and send
@@ -275,18 +290,40 @@ void MatchInstance::async_shutdown()
 
 void MatchInstance::start()
 {
-    // Send an initial view of the environment to each player
-    // and then start the game asynchronously
+    // Create a list of static data to send to all users.
+    StaticMatchData match_data = compute_static_data();
 
-    for (int i = 0; i < n_players_; i++)
+    for (uint8_t id = 0; id < players_.size(); id++)
     {
-        Message view_message;
-        view_message.create_serialized(player_views_[i]);
-        send_callback_(players_[i].session_id,
-                       std::move(view_message));
+        Message static_data_msg;
+        static_data_msg.create_serialized(match_data);
+
+        send_callback_(players_[id].session_id, static_data_msg);
     }
 
+    // Send an initial view of the environment to each player
+    // and then start the game asynchronously
+    compute_all_views();
+
     start_turn_strand();
+}
+
+StaticMatchData MatchInstance::compute_static_data()
+{
+    StaticMatchData match_data;
+    match_data.player_list.users.reserve(players_.size());
+
+    for (uint8_t id = 0; id < players_.size(); id++)
+    {
+        ExternalUser curr_player;
+
+        curr_player.user_id = players_[id].user_id;
+        curr_player.username = players_[id].username;
+
+        match_data.player_list.users.emplace_back(curr_player);
+    }
+
+    return match_data;
 }
 
 // Handles one turn of the game. Should not be called directly.
@@ -758,6 +795,11 @@ void MatchInstance::compute_all_views()
             inform_elimination.create_serialized(HeaderType::Eliminated);
             send_callback_(players_[i].session_id, inform_elimination);
         }
+
+        // Append state information.
+        player_views_[i].current_player = current_player;
+        player_views_[i].current_fuel = current_fuel;
+        player_views_[i].current_state = current_state;
 
         // Send view to the player
         Message view_message;

@@ -15,6 +15,7 @@
 #include "constants.h"
 #include "message.h"
 #include "match-result.h"
+#include "game-state.h"
 
 namespace asio = boost::asio;
 
@@ -22,20 +23,17 @@ namespace asio = boost::asio;
 struct PlayerInfo
 {
 public:
-    PlayerInfo(uint8_t id, uint64_t s_id, boost::uuids::uuid u_id);
+    PlayerInfo(uint8_t id,
+               uint64_t s_id,
+               boost::uuids::uuid u_id,
+               std::string user_string);
 
 public:
     uint8_t PlayerID;
     uint64_t session_id;
     boost::uuids::uuid user_id;
     bool alive;
-};
-
-enum class GameState : uint8_t
-{
-    Setup,
-    Play,
-    Concluded
+    std::string username;
 };
 
 struct ApplyResult
@@ -84,6 +82,7 @@ public:
     void start();
 
 private:
+    StaticMatchData compute_static_data();
 
     // Code for one turn of the match.
     void start_turn();

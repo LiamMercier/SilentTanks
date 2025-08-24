@@ -83,6 +83,7 @@ Item {
 
                 ChatBox {
                     id: chatBoxRoot
+                    anchors.fill: parent
                     Layout.fillHeight: true
                     Layout.fillWidth: true
                 }

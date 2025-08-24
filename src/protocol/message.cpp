@@ -67,6 +67,8 @@ template void Message::create_serialized<MatchResultList>(MatchResultList const&
 
 template void Message::create_serialized<ReplayRequest>(ReplayRequest const&);
 
+template void Message::create_serialized<StaticMatchData>(StaticMatchData const&);
+
 std::array<int, RANKED_MODES_COUNT> Message::to_elos()
 {
     std::array<int, RANKED_MODES_COUNT> elos{};
@@ -176,12 +178,91 @@ Command Message::to_command()
 
 }
 
+StaticMatchData Message::to_static_match_data(bool & op_status)
+{
+    // If there is not at least 2 UUIDs of data then stop.
+    if (payload.size() < 2 * 16)
+    {
+        op_status = false;
+        return StaticMatchData{};
+    }
+
+    StaticMatchData match_data;
+
+    // Convert the list of users.
+    size_t offset = 0;
+    size_t total = payload.size();
+
+    UserList user_list;
+
+    // While we still have more users to go through.
+    while (offset < total)
+    {
+        // If we can't read another 17 bytes, stop.
+        if (offset + 16 + 1 > total)
+        {
+            op_status = false;
+            return StaticMatchData{};
+        }
+
+        ExternalUser user;
+
+        // Copy this user's uuid bytes from the buffer.
+        std::memcpy(user.user_id.data,
+                    payload.data() + offset,
+                    16);
+
+        // Update offset, get the username length. We store this
+        // as a uint8_t since usernames lengths are less than 256.
+        offset += 16;
+        uint8_t username_len = payload[offset++];
+
+        // If invalid username length.
+        if (username_len > MAX_USERNAME_LENGTH)
+        {
+            std::cout << +username_len << "bad \n";
+            op_status = false;
+            return {};
+        }
+
+        // If not enough data.
+        if (username_len + offset > total)
+        {
+            op_status = false;
+            return {};
+        }
+
+        // Copy while ensuring valid username.
+        std::string username;
+        for (int i = 0; i < username_len; i++)
+        {
+            unsigned char c = static_cast<unsigned char>(payload[offset + i]);
+            if (!allowed_username_characters[c])
+            {
+                op_status = false;
+                return {};
+            }
+            username.push_back(c);
+        }
+
+        user.username = std::move(username);
+        user_list.users.push_back(std::move(user));
+
+        offset += username_len;
+    }
+
+    match_data.player_list = user_list;
+
+    op_status = true;
+    return match_data;
+}
+
 // Modify view with success return type.
 PlayerView Message::to_player_view(bool & op_status)
 {
     // If our payload is not able to be turned into
     // a view then return failure.
-    if (payload.size() < 3)
+    if (payload.size() < 6)
     {
         op_status = false;
         return PlayerView{};
@@ -191,12 +272,14 @@ PlayerView Message::to_player_view(bool & op_status)
     uint8_t current_player = payload[1];
     uint8_t width = payload[2];
     uint8_t height = payload[3];
+    uint8_t current_fuel = payload[4];
+    GameState current_state = static_cast<GameState>(payload[5]);
 
     // Grab the view dimensions and check that we have valid data
     //
-    // We need 4 bytes for the previous data, plus width*height bytes
-    // for the environment, plus 8*num_tanks to hold the tank data
-    size_t view_size = 4
+    // We need 6 bytes for the previous data, plus width*height bytes
+    // for the environment, plus 9*num_tanks to hold the tank data
+    size_t view_size = 6
                      + (size_t(width) * size_t(height) * 3)
                      + size_t(n_tanks) * 9;
 
@@ -211,7 +294,9 @@ PlayerView Message::to_player_view(bool & op_status)
 
     PlayerView view(width, height);
 
-    view.player_id = current_player;
+    view.current_player = current_player;
+    view.current_fuel = current_fuel;
+    view.current_state = current_state;
 
     // Otherwise, create the player view from the message data
     FlatArray<GridCell> & map_view = view.map_view;
@@ -219,8 +304,8 @@ PlayerView Message::to_player_view(bool & op_status)
     map_view.set_width(width);
     map_view.set_height(height);
 
-    // Start at payload[4] since we already read the first 4 bytes
-    size_t idx = 4;
+    // Start at payload[6] since we already read the first 6 bytes
+    size_t idx = 6;
 
     for (int y = 0; y < height; y++)
     {
@@ -914,6 +999,32 @@ void Message::create_serialized(const mType & req)
         }
 
     }
+    // Send all data that remains constant.
+    else if constexpr (std::is_same_v<mType, StaticMatchData>)
+    {
+        header.type_ = HeaderType::StaticMatchData;
+
+        // Loop over the users and add them.
+        for (const auto & user : req.player_list.users)
+        {
+            // Copy the UUID.
+            payload_buffer.insert(payload_buffer.end(),
+                                  user.user_id.data,
+                                  user.user_id.data + user.user_id.size());
+
+            // Give the username length.
+            uint8_t username_len = static_cast<uint8_t>(user.username.size());
+            payload_buffer.push_back(username_len);
+
+            // Copy the username.
+            payload_buffer.insert(
+                payload_buffer.end(),
+                reinterpret_cast<const uint8_t*>(user.username.data()),
+                reinterpret_cast<const uint8_t*>(user.username.data())
+                                                 + username_len);
+        }
+
+    }
     // For views, we need to put the FlatArray of grid cells into the buffer.
     //
     // We also need to include other state information like
@@ -932,12 +1043,16 @@ void Message::create_serialized(const mType & req)
         uint8_t n_tanks = static_cast<uint8_t>(req.visible_tanks.size());
         payload_buffer.push_back(n_tanks);
 
-        // And the current turn
-        payload_buffer.push_back(req.player_id);
+        // And the current player.
+        payload_buffer.push_back(req.current_player);
 
         // Now serialize the environment data, starting with dimensions.
         payload_buffer.push_back(map_view.get_width());
         payload_buffer.push_back(map_view.get_height());
+
+        // Push back the current fuel and state.
+        payload_buffer.push_back(req.current_fuel);
+        payload_buffer.push_back(static_cast<uint8_t>(req.current_state));
 
         // Then all of the environment data
         for (int y = 0; y < map_view.get_height(); y++)

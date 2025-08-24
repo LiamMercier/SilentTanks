@@ -4,6 +4,7 @@
 #include "grid-cell.h"
 #include "tank-entity.h"
 #include "flat-array.h"
+#include "game-state.h"
 
 // Structure to hold a full view of the game state for a given player.
 struct PlayerView
@@ -31,5 +32,7 @@ struct PlayerView
 
     FlatArray<GridCell> map_view;
     std::vector<Tank> visible_tanks;
-    uint8_t player_id;
+    uint8_t current_player;
+    uint8_t current_fuel;
+    GameState current_state;
 };

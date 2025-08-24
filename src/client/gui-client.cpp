@@ -98,6 +98,14 @@ client_
             }
         },
         Qt::QueuedConnection);
+    },
+    [this](StaticMatchData data){
+        QMetaObject::invokeMethod(this, [this, data = std::move(data)]{
+            {
+                this->game_manager_.update_match_data(data);
+            }
+        },
+        Qt::QueuedConnection);
     }
 ),
 friends_(this),

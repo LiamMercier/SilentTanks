@@ -39,7 +39,8 @@ Client::Client(asio::io_context & cntx,
                QueueUpdateCallback queue_update_callback,
                DisplayMessageCallback display_message_callback,
                MatchHistoryCallback match_history_callback,
-               ViewUpdateCallback view_callback)
+               ViewUpdateCallback view_callback,
+               MatchDataCallback match_data_callback)
 :io_context_(cntx),
 client_strand_(cntx.get_executor()),
 state_(ClientState::ConnectScreen),
@@ -50,7 +51,8 @@ users_updated_callback_(std::move(users_updated_callback)),
 queue_update_callback_(std::move(queue_update_callback)),
 display_message_callback_(std::move(display_message_callback)),
 match_history_callback_(std::move(match_history_callback)),
-view_callback_(std::move(view_callback))
+view_callback_(std::move(view_callback)),
+match_data_callback_(std::move(match_data_callback))
 {
 
 }
@@ -1264,6 +1266,30 @@ try {
 
             break;
         }
+        case HeaderType::StaticMatchData:
+        {
+            std::cout << "Users in this match: \n";
+
+            bool status;
+            StaticMatchData match_data = msg.to_static_match_data(status);
+
+            if (status == false)
+            {
+                std::cerr << "Failed to convert static data.\n";
+                break;
+            }
+
+            for (const auto & user : match_data.player_list.users)
+            {
+                std::cout << user.username << " (" << user.user_id << ")\n";
+            }
+
+            std::cout << "\n";
+
+            match_data_callback_(match_data);
+
+            break;
+        }
         case HeaderType::PlayerView:
         {
             std::cerr << "Player view update available.\n";
@@ -1330,6 +1356,11 @@ try {
         }
 
         std::cout << "\n";
+
+        std::cout << "current_player: " << +current_view.current_player << "\n";
+        std::cout << "current_fuel: " << +current_view.current_fuel << "\n";
+        std::cout << "state: "
+                  << +static_cast<uint8_t>(current_view.current_state) << "\n";
 
             view_callback_(current_view);
 

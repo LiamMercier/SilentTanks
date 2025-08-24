@@ -292,13 +292,15 @@ void MatchMaker::make_match_on_strand(std::vector<Session::ptr> players,
         // Setup players list from our session data.
         for (uint8_t p_id = 0; p_id < players.size(); p_id++)
         {
+            const UserData & data = players[p_id]->get_user_data();
             player_list.emplace_back
             (
                 PlayerInfo
                 (
                     p_id,
                     players[p_id]->id(),
-                    (players[p_id]->get_user_data()).user_id
+                    data.user_id,
+                    data.username
                 )
              );
 

@@ -5,6 +5,7 @@
 #include <QObject>
 
 #include "player-view.h"
+#include "message-structs.h"
 
 class GameManager : public QAbstractListModel
 {
@@ -17,6 +18,18 @@ class GameManager : public QAbstractListModel
     Q_PROPERTY(int map_height
                READ map_height
                NOTIFY map_height_changed)
+
+    Q_PROPERTY(int state
+               READ state
+               NOTIFY state_changed)
+
+    Q_PROPERTY(int fuel
+               READ fuel
+               NOTIFY fuel_changed)
+
+    Q_PROPERTY(QString player
+               READ player
+               NOTIFY player_changed)
 public:
 
     enum Roles {
@@ -39,9 +52,17 @@ public:
     // Callable from C++ code for changing the view.
     void update_view(PlayerView new_view);
 
+    void update_match_data(StaticMatchData data);
+
     int map_width() const;
 
     int map_height() const;
+
+    int state() const;
+
+    int fuel() const;
+
+    QString player() const;
 
 signals:
     void view_changed();
@@ -50,6 +71,13 @@ signals:
 
     void map_height_changed();
 
+    void state_changed();
+
+    void fuel_changed();
+
+    void player_changed();
+
 private:
     PlayerView current_view_;
+    StaticMatchData current_data_;
 };

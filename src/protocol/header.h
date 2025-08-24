@@ -60,6 +60,7 @@ enum class HeaderType : uint8_t
     NoMatchFound,
     MatchInProgress,
     SendCommand,
+    StaticMatchData,
     PlayerView,
     FailedMove,
     StaleMove,
@@ -81,7 +82,7 @@ enum class HeaderType : uint8_t
     DirectTextMessage,
     MatchTextMessage,
 
-    // Match related headers
+    // Match data related headers.
     FetchMatchHistory,
     MatchHistory,
     NoNewMatches,

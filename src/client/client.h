@@ -30,6 +30,8 @@ public:
     using MatchHistoryCallback = std::function<void(MatchResultList results)>;
 
     using ViewUpdateCallback = std::function<void(PlayerView new_view)>;
+
+    using MatchDataCallback = std::function<void(StaticMatchData data)>;
 public:
     Client(asio::io_context & cntx,
            LoginCallback login_callback,
@@ -39,7 +41,8 @@ public:
            QueueUpdateCallback queue_update_callback,
            DisplayMessageCallback display_message_callback,
            MatchHistoryCallback match_history_callback,
-           ViewUpdateCallback view_callback);
+           ViewUpdateCallback view_callback,
+           MatchDataCallback match_data_callback);
 
     inline ClientState get_state() const;
 
@@ -113,6 +116,7 @@ private:
     DisplayMessageCallback display_message_callback_;
     MatchHistoryCallback match_history_callback_;
     ViewUpdateCallback view_callback_;
+    MatchDataCallback match_data_callback_;
 };
 
 inline ClientState Client::get_state() const

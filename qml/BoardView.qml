@@ -30,6 +30,13 @@ Item {
         camY = Math.max(-cellTileSize, Math.min(camY, maxY + cellTileSize))
     }
 
+    function cellToScreen(cx, cy) {
+        var scaledTile = cellTileSize * scale
+        var screenX = Math.round(cx * scaledTile - camX)
+        var screenY = Math.round(cy * scaledTile - camY)
+        return { x: screenX, y: screenY }
+    }
+
     property int mapWidth: GameManager.map_width
     property int mapHeight: GameManager.map_height
 
@@ -86,17 +93,7 @@ Item {
                     var px = Math.round(x * scaledTile - camX)
                     var py = Math.round(y * scaledTile - camY)
 
-                    cntx.fillStyle = boardViewRoot.colorForType(type)
-
-                    if (!visible)
-                    {
-                        cntx.globalAlpha = 0.35
-                    }
-
-                    else
-                    {
-                        cntx.globalAlpha = 1.0
-                    }
+                    cntx.fillStyle = boardViewRoot.colorForTile(cell)
 
                     cntx.fillRect(px, py, scaledTile, scaledTile)
 
@@ -220,6 +217,12 @@ Item {
                         boardViewRoot.selectedCellY = cell.y
                         console.log(boardViewRoot.selectedCellX, boardViewRoot.selectedCellY)
                         viewCanvas.requestPaint()
+
+                        // open popup.
+                        showActionsPopup(boardViewRoot.selectedCellX,
+                                         boardViewRoot.selectedCellY,
+                                         mouse.x,
+                                         mouse.y)
                     }
                 }
             }
@@ -250,13 +253,289 @@ Item {
         }
     }
 
-    function colorForType(t) {
-        switch(t) {
-            case 0: return "#333";
-            case 1: return "#9f9";
-            case 2: return "#49a";
-            default: return "#666";
+    function colorForTile(cell) {
+        if (cell.occupant === 255)
+        {
+            switch(cell.type) {
+                // Empty.
+                case 0:
+                {
+                    if (cell.visible)
+                    {
+                        return "#D3D3D3";
+                    }
+                    else
+                    {
+                        return "#808080";
+                    }
+                }
+                // Foliage.
+                case 1:
+                {
+                    if (cell.visible)
+                    {
+                        return "#117C13";
+                    }
+                    else
+                    {
+                        return "#284903";
+                    }
+                }
+                // Terrain.
+                case 2:
+                {
+                    if (cell.visible)
+                    {
+                        return "#555555";
+                    }
+                    else
+                    {
+                        return "#2F2F2F";
+                    }
+                }
+                // Should never occur.
+                default: return "#666666";
+            }
         }
+        else
+        {
+            // Just give occupants some random color for now.
+            if (cell.occupant >= 0 && cell.occupant < 2)
+            {
+                return "#950606"
+            }
+            else if (cell.occupant >= 2 && cell.occupant < 4)
+            {
+                return "#111184"
+            }
+            else
+            {
+                return "#000000"
+            }
+        }
+    }
+
+    // Hold list of actions given the game state.
+    ListModel {
+        id: actionsModel
+    }
+
+    Popup {
+        id: actionPopup
+        modal: true
+        focus: true
+
+        closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
+
+        contentItem: Rectangle {
+            id: contentItemRect
+            implicitWidth: 240
+            implicitHeight: 240
+            border.width: 1
+            color: "#3f3f3f"
+
+            GridLayout {
+                id: grid
+                anchors.margins: 0
+                anchors.fill: parent
+                rowSpacing: 0
+                columnSpacing: 0
+
+                // 3x3 action grid.
+                rows: 3
+                columns: 3
+
+                Repeater {
+                    model: actionsModel
+                    delegate: Button {
+                        text: model.actionText
+
+                        onClicked: {
+                            switch (model.action)
+                            {
+                                case "place":
+                                {
+                                    if (selectedCellX >= 0 && selectedCellY >= 0)
+                                    {
+                                        Client.send_place_tank(selectedCellX,
+                                                               selectedCellY)
+                                    }
+                                    break
+                                }
+                                case "rotate_barrel_left":
+                                {
+                                    if (selectedCellX >= 0 && selectedCellY >= 0)
+                                    {
+                                        Client.send_rotate_barrel(selectedCellX,
+                                                                  selectedCellY,
+                                                                  1)
+                                    }
+                                    break
+                                }
+                                case "move_forward":
+                                {
+                                    if (selectedCellX >= 0 && selectedCellY >= 0)
+                                    {
+                                        Client.send_move_tank(selectedCellX,
+                                                              selectedCellY,
+                                                              0)
+                                    }
+                                    break
+                                }
+                                case "rotate_barrel_right":
+                                {
+                                    if (selectedCellX >= 0 && selectedCellY >= 0)
+                                    {
+                                        Client.send_rotate_barrel(selectedCellX,
+                                                                  selectedCellY,
+                                                                  0)
+                                    }
+                                    break
+                                }
+                                case "rotate_tank_left":
+                                {
+                                    if (selectedCellX >= 0 && selectedCellY >= 0)
+                                    {
+                                        Client.send_rotate_tank(selectedCellX,
+                                                                selectedCellY,
+                                                                1)
+                                    }
+                                    break
+                                }
+                                case "fire":
+                                {
+                                    if (selectedCellX >= 0 && selectedCellY >= 0)
+                                    {
+                                        Client.send_fire_tank(selectedCellX,
+                                                              selectedCellY)
+                                    }
+                                    break
+                                }
+                                case "rotate_tank_right":
+                                {
+                                    if (selectedCellX >= 0 && selectedCellY >= 0)
+                                    {
+                                        Client.send_rotate_tank(selectedCellX,
+                                                                selectedCellY,
+                                                                0)
+                                    }
+                                    break
+                                }
+                                case "reload":
+                                {
+                                    if (selectedCellX >= 0 && selectedCellY >= 0)
+                                    {
+                                        Client.send_reload_tank(selectedCellX,
+                                                                selectedCellY)
+                                    }
+                                    break
+                                }
+                                case "move_reverse":
+                                {
+                                    if (selectedCellX >= 0 && selectedCellY >= 0)
+                                    {
+                                        Client.send_move_tank(selectedCellX,
+                                                              selectedCellY,
+                                                              1)
+                                    }
+                                    break
+                                }
+                                case "no_op":
+                                {
+                                    console.log("no_op found")
+                                    break
+                                }
+                                default:
+                                {
+                                    break
+                                }
+                            }
+
+                            actionPopup.close()
+                        }
+
+                        implicitWidth: contentItemRect.width / grid.rows
+                        implicitHeight: contentItemRect.height / grid.columns
+                    }
+                }
+            }
+        }
+
+        onClosed: {
+            console.log("closing popup")
+        }
+
+    }
+
+    function showActionsPopup(cx, cy, clickX, clickY) {
+        actionsModel.clear()
+
+        // Give no actions for negative tile coords.
+        if (cx < 0 || cy < 0)
+        {
+            return
+        }
+
+        var cell = GameManager.cell_at(cx, cy)
+        var state = GameManager.state
+
+        // If in setup.
+        if (state === 0)
+        {
+            // Allow place only if not occupied and not terraine.
+            if (cell.occupant === 255 && cell.type !== 2)
+            {
+                actionsModel.append({ action: "place", actionText: "Place Tank" })
+            }
+        }
+        // If playing.
+        else if (state === 1)
+        {
+            // Add commands if tank exists.
+            if (cell.occupant !== 255)
+            {
+                // First 3
+                actionsModel.append({ action: "rotate_barrel_left", actionText: "Rotate\nBarrel\nLeft" })
+                actionsModel.append({ action: "move_forward", actionText: "Move\nForward" })
+                actionsModel.append({ action: "rotate_barrel_right", actionText: "Rotate\nBarrel\nRight" })
+
+                // Next 3
+                actionsModel.append({ action: "rotate_tank_left", actionText: "Rotate\nTank\nLeft" })
+                actionsModel.append({ action: "fire", actionText: "Fire" })
+                actionsModel.append({ action: "rotate_tank_right", actionText: "Rotate\nTank\nRight" })
+
+                // Bottom 3.
+                actionsModel.append({ action: "reload", actionText: "Reload" })
+                actionsModel.append({ action: "move_reverse", actionText: "Move\nReverse" })
+                actionsModel.append({ action: "no_op", actionText: "" })
+            }
+        }
+        // Otherwise, game is done.
+        else
+        {
+            return
+        }
+
+        // compute screen coordinates for popup.
+        var pos = cellToScreen(cx, cy)
+        var px = pos.x + cellTileSize * scale + 8
+        var py = pos.y
+
+        // if we gave coordinates, switch to those.
+        if (clickX !== undefined && clickX > 0
+            && clickY !== undefined && clickY > 0)
+        {
+            px = clickX
+            py = clickY
+        }
+
+        // Clamp to window.
+        px = Math.max(4, Math.min(px, boardViewRoot.width - actionPopup.implicitWidth - 4))
+        py = Math.max(4, Math.min(py, boardViewRoot.height - actionPopup.implicitHeight - 4))
+
+        actionPopup.x = px
+        actionPopup.y = py
+        actionPopup.open()
     }
 
 

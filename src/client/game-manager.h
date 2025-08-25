@@ -64,6 +64,10 @@ public:
 
     QString player() const;
 
+    uint16_t sequence_number();
+
+    uint8_t tank_at(int x, int y);
+
 signals:
     void view_changed();
 
@@ -80,4 +84,7 @@ signals:
 private:
     PlayerView current_view_;
     StaticMatchData current_data_;
+
+    // Increasing number across a game,
+    uint16_t sequence_number_{0};
 };

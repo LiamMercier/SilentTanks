@@ -339,6 +339,9 @@ void MatchInstance::start_turn()
         current_state = GameState::Play;
         current_player = 0;
         current_fuel = TURN_PLAYER_FUEL;
+
+        // Send this updated view so players know the state is updated.
+        compute_all_views();
     }
 
     // game end condition
@@ -505,15 +508,15 @@ void MatchInstance::on_player_move_arrived(uint16_t t_id)
     // Remove 1 fuel for this turn.
     current_fuel = current_fuel - 1;
 
-    // Compute views for all players
-    compute_all_views();
-
     // Turn update logic
 
     // If we're not out of fuel (and implicitly, setup is over)
     // then we simply start another turn for this player.
     if (current_fuel > 0)
     {
+        // Compute views for all players
+        compute_all_views();
+
         start_turn_strand();
         return;
     }
@@ -522,6 +525,10 @@ void MatchInstance::on_player_move_arrived(uint16_t t_id)
     {
         current_player = ((current_player + 1) % n_players_);
         current_fuel = TURN_PLAYER_FUEL;
+
+        // Compute views for all players
+        compute_all_views();
+
         start_turn_strand();
         return;
     }

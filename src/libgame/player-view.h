@@ -30,6 +30,11 @@ struct PlayerView
         return map_view.get_height();
     }
 
+    inline size_t indx(size_t x, size_t y) const
+    {
+        return map_view.idx(x, y);
+    }
+
     FlatArray<GridCell> map_view;
     std::vector<Tank> visible_tanks;
     uint8_t current_player;

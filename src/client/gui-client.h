@@ -106,6 +106,18 @@ public:
     Q_INVOKABLE void fetch_match_history(QueueType mode);
 
     Q_INVOKABLE void download_match_by_id(qint64 match_id);
+
+    Q_INVOKABLE void send_place_tank(int x, int y);
+
+    Q_INVOKABLE void send_rotate_barrel(int x, int y, int rotation);
+
+    Q_INVOKABLE void send_move_tank(int x, int y, int dir);
+
+    Q_INVOKABLE void send_rotate_tank(int x, int y, int rotation);
+
+    Q_INVOKABLE void send_fire_tank(int x, int y);
+
+    Q_INVOKABLE void send_reload_tank(int x, int y);
 private:
     void try_show_popup();
 
@@ -152,7 +164,9 @@ private:
     // Message view for GUI.
     ChatMessageModel messages_;
 
+    // Match history view.
     MatchHistoryModel match_history_;
 
+    // For managing client's view of the game.
     GameManager game_manager_;
 };

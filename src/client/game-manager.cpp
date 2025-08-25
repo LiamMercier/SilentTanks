@@ -56,7 +56,7 @@ Q_INVOKABLE QVariantMap GameManager::cell_at(int x, int y) const
         return m;
     }
 
-    size_t index = current_view_.map_view.idx(x, y);
+    size_t index = current_view_.indx(x, y);
     const GridCell & cell = current_view_.map_view[index];
 
     m["type"] = static_cast<int>(cell.type_);
@@ -86,11 +86,15 @@ void GameManager::update_view(PlayerView new_view)
     emit view_changed();
     emit state_changed();
     emit fuel_changed();
+    emit player_changed();
 }
 
 void GameManager::update_match_data(StaticMatchData data)
 {
     current_data_ = data;
+
+    // Game server will dump old commands, so just reset our sequence number.
+    sequence_number_ = 0;
 
     emit player_changed();
 }
@@ -127,4 +131,14 @@ QString GameManager::player() const
     const auto & user = current_data_.player_list.users[current_player];
     std::string username = user.username;
     return QString::fromStdString(username);
+}
+
+uint16_t GameManager::sequence_number()
+{
+    return sequence_number_;
+}
+
+uint8_t GameManager::tank_at(int x, int y)
+{
+    return current_view_.map_view[current_view_.indx(x, y)].occupant_;
 }

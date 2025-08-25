@@ -288,6 +288,77 @@ Q_INVOKABLE void GUIClient::download_match_by_id(qint64 match_id)
     client_.request_match_replay(static_cast<uint64_t>(match_id));
 }
 
+Q_INVOKABLE void GUIClient::send_place_tank(int x, int y)
+{
+    Command cmd;
+
+    // Fetch from game manager.
+    cmd.type = CommandType::Place;
+    cmd.sequence_number = game_manager_.sequence_number();
+    cmd.payload_first = x;
+    cmd.payload_second = y;
+
+    client_.send_command(std::move(cmd));
+}
+
+Q_INVOKABLE void GUIClient::send_rotate_barrel(int x, int y, int rotation)
+{
+    Command cmd;
+
+    cmd.type = CommandType::RotateBarrel;
+    cmd.sequence_number = game_manager_.sequence_number();
+    cmd.tank_id = game_manager_.tank_at(x, y);
+    cmd.payload_first = rotation;
+
+    client_.send_command(std::move(cmd));
+}
+
+Q_INVOKABLE void GUIClient::send_move_tank(int x, int y, int dir)
+{
+    Command cmd;
+
+    cmd.type = CommandType::Move;
+    cmd.sequence_number = game_manager_.sequence_number();
+    cmd.tank_id = game_manager_.tank_at(x, y);
+    cmd.payload_first = dir;
+
+    client_.send_command(std::move(cmd));
+}
+
+Q_INVOKABLE void GUIClient::send_rotate_tank(int x, int y, int rotation)
+{
+    Command cmd;
+
+    cmd.type = CommandType::RotateTank;
+    cmd.sequence_number = game_manager_.sequence_number();
+    cmd.tank_id = game_manager_.tank_at(x, y);
+    cmd.payload_first = rotation;
+
+    client_.send_command(std::move(cmd));
+}
+
+Q_INVOKABLE void GUIClient::send_fire_tank(int x, int y)
+{
+    Command cmd;
+
+    cmd.type = CommandType::Fire;
+    cmd.sequence_number = game_manager_.sequence_number();
+    cmd.tank_id = game_manager_.tank_at(x, y);
+
+    client_.send_command(std::move(cmd));
+}
+
+Q_INVOKABLE void GUIClient::send_reload_tank(int x, int y)
+{
+    Command cmd;
+
+    cmd.type = CommandType::Load;
+    cmd.sequence_number = game_manager_.sequence_number();
+    cmd.tank_id = game_manager_.tank_at(x, y);
+
+    client_.send_command(std::move(cmd));
+}
+
 void GUIClient::try_show_popup()
 {
     Popup p;

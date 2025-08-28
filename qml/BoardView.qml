@@ -501,13 +501,13 @@ Item {
 
                 // Next 3
                 actionsModel.append({ action: "rotate_tank_left", actionText: "Rotate\nTank\nLeft" })
-                actionsModel.append({ action: "fire", actionText: "Fire" })
+                actionsModel.append({ action: "no_op", actionText: "" })
                 actionsModel.append({ action: "rotate_tank_right", actionText: "Rotate\nTank\nRight" })
 
                 // Bottom 3.
                 actionsModel.append({ action: "reload", actionText: "Reload" })
                 actionsModel.append({ action: "move_reverse", actionText: "Move\nReverse" })
-                actionsModel.append({ action: "no_op", actionText: "" })
+                actionsModel.append({ action: "fire", actionText: "Fire" })
             }
         }
         // Otherwise, game is done.

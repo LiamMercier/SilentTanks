@@ -135,7 +135,7 @@ void ClientSession::do_read_header()
                     else
                     {
                         // TODO: log this to user file or something.
-                        std::cerr << "Invalid header from server\n";
+                        std::cerr << "Invalid header from server: " << +(static_cast<uint8_t>(self->incoming_header_.type_)) << "\n";
 
                         // Close the session after sending
                         self->force_close_session();

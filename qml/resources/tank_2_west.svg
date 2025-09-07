@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 360 360">
+  <defs>
+    <style>
+      .cls-1 {
+        opacity: .83;
+      }
+
+      .cls-2 {
+        fill: url(#linear-gradient);
+      }
+
+      .cls-2, .cls-3, .cls-4 {
+        stroke: #24363f;
+        stroke-miterlimit: 10;
+      }
+
+      .cls-2, .cls-4 {
+        stroke-width: .05px;
+      }
+
+      .cls-3 {
+        fill: url(#linear-gradient-3);
+        stroke-width: .05px;
+      }
+
+      .cls-5 {
+        fill: #24363f;
+      }
+
+      .cls-6 {
+        fill: #851014;
+      }
+
+      .cls-7 {
+        fill: #8a1216;
+      }
+
+      .cls-4 {
+        fill: url(#linear-gradient-2);
+      }
+
+      .cls-8 {
+        fill: #56646c;
+      }
+    </style>
+    <linearGradient id="linear-gradient" x1="317.44" y1="245.41" x2="180.14" y2="245.41" gradientTransform="translate(-130.76 -132.35)" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#520000"/>
+      <stop offset=".23" stop-color="#b8161c"/>
+      <stop offset=".25" stop-color="#b8171d"/>
+      <stop offset=".26" stop-color="#ba1e23"/>
+      <stop offset=".26" stop-color="#be2a2e"/>
+      <stop offset=".26" stop-color="#c33b3d"/>
+      <stop offset=".26" stop-color="#c94b4b"/>
+      <stop offset=".32" stop-color="#c33b3d"/>
+      <stop offset=".39" stop-color="#be2a2e"/>
+      <stop offset=".49" stop-color="#ba1e23"/>
+      <stop offset=".62" stop-color="#b8171d"/>
+      <stop offset="1" stop-color="#b8161c"/>
+    </linearGradient>
+    <linearGradient id="linear-gradient-2" y1="117.78" y2="117.78" gradientTransform="translate(-130.76 122.9)" xlink:href="#linear-gradient"/>
+    <linearGradient id="linear-gradient-3" x1="46.38" y1="181.91" x2="304.68" y2="181.91" gradientTransform="translate(366.82 358.47) rotate(-180)" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#b8161c"/>
+      <stop offset=".29" stop-color="#b8171d"/>
+      <stop offset=".4" stop-color="#ba1e23"/>
+      <stop offset=".48" stop-color="#be2a2e"/>
+      <stop offset=".54" stop-color="#c33b3d"/>
+      <stop offset=".58" stop-color="#c94b4b"/>
+      <stop offset=".58" stop-color="#b8161c"/>
+      <stop offset="1" stop-color="#520000"/>
+    </linearGradient>
+  </defs>
+  <g id="Treads">
+    <g>
+      <g>
+        <rect class="cls-5" x="41.28" y="233.07" width="282.48" height="37.74" rx=".36" ry=".36" transform="translate(365.03 503.88) rotate(180)"/>
+        <g>
+          <rect class="cls-8" x="306.69" y="231.68" width="12.67" height="40.52" rx="1.74" ry="1.74"/>
+          <rect class="cls-8" x="280.68" y="231.68" width="12.67" height="40.52" rx="1.74" ry="1.74"/>
+          <rect class="cls-8" x="228.67" y="231.68" width="12.67" height="40.52" rx="1.74" ry="1.74"/>
+          <rect class="cls-8" x="254.67" y="231.68" width="12.67" height="40.52" rx="1.74" ry="1.74"/>
+          <rect class="cls-8" x="202.66" y="231.68" width="12.67" height="40.52" rx="1.74" ry="1.74"/>
+          <rect class="cls-8" x="176.65" y="231.68" width="12.67" height="40.52" rx="1.74" ry="1.74"/>
+          <rect class="cls-8" x="124.64" y="231.68" width="12.67" height="40.52" rx="1.74" ry="1.74"/>
+          <rect class="cls-8" x="150.65" y="231.68" width="12.67" height="40.52" rx="1.74" ry="1.74"/>
+          <rect class="cls-8" x="98.64" y="231.68" width="12.67" height="40.52" rx="1.74" ry="1.74"/>
+          <rect class="cls-8" x="72.63" y="231.68" width="12.67" height="40.52" rx="1.74" ry="1.74"/>
+          <rect class="cls-8" x="46.62" y="231.68" width="12.67" height="40.52" rx="1.74" ry="1.74"/>
+        </g>
+      </g>
+      <g>
+        <rect class="cls-5" x="41.28" y="86.22" width="282.48" height="37.74" rx=".36" ry=".36" transform="translate(365.03 210.17) rotate(180)"/>
+        <g>
+          <rect class="cls-8" x="306.69" y="84.82" width="12.67" height="40.52" rx="1.74" ry="1.74"/>
+          <rect class="cls-8" x="280.68" y="84.82" width="12.67" height="40.52" rx="1.74" ry="1.74"/>
+          <rect class="cls-8" x="228.67" y="84.82" width="12.67" height="40.52" rx="1.74" ry="1.74"/>
+          <rect class="cls-8" x="254.67" y="84.82" width="12.67" height="40.52" rx="1.74" ry="1.74"/>
+          <rect class="cls-8" x="202.66" y="84.82" width="12.67" height="40.52" rx="1.74" ry="1.74"/>
+          <rect class="cls-8" x="176.65" y="84.82" width="12.67" height="40.52" rx="1.74" ry="1.74"/>
+          <rect class="cls-8" x="124.64" y="84.82" width="12.67" height="40.52" rx="1.74" ry="1.74"/>
+          <rect class="cls-8" x="150.65" y="84.82" width="12.67" height="40.52" rx="1.74" ry="1.74"/>
+          <rect class="cls-8" x="98.64" y="84.82" width="12.67" height="40.52" rx="1.74" ry="1.74"/>
+          <rect class="cls-8" x="72.63" y="84.82" width="12.67" height="40.52" rx="1.74" ry="1.74"/>
+          <rect class="cls-8" x="46.62" y="84.82" width="12.67" height="40.52" rx="1.74" ry="1.74"/>
+        </g>
+      </g>
+    </g>
+  </g>
+  <g id="Ram_Tank" data-name="Ram Tank">
+    <g>
+      <g>
+        <rect class="cls-2" x="49.38" y="91.6" width="137.3" height="42.93" transform="translate(236.06 226.12) rotate(180)"/>
+        <rect class="cls-4" x="49.38" y="219.22" width="137.3" height="42.93" transform="translate(236.06 481.38) rotate(180)"/>
+      </g>
+      <path class="cls-3" d="m62.14,134.05v85.71l108.23,42.85,115.71-.19c19-.07,34.36-15.49,34.36-34.49v-102.95c0-19.22-15.72-34.73-34.94-34.48l-115.14.69-108.23,42.85Z"/>
+      <circle class="cls-6" cx="169.42" cy="239.16" r="17.06"/>
+      <g class="cls-1">
+        <rect class="cls-7" x="293.09" y="153.21" width="3.97" height="46.7" transform="translate(590.15 353.12) rotate(180)"/>
+        <rect class="cls-7" x="287.26" y="153.21" width="3.97" height="46.7" transform="translate(578.49 353.12) rotate(180)"/>
+        <rect class="cls-7" x="281.43" y="153.21" width="3.97" height="46.7" transform="translate(566.83 353.12) rotate(180)"/>
+        <rect class="cls-7" x="275.6" y="153.21" width="3.97" height="46.7" transform="translate(555.18 353.12) rotate(180)"/>
+        <rect class="cls-7" x="269.77" y="153.21" width="3.97" height="46.7" transform="translate(543.52 353.12) rotate(180)"/>
+        <rect class="cls-7" x="263.95" y="153.21" width="3.97" height="46.7" transform="translate(531.86 353.12) rotate(180)"/>
+        <rect class="cls-7" x="258.12" y="153.21" width="3.97" height="46.7" transform="translate(520.2 353.12) rotate(180)"/>
+        <rect class="cls-7" x="252.29" y="153.21" width="3.97" height="46.7" transform="translate(508.54 353.12) rotate(180)"/>
+      </g>
+    </g>
+    <g>
+      <rect class="cls-7" x="249.48" y="204.77" width="58.22" height="16.89" transform="translate(557.19 426.43) rotate(180)"/>
+      <rect class="cls-7" x="249.48" y="131.45" width="58.22" height="16.89" transform="translate(557.19 279.8) rotate(180)"/>
+    </g>
+  </g>
+</svg>

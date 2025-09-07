@@ -35,6 +35,20 @@ struct PlayerView
         return map_view.idx(x, y);
     }
 
+    // Linear scan to find the tank for this occupant.
+    inline Tank find_tank(uint8_t tank_id) const
+    {
+        for (const auto tank : visible_tanks)
+        {
+            if (tank_id == tank.id_)
+            {
+                return tank;
+            }
+        }
+
+        return {};
+    }
+
     FlatArray<GridCell> map_view;
     std::vector<Tank> visible_tanks;
     uint8_t current_player;

@@ -34,6 +34,8 @@ Item {
                 Component.onCompleted:
                 {
                     allModes.append({label:"Casual 1v1", mode: QueueType.ClassicTwoPlayer})
+                    allModes.append({label:"Casual 3 player", mode: QueueType.ClassicThreePlayer})
+                    allModes.append({label:"Casual 5 player", mode: QueueType.ClassicFivePlayer})
                     allModes.append({label:"Ranked 1v1", mode: QueueType.RankedTwoPlayer})
                 }
 

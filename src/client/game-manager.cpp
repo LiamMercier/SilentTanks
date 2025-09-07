@@ -1,5 +1,37 @@
 #include "game-manager.h"
 
+// Helper to compare usernames.
+constexpr bool same_username(const std::string & a, const std::string & b)
+{
+    if (a.size() != b.size())
+    {
+            return false;
+    }
+
+    for (size_t i = 0; i < a.size(); i++)
+    {
+        char ca = a[i];
+        char cb = b[i];
+
+        if (ca >= 'A' && ca <= 'Z')
+        {
+            ca += 'a' - 'A';
+        }
+
+        if (cb >= 'A' && cb <= 'Z')
+        {
+            cb += 'a' - 'A';
+        }
+
+        if (ca != cb)
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+
 GameManager::GameManager(QObject * parent)
 :QAbstractListModel(parent)
 {
@@ -65,6 +97,25 @@ Q_INVOKABLE QVariantMap GameManager::cell_at(int x, int y) const
     return m;
 }
 
+Q_INVOKABLE QVariantMap GameManager::get_tank_data(int occupant) const
+{
+    QVariantMap m;
+    if (occupant < 0 || occupant >= 255)
+    {
+        return m;
+    }
+
+    const Tank & tank = current_view_.find_tank(occupant);
+
+    m["tank_direction"] = tank.current_direction_;
+    m["barrel_direction"] = tank.barrel_direction_;
+    m["health"] = tank.health_;
+    m["loaded"] = tank.loaded_;
+    m["owner"] = tank.owner_;
+
+    return m;
+}
+
 void GameManager::update_view(PlayerView new_view)
 {
     bool width_changed = (new_view.width() != current_view_.width());
@@ -89,12 +140,22 @@ void GameManager::update_view(PlayerView new_view)
     emit player_changed();
 }
 
-void GameManager::update_match_data(StaticMatchData data)
+void GameManager::update_match_data(StaticMatchData data, std::string username)
 {
     current_data_ = data;
 
     // Game server will dump old commands, so just reset our sequence number.
     sequence_number_ = 0;
+
+    // find our player ID.
+    for (unsigned int i = 0; i < current_data_.player_list.users.size(); i++)
+    {
+        if (same_username(current_data_.player_list.users[i].username, username))
+        {
+            player_id_ = static_cast<uint8_t>(i);
+            break;
+        }
+    }
 
     emit player_changed();
 }
@@ -141,4 +202,9 @@ uint16_t GameManager::sequence_number()
 uint8_t GameManager::tank_at(int x, int y)
 {
     return current_view_.map_view[current_view_.indx(x, y)].occupant_;
+}
+
+bool GameManager::is_turn()
+{
+    return current_view_.current_player == player_id_;
 }

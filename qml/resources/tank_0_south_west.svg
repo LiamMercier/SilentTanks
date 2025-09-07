@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 360 360">
+  <defs>
+    <style>
+      .cls-1 {
+        fill: url(#linear-gradient-2);
+      }
+
+      .cls-2 {
+        fill: url(#New_Gradient_Swatch_copy_3-2);
+      }
+
+      .cls-3 {
+        fill: #24363f;
+      }
+
+      .cls-4 {
+        fill: #56646c;
+      }
+
+      .cls-5 {
+        fill: url(#linear-gradient);
+      }
+
+      .cls-6 {
+        fill: url(#New_Gradient_Swatch_copy_3);
+      }
+
+      .cls-7 {
+        fill: url(#New_Gradient_Swatch_copy_3-3);
+      }
+    </style>
+    <linearGradient id="linear-gradient" x1="49.23" y1="180" x2="323.9" y2="180" gradientTransform="translate(-5.25 .98)" gradientUnits="userSpaceOnUse">
+      <stop offset=".45" stop-color="#008ae6"/>
+      <stop offset="1" stop-color="#5fb3ea"/>
+    </linearGradient>
+    <linearGradient id="New_Gradient_Swatch_copy_3" data-name="New Gradient Swatch copy 3" x1="256.46" y1="180" x2="323.9" y2="180" gradientTransform="translate(-182.12 74.25)" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#008ae6"/>
+      <stop offset="1" stop-color="#002c4a"/>
+    </linearGradient>
+    <linearGradient id="linear-gradient-2" x1="49.23" y1="180" x2="89.66" y2="180" gradientTransform="translate(440.52 176.34) rotate(135)" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#008ae6"/>
+      <stop offset="1" stop-color="#002c4a"/>
+    </linearGradient>
+    <linearGradient id="New_Gradient_Swatch_copy_3-2" x1="177.27" y1="276.13" x2="177.27" y2="235.7" gradientTransform="translate(440.52 176.34) rotate(135)" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#008ae6"/>
+      <stop offset="1" stop-color="#002c4a"/>
+    </linearGradient>
+    <linearGradient id="New_Gradient_Swatch_copy_3-3" x1="175.47" y1="83.92" x2="175.47" y2="124.36" gradientTransform="translate(440.52 176.34) rotate(135)" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#008ae6"/>
+      <stop offset="1" stop-color="#002c4a"/>
+    </linearGradient>
+  </defs>
+  <g id="Treads">
+    <g>
+      <g>
+        <rect class="cls-3" x="93.62" y="212.46" width="282.48" height="37.74" rx=".36" ry=".36" transform="translate(564.51 228.83) rotate(135)"/>
+        <g>
+          <rect class="cls-4" x="320.81" y="118.79" width="12.67" height="40.52" rx="1.74" ry="1.74" transform="translate(-2.51 272.05) rotate(-45)"/>
+          <rect class="cls-4" x="302.42" y="137.18" width="12.67" height="40.52" rx="1.74" ry="1.74" transform="translate(-20.89 264.44) rotate(-45)"/>
+          <rect class="cls-4" x="265.64" y="173.96" width="12.67" height="40.52" rx="1.74" ry="1.74" transform="translate(-57.67 249.2) rotate(-45)"/>
+          <rect class="cls-4" x="284.03" y="155.57" width="12.67" height="40.52" rx="1.74" ry="1.74" transform="translate(-39.28 256.82) rotate(-45)"/>
+          <rect class="cls-4" x="247.25" y="192.35" width="12.67" height="40.52" rx="1.74" ry="1.74" transform="translate(-76.06 241.58) rotate(-45)"/>
+          <rect class="cls-4" x="228.86" y="210.74" width="12.67" height="40.52" rx="1.74" ry="1.74" transform="translate(-94.45 233.97) rotate(-45)"/>
+          <rect class="cls-4" x="192.09" y="247.51" width="12.67" height="40.52" rx="1.74" ry="1.74" transform="translate(-131.23 218.73) rotate(-45)"/>
+          <rect class="cls-4" x="210.48" y="229.12" width="12.67" height="40.52" rx="1.74" ry="1.74" transform="translate(-112.84 226.35) rotate(-45)"/>
+          <rect class="cls-4" x="173.7" y="265.9" width="12.67" height="40.52" rx="1.74" ry="1.74" transform="translate(-149.62 211.12) rotate(-45)"/>
+          <rect class="cls-4" x="155.31" y="284.29" width="12.67" height="40.52" rx="1.74" ry="1.74" transform="translate(-168.01 203.5) rotate(-45)"/>
+          <rect class="cls-4" x="136.92" y="302.68" width="12.67" height="40.52" rx="1.74" ry="1.74" transform="translate(-186.4 195.88) rotate(-45)"/>
+        </g>
+      </g>
+      <g>
+        <rect class="cls-3" x="-10.22" y="108.62" width="282.48" height="37.74" rx=".36" ry=".36" transform="translate(313.82 124.99) rotate(135)"/>
+        <g>
+          <rect class="cls-4" x="216.97" y="14.95" width="12.67" height="40.52" rx="1.74" ry="1.74" transform="translate(40.51 168.21) rotate(-45)"/>
+          <rect class="cls-4" x="198.58" y="33.34" width="12.67" height="40.52" rx="1.74" ry="1.74" transform="translate(22.12 160.59) rotate(-45)"/>
+          <rect class="cls-4" x="161.8" y="70.11" width="12.67" height="40.52" rx="1.74" ry="1.74" transform="translate(-14.66 145.36) rotate(-45)"/>
+          <rect class="cls-4" x="180.19" y="51.73" width="12.67" height="40.52" rx="1.74" ry="1.74" transform="translate(3.73 152.98) rotate(-45)"/>
+          <rect class="cls-4" x="143.41" y="88.5" width="12.67" height="40.52" rx="1.74" ry="1.74" transform="translate(-33.05 137.74) rotate(-45)"/>
+          <rect class="cls-4" x="125.02" y="106.89" width="12.67" height="40.52" rx="1.74" ry="1.74" transform="translate(-51.44 130.12) rotate(-45)"/>
+          <rect class="cls-4" x="88.24" y="143.67" width="12.67" height="40.52" rx="1.74" ry="1.74" transform="translate(-88.22 114.89) rotate(-45)"/>
+          <rect class="cls-4" x="106.63" y="125.28" width="12.67" height="40.52" rx="1.74" ry="1.74" transform="translate(-69.83 122.51) rotate(-45)"/>
+          <rect class="cls-4" x="69.85" y="162.06" width="12.67" height="40.52" rx="1.74" ry="1.74" transform="translate(-106.61 107.27) rotate(-45)"/>
+          <rect class="cls-4" x="51.46" y="180.45" width="12.67" height="40.52" rx="1.74" ry="1.74" transform="translate(-124.99 99.66) rotate(-45)"/>
+          <rect class="cls-4" x="33.08" y="198.84" width="12.67" height="40.52" rx="1.74" ry="1.74" transform="translate(-143.38 92.04) rotate(-45)"/>
+        </g>
+      </g>
+    </g>
+  </g>
+  <g id="Churchill">
+    <rect class="cls-5" x="43.99" y="125.73" width="274.66" height="110.51" transform="translate(437.5 180.74) rotate(135)"/>
+    <rect class="cls-6" x="74.33" y="198.99" width="67.44" height="110.51" transform="translate(364.24 357.62) rotate(135)"/>
+    <polygon class="cls-1" points="244.57 50.01 231.44 94.07 268.23 130.85 312.29 117.73 244.57 50.01"/>
+    <polygon class="cls-2" points="209.18 74.35 152.88 73.48 86.96 139.39 87.84 195.69 209.18 74.35"/>
+    <polygon class="cls-7" points="167.84 273.15 224.14 274.02 290.05 208.11 289.18 151.81 167.84 273.15"/>
+  </g>
+</svg>

@@ -27,6 +27,8 @@ Q_ENUM_NS(PopupType)
 enum class QueueType : uint8_t
 {
     ClassicTwoPlayer = 0,
+    ClassicThreePlayer,
+    ClassicFivePlayer,
     RankedTwoPlayer,
     NO_MODE
 };

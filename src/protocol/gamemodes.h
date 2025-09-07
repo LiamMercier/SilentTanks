@@ -4,6 +4,8 @@
 enum class GameMode : uint8_t
 {
     ClassicTwoPlayer = 0,
+    ClassicThreePlayer,
+    ClassicFivePlayer,
     RankedTwoPlayer,
     NO_MODE
 };

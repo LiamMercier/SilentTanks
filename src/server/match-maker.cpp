@@ -27,6 +27,10 @@ MatchMaker::MatchMaker(asio::io_context & cntx,
     // Setup match making strategies.
     matching_queues_[static_cast<size_t>(GameMode::ClassicTwoPlayer)] = std::make_unique<CasualTwoPlayerStrategy>(cntx, match_call_back, all_maps_);
 
+    matching_queues_[static_cast<size_t>(GameMode::ClassicThreePlayer)] = std::make_unique<CasualThreePlayerStrategy>(cntx, match_call_back, all_maps_);
+
+    matching_queues_[static_cast<size_t>(GameMode::ClassicFivePlayer)] = std::make_unique<CasualFivePlayerStrategy>(cntx, match_call_back, all_maps_);
+
     matching_queues_[static_cast<size_t>(GameMode::RankedTwoPlayer)] = std::make_unique<RankedTwoPlayerStrategy>(cntx, match_call_back, all_maps_);
 
     // Start tick timer.

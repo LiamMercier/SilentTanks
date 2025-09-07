@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 360 360">
+  <defs>
+    <style>
+      .cls-1 {
+        fill: url(#linear-gradient-2);
+      }
+
+      .cls-2, .cls-3 {
+        fill: #032000;
+      }
+
+      .cls-4 {
+        fill: #24363f;
+      }
+
+      .cls-5 {
+        fill: url(#linear-gradient-5);
+      }
+
+      .cls-6 {
+        opacity: .49;
+      }
+
+      .cls-7 {
+        fill: #56646c;
+      }
+
+      .cls-8 {
+        fill: url(#linear-gradient-3);
+      }
+
+      .cls-9 {
+        fill: url(#linear-gradient);
+      }
+
+      .cls-3 {
+        opacity: .69;
+      }
+
+      .cls-10 {
+        fill: url(#linear-gradient-4);
+      }
+    </style>
+    <linearGradient id="linear-gradient" x1="180.35" y1="266.22" x2="180.35" y2="229.19" gradientTransform="translate(-.46 -.98)" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#225e00"/>
+      <stop offset="1" stop-color="#4c9619"/>
+    </linearGradient>
+    <linearGradient id="linear-gradient-2" x1="180.35" y1="93.77" x2="180.35" y2="130.8" gradientTransform="translate(-.46 -.98)" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#225e00"/>
+      <stop offset="1" stop-color="#4c9619"/>
+    </linearGradient>
+    <linearGradient id="linear-gradient-3" x1="300.52" y1="180" x2="320.2" y2="180" gradientTransform="translate(-.46 -.98)" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#4c9619"/>
+      <stop offset="1" stop-color="#0f3800"/>
+    </linearGradient>
+    <linearGradient id="linear-gradient-4" x1="60.68" y1="180" x2="300.58" y2="180" gradientTransform="translate(-.46 -.98)" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#8ce13c"/>
+      <stop offset="0" stop-color="#88de39"/>
+      <stop offset=".07" stop-color="#77d22e"/>
+      <stop offset=".14" stop-color="#6bca26"/>
+      <stop offset=".23" stop-color="#64c522"/>
+      <stop offset=".5" stop-color="#63c421"/>
+      <stop offset=".77" stop-color="#64c522"/>
+      <stop offset=".87" stop-color="#6bca26"/>
+      <stop offset=".94" stop-color="#77d22e"/>
+      <stop offset=".99" stop-color="#88de39"/>
+      <stop offset="1" stop-color="#8ce13c"/>
+    </linearGradient>
+    <linearGradient id="linear-gradient-5" x1="40.51" y1="180" x2="60.72" y2="180" gradientTransform="translate(-.46 -.98)" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#225e00"/>
+      <stop offset="1" stop-color="#63c421"/>
+    </linearGradient>
+  </defs>
+  <g id="Treads">
+    <g>
+      <g>
+        <rect class="cls-4" x="42.6" y="86.69" width="282.48" height="37.74" rx=".36" ry=".36"/>
+        <g>
+          <rect class="cls-7" x="47" y="85.29" width="12.67" height="40.52" rx="1.74" ry="1.74"/>
+          <rect class="cls-7" x="73.01" y="85.29" width="12.67" height="40.52" rx="1.74" ry="1.74"/>
+          <rect class="cls-7" x="125.02" y="85.29" width="12.67" height="40.52" rx="1.74" ry="1.74"/>
+          <rect class="cls-7" x="99.01" y="85.29" width="12.67" height="40.52" rx="1.74" ry="1.74"/>
+          <rect class="cls-7" x="151.03" y="85.29" width="12.67" height="40.52" rx="1.74" ry="1.74"/>
+          <rect class="cls-7" x="177.03" y="85.29" width="12.67" height="40.52" rx="1.74" ry="1.74"/>
+          <rect class="cls-7" x="229.05" y="85.29" width="12.67" height="40.52" rx="1.74" ry="1.74"/>
+          <rect class="cls-7" x="203.04" y="85.29" width="12.67" height="40.52" rx="1.74" ry="1.74"/>
+          <rect class="cls-7" x="255.05" y="85.29" width="12.67" height="40.52" rx="1.74" ry="1.74"/>
+          <rect class="cls-7" x="281.06" y="85.29" width="12.67" height="40.52" rx="1.74" ry="1.74"/>
+          <rect class="cls-7" x="307.06" y="85.29" width="12.67" height="40.52" rx="1.74" ry="1.74"/>
+        </g>
+      </g>
+      <g>
+        <rect class="cls-4" x="42.6" y="233.54" width="282.48" height="37.74" rx=".36" ry=".36"/>
+        <g>
+          <rect class="cls-7" x="47" y="232.15" width="12.67" height="40.52" rx="1.74" ry="1.74"/>
+          <rect class="cls-7" x="73.01" y="232.15" width="12.67" height="40.52" rx="1.74" ry="1.74"/>
+          <rect class="cls-7" x="125.02" y="232.15" width="12.67" height="40.52" rx="1.74" ry="1.74"/>
+          <rect class="cls-7" x="99.01" y="232.15" width="12.67" height="40.52" rx="1.74" ry="1.74"/>
+          <rect class="cls-7" x="151.03" y="232.15" width="12.67" height="40.52" rx="1.74" ry="1.74"/>
+          <rect class="cls-7" x="177.03" y="232.15" width="12.67" height="40.52" rx="1.74" ry="1.74"/>
+          <rect class="cls-7" x="229.05" y="232.15" width="12.67" height="40.52" rx="1.74" ry="1.74"/>
+          <rect class="cls-7" x="203.04" y="232.15" width="12.67" height="40.52" rx="1.74" ry="1.74"/>
+          <rect class="cls-7" x="255.05" y="232.15" width="12.67" height="40.52" rx="1.74" ry="1.74"/>
+          <rect class="cls-7" x="281.06" y="232.15" width="12.67" height="40.52" rx="1.74" ry="1.74"/>
+          <rect class="cls-7" x="307.06" y="232.15" width="12.67" height="40.52" rx="1.74" ry="1.74"/>
+        </g>
+      </g>
+    </g>
+  </g>
+  <g id="M4_Sherman" data-name="M4 Sherman">
+    <g>
+      <g>
+        <polygon class="cls-9" points="40.01 265.24 60.62 257.42 300.09 228.21 319.77 257.71 40.01 265.24"/>
+        <polygon class="cls-1" points="40.01 92.8 60.62 100.62 300.09 129.83 319.76 100.33 40.01 92.8"/>
+        <polygon class="cls-8" points="319.73 178.1 319.73 100.33 300.06 129.27 300.06 179.5 300.06 179.94 300.06 179.94 300.06 228.77 319.73 257.71 319.73 178.54 319.73 178.1 319.73 178.1"/>
+        <polygon class="cls-10" points="300.11 178.84 300.11 178.8 300.11 129.18 60.22 99.73 60.22 178.8 60.22 179.2 60.22 179.2 60.22 179.24 60.22 258.31 300.11 228.86 300.11 179.24 300.11 178.84 300.11 178.84"/>
+        <polygon class="cls-5" points="60.26 258.39 60.22 178.84 60.22 178.84 60.26 99.65 40.04 92.78 40.04 179.1 40.04 179.1 40.04 265.26 60.26 258.39"/>
+      </g>
+      <g class="cls-6">
+        <circle class="cls-2" cx="83.51" cy="124.48" r="18.33"/>
+        <path class="cls-2" d="m101.84,233.56c0,10.12-8.21,18.33-18.33,18.33-10.12,0-18.33-8.21-18.33-18.33s8.21-18.33,18.33-18.33c10.12,0,18.33,8.21,18.33,18.33Z"/>
+      </g>
+      <rect class="cls-3" x="71.29" y="147.26" width="4.85" height="63.43"/>
+      <rect class="cls-3" x="79.35" y="147.26" width="4.85" height="63.43"/>
+      <rect class="cls-3" x="87.42" y="147.26" width="4.85" height="63.43"/>
+      <rect class="cls-3" x="95.48" y="147.26" width="4.85" height="63.43"/>
+      <rect class="cls-3" x="103.55" y="147.26" width="4.85" height="63.43"/>
+    </g>
+  </g>
+</svg>

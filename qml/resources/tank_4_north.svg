@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 360 360">
+  <defs>
+    <style>
+      .cls-1 {
+        fill: url(#linear-gradient-4);
+      }
+
+      .cls-1, .cls-2 {
+        opacity: .85;
+      }
+
+      .cls-3 {
+        fill: url(#linear-gradient-2);
+      }
+
+      .cls-4, .cls-5, .cls-6 {
+        fill: #943100;
+      }
+
+      .cls-5 {
+        opacity: .69;
+      }
+
+      .cls-7 {
+        opacity: .35;
+      }
+
+      .cls-6 {
+        opacity: .71;
+      }
+
+      .cls-8 {
+        fill: #b84a00;
+      }
+
+      .cls-9 {
+        fill: #24363f;
+      }
+
+      .cls-10 {
+        fill: #660f00;
+      }
+
+      .cls-11 {
+        fill: #56646c;
+      }
+
+      .cls-2 {
+        fill: url(#linear-gradient-3);
+      }
+
+      .cls-12 {
+        fill: url(#linear-gradient);
+      }
+    </style>
+    <linearGradient id="linear-gradient" x1="70.72" y1="181.91" x2="300.05" y2="181.91" gradientTransform="translate(-.02 -4.91)" gradientUnits="userSpaceOnUse">
+      <stop offset=".01" stop-color="#e6762b"/>
+      <stop offset=".33" stop-color="#e05a00"/>
+      <stop offset="1" stop-color="#e6762b"/>
+    </linearGradient>
+    <linearGradient id="linear-gradient-2" x1="299.69" y1="181.91" x2="319" y2="181.91" gradientTransform="translate(-123.97 -128.87)" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#953200"/>
+      <stop offset=".05" stop-color="#943100"/>
+      <stop offset="1" stop-color="#b84a00"/>
+    </linearGradient>
+    <linearGradient id="linear-gradient-3" x1="185.26" y1="252.76" x2="185.26" y2="264.24" gradientTransform="translate(76.7 -81.37)" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#681100"/>
+      <stop offset="1" stop-color="#953200"/>
+    </linearGradient>
+    <linearGradient id="linear-gradient-4" x1="185.31" y1="99.49" x2="185.31" y2="110.97" gradientTransform="translate(-76.62 71.86)" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#943100"/>
+      <stop offset="1" stop-color="#660f00"/>
+    </linearGradient>
+  </defs>
+  <g id="Treads">
+    <g>
+      <g>
+        <rect class="cls-9" x="-31.25" y="159.22" width="282.48" height="37.74" rx=".36" ry=".36" transform="translate(-68.1 288.07) rotate(-90)"/>
+        <g>
+          <rect class="cls-11" x="89.72" y="302.25" width="40.52" height="12.67" rx="1.74" ry="1.74"/>
+          <rect class="cls-11" x="89.72" y="276.25" width="40.52" height="12.67" rx="1.74" ry="1.74"/>
+          <rect class="cls-11" x="89.72" y="224.24" width="40.52" height="12.67" rx="1.74" ry="1.74"/>
+          <rect class="cls-11" x="89.72" y="250.24" width="40.52" height="12.67" rx="1.74" ry="1.74"/>
+          <rect class="cls-11" x="89.72" y="198.23" width="40.52" height="12.67" rx="1.74" ry="1.74"/>
+          <rect class="cls-11" x="89.72" y="172.22" width="40.52" height="12.67" rx="1.74" ry="1.74"/>
+          <rect class="cls-11" x="89.72" y="120.21" width="40.52" height="12.67" rx="1.74" ry="1.74"/>
+          <rect class="cls-11" x="89.72" y="146.22" width="40.52" height="12.67" rx="1.74" ry="1.74"/>
+          <rect class="cls-11" x="89.72" y="94.21" width="40.52" height="12.67" rx="1.74" ry="1.74"/>
+          <rect class="cls-11" x="89.72" y="68.2" width="40.52" height="12.67" rx="1.74" ry="1.74"/>
+          <rect class="cls-11" x="89.72" y="42.19" width="40.52" height="12.67" rx="1.74" ry="1.74"/>
+        </g>
+      </g>
+      <g>
+        <rect class="cls-9" x="115.6" y="159.22" width="282.48" height="37.74" rx=".36" ry=".36" transform="translate(78.76 434.93) rotate(-90)"/>
+        <g>
+          <rect class="cls-11" x="236.58" y="302.25" width="40.52" height="12.67" rx="1.74" ry="1.74"/>
+          <rect class="cls-11" x="236.58" y="276.25" width="40.52" height="12.67" rx="1.74" ry="1.74"/>
+          <rect class="cls-11" x="236.58" y="224.24" width="40.52" height="12.67" rx="1.74" ry="1.74"/>
+          <rect class="cls-11" x="236.58" y="250.24" width="40.52" height="12.67" rx="1.74" ry="1.74"/>
+          <rect class="cls-11" x="236.58" y="198.23" width="40.52" height="12.67" rx="1.74" ry="1.74"/>
+          <rect class="cls-11" x="236.58" y="172.22" width="40.52" height="12.67" rx="1.74" ry="1.74"/>
+          <rect class="cls-11" x="236.58" y="120.21" width="40.52" height="12.67" rx="1.74" ry="1.74"/>
+          <rect class="cls-11" x="236.58" y="146.22" width="40.52" height="12.67" rx="1.74" ry="1.74"/>
+          <rect class="cls-11" x="236.58" y="94.21" width="40.52" height="12.67" rx="1.74" ry="1.74"/>
+          <rect class="cls-11" x="236.58" y="68.2" width="40.52" height="12.67" rx="1.74" ry="1.74"/>
+          <rect class="cls-11" x="236.58" y="42.19" width="40.52" height="12.67" rx="1.74" ry="1.74"/>
+        </g>
+      </g>
+    </g>
+  </g>
+  <g id="Tiger_1" data-name="Tiger 1">
+    <rect class="cls-10" x="173.14" y="269.95" width="21.84" height="44.26" transform="translate(-108.03 476.14) rotate(-90)"/>
+    <rect class="cls-12" x="70.7" y="94.7" width="229.33" height="164.6" transform="translate(8.37 362.37) rotate(-90)"/>
+    <rect class="cls-3" x="175.71" y="-32.88" width="19.31" height="171.86" transform="translate(132.32 238.42) rotate(-90)"/>
+    <rect class="cls-2" x="147.45" y="171.39" width="229.02" height="11.48" transform="translate(84.83 439.09) rotate(-90)"/>
+    <rect class="cls-1" x="-5.83" y="171.34" width="229.02" height="11.48" transform="translate(-68.4 285.77) rotate(-90)"/>
+    <g>
+      <ellipse class="cls-4" cx="163.51" cy="297.76" rx="10.35" ry="10.83"/>
+      <ellipse class="cls-4" cx="207.23" cy="297.76" rx="10.35" ry="10.83"/>
+    </g>
+    <g>
+      <g>
+        <rect class="cls-6" x="227.42" y="76.85" width="2.9" height="13.56" transform="translate(145.24 312.49) rotate(-90)"/>
+        <rect class="cls-6" x="227.42" y="72.57" width="2.9" height="13.56" transform="translate(149.52 308.22) rotate(-90)"/>
+        <rect class="cls-6" x="227.42" y="68.29" width="2.9" height="13.56" transform="translate(153.79 303.94) rotate(-90)"/>
+        <rect class="cls-6" x="227.42" y="64.02" width="2.9" height="13.56" transform="translate(158.07 299.66) rotate(-90)"/>
+      </g>
+      <g>
+        <rect class="cls-6" x="243.07" y="76.85" width="2.9" height="13.56" transform="translate(160.89 328.14) rotate(-90)"/>
+        <rect class="cls-6" x="243.07" y="72.57" width="2.9" height="13.56" transform="translate(165.16 323.86) rotate(-90)"/>
+        <rect class="cls-6" x="243.07" y="68.29" width="2.9" height="13.56" transform="translate(169.44 319.59) rotate(-90)"/>
+        <rect class="cls-6" x="243.07" y="64.02" width="2.9" height="13.56" transform="translate(173.72 315.31) rotate(-90)"/>
+      </g>
+      <g>
+        <rect class="cls-6" x="124.77" y="76.85" width="2.9" height="13.56" transform="translate(42.59 209.85) rotate(-90)"/>
+        <rect class="cls-6" x="124.77" y="72.57" width="2.9" height="13.56" transform="translate(46.87 205.57) rotate(-90)"/>
+        <rect class="cls-6" x="124.77" y="68.29" width="2.9" height="13.56" transform="translate(51.15 201.29) rotate(-90)"/>
+        <rect class="cls-6" x="124.77" y="64.02" width="2.9" height="13.56" transform="translate(55.42 197.02) rotate(-90)"/>
+      </g>
+      <g>
+        <rect class="cls-6" x="140.42" y="76.85" width="2.9" height="13.56" transform="translate(58.24 225.5) rotate(-90)"/>
+        <rect class="cls-6" x="140.42" y="72.57" width="2.9" height="13.56" transform="translate(62.52 221.22) rotate(-90)"/>
+        <rect class="cls-6" x="140.42" y="68.29" width="2.9" height="13.56" transform="translate(66.79 216.94) rotate(-90)"/>
+        <rect class="cls-6" x="140.42" y="64.02" width="2.9" height="13.56" transform="translate(71.07 212.66) rotate(-90)"/>
+      </g>
+    </g>
+    <g class="cls-7">
+      <polygon class="cls-5" points="186.46 201.64 230.64 309.54 252.36 299.78 208.19 191.88 186.46 201.64"/>
+      <polygon class="cls-5" points="161.93 194.36 117.75 302.26 139.47 312.01 183.65 204.11 161.93 194.36"/>
+    </g>
+    <g>
+      <rect class="cls-8" x="103.07" y="291.33" width="44.26" height="21.84"/>
+      <rect class="cls-8" x="223.28" y="291.68" width="44.26" height="21.84"/>
+    </g>
+  </g>
+</svg>

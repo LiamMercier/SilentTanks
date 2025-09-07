@@ -560,8 +560,11 @@ try {
                 session->deliver(bad_queue);
                 break;
             }
+
             // Quickly grab the game mode so we can drop the message data.
+            // We already validated this above.
             GameMode queued_mode = GameMode(msg.payload[0]);
+
             std::cout << "Trying to queue for game mode " << +uint8_t(queued_mode) << "\n";
             matcher_.enqueue(session, queued_mode);
             break;
@@ -584,8 +587,11 @@ try {
                 session->deliver(bad_queue);
                 break;
             }
+
             // Quickly grab the game mode so we can drop the message data.
+            // We already validated this above.
             GameMode queued_mode = GameMode(msg.payload[0]);
+
             std::cout << "Trying to cancel queue for game mode " << +uint8_t(queued_mode) << "\n";
             matcher_.cancel(session, queued_mode, true);
             break;

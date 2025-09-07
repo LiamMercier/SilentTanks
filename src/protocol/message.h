@@ -41,6 +41,8 @@ constexpr std::array<uint8_t, NUMBER_OF_MODES> players_for_gamemode = []
 
     a[static_cast<uint8_t>(GameMode::ClassicTwoPlayer)] = 2;
     a[static_cast<uint8_t>(GameMode::RankedTwoPlayer)] = 2;
+    a[static_cast<uint8_t>(GameMode::ClassicThreePlayer)] = 3;
+    a[static_cast<uint8_t>(GameMode::ClassicFivePlayer)] = 5;
 
     return a;
 }();

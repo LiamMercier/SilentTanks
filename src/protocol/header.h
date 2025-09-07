@@ -61,7 +61,7 @@ enum class HeaderType : uint8_t
     MatchInProgress,
     SendCommand,
     StaticMatchData,
-    PlayerView,
+    PlayerView,//
     FailedMove,
     StaleMove,
     Eliminated,
@@ -93,6 +93,8 @@ enum class HeaderType : uint8_t
 };
 
 static constexpr uint32_t MAX_PAYLOAD_LEN = 3000;
+
+static constexpr uint32_t MAX_CLIENT_PAYLOAD_LEN = 8000;
 
 constexpr size_t MAX_USERNAME_LENGTH = 24;
 

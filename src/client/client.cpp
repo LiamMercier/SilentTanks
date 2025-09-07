@@ -1379,16 +1379,37 @@ try {
         case HeaderType::Eliminated:
         {
             std::cerr << "You were eliminated from the game.\n";
+            popup_callback_(Popup(
+                            PopupType::Info,
+                            "Eliminated",
+                            "You were eliminated from the game."),
+                            STANDARD_POPUP);
+
+            change_state(ClientState::Lobby);
             break;
         }
         case HeaderType::TimedOut:
         {
             std::cerr << "You were eliminated from the game via timeout.\n";
+            popup_callback_(Popup(
+                            PopupType::Info,
+                            "Eliminated",
+                            "You were eliminated from the game via timeout."),
+                            STANDARD_POPUP);
+
+            change_state(ClientState::Lobby);
             break;
         }
         case HeaderType::Victory:
         {
             std::cerr << "You won your match.\n";
+            popup_callback_(Popup(
+                            PopupType::Info,
+                            "Game Won",
+                            "You won your match."),
+                            STANDARD_POPUP);
+
+            change_state(ClientState::Lobby);
             break;
         }
         case HeaderType::GameEnded:
@@ -1405,6 +1426,7 @@ try {
         {
             std::cerr << "Connection dropped by server because heartbeat "
                       << "ping was not responded to.\n";
+
             break;
         }
         case HeaderType::RateLimited:
@@ -1436,15 +1458,29 @@ try {
 #else
             localtime_r(&time, &tm);
 #endif
-            std::cout << "You are banned until "
-                      << std::put_time(&tm, "%Y-%m-%d %H:%M:%S")
-                      << "\n";
+            std::ostringstream oss;
+            oss << "You are banned until "
+                << std::put_time(&tm, "%Y-%m-%d %H:%M:%S")
+                <<"\n" << "For: " << banned.reason;
+
+            std::string msg = oss.str();
+
+            popup_callback_(Popup(
+                            PopupType::Info,
+                            "Banned",
+                            msg),
+                            URGENT_POPUP);
 
             break;
         }
         case HeaderType::ServerFull:
         {
             std::cerr << "Server is full and cannot accept connections.\n";
+            popup_callback_(Popup(
+                            PopupType::Info,
+                            "Server Full",
+                            "Server is full and cannot accept connections."),
+                            URGENT_POPUP);
             break;
         }
         case HeaderType::DirectTextMessage:
@@ -1547,6 +1583,7 @@ void Client::on_disconnect()
                             URGENT_POPUP);
 
         // TODO: figure out how disconnects should work later.
+        change_state(ClientState::ConnectScreen);
     });
 
 }

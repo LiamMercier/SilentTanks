@@ -128,7 +128,7 @@ bool Header::valid_client()
         return false;
     }
 
-    if (payload_len > MAX_PAYLOAD_LEN)
+    if (payload_len > MAX_CLIENT_PAYLOAD_LEN)
     {
         return false;
     }

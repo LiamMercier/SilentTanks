@@ -42,8 +42,6 @@ Item {
 
     onMapWidthChanged: viewCanvas.requestPaint()
     onMapHeightChanged: viewCanvas.requestPaint()
-    onCellTileSizeChanged: viewCanvas.requestPaint()
-    onScaleChanged: viewCanvas.requestPaint()
 
     Connections {
         target: GameManager
@@ -51,6 +49,117 @@ Item {
             viewCanvas.requestPaint()
         }
     }
+
+    // Cache svg images for rendering pipeline.
+
+    property var tileKeys: ["visible",
+                            "fog",
+                            "cannon_north",
+                            "cannon_north_east",
+                            "cannon_east",
+                            "cannon_south_east",
+                            "cannon_south",
+                            "cannon_south_west",
+                            "cannon_west",
+                            "cannon_north_west",
+
+                            // player 1 tank
+                            "tank_0_north",
+                            "tank_0_north_east",
+                            "tank_0_east",
+                            "tank_0_south_east",
+                            "tank_0_south",
+                            "tank_0_south_west",
+                            "tank_0_west",
+                            "tank_0_north_west",
+
+                            // player 2 tank
+                            "tank_1_north",
+                            "tank_1_north_east",
+                            "tank_1_east",
+                            "tank_1_south_east",
+                            "tank_1_south",
+                            "tank_1_south_west",
+                            "tank_1_west",
+                            "tank_1_north_west",
+
+                            // player 3 tank
+                            "tank_2_north",
+                            "tank_2_north_east",
+                            "tank_2_east",
+                            "tank_2_south_east",
+                            "tank_2_south",
+                            "tank_2_south_west",
+                            "tank_2_west",
+                            "tank_2_north_west",
+
+                            // player 4 tank
+                            "tank_3_north",
+                            "tank_3_north_east",
+                            "tank_3_east",
+                            "tank_3_south_east",
+                            "tank_3_south",
+                            "tank_3_south_west",
+                            "tank_3_west",
+                            "tank_3_north_west",
+
+                            // player 5 tank
+                            "tank_4_north",
+                            "tank_4_north_east",
+                            "tank_4_east",
+                            "tank_4_south_east",
+                            "tank_4_south",
+                            "tank_4_south_west",
+                            "tank_4_west",
+                            "tank_4_north_west"
+                           ]
+
+    property var tileImageCache: ({})
+
+    // creates images
+    function ensureTileImages() {
+        var pixelSize = Math.max(1, Math.round(cellTileSize * scale))
+
+        for (var i = 0; i < tileKeys.length; i++)
+        {
+            var key = tileKeys[i]
+            var entry = tileImageCache[key]
+
+            if (!entry || entry.size !== pixelSize) {
+
+                // destroy old image
+                if (entry && entry.img) {
+                    entry.img.destroy()
+                }
+
+                var img = Qt.createQmlObject('import QtQuick 2.15; Image { visible: false; }', boardViewRoot);
+
+                // grab source
+                img.width = pixelSize
+                img.height = pixelSize
+                img.source = "qrc:/resources/" + key + ".svg"
+
+                // store into the cache
+                tileImageCache[key] = {img: img, size: pixelSize}
+            }
+        }
+
+        console.log(pixelSize)
+    }
+
+    onScaleChanged: {
+        ensureTileImages()
+        viewCanvas.requestPaint()
+    }
+
+    onCellTileSizeChanged: {
+        ensureTileImages()
+        viewCanvas.requestPaint()
+    }
+
+    Component.onCompleted: ensureTileImages()
+
+    // END tile related caching
 
     // Main render area.
     Canvas {
@@ -86,16 +195,33 @@ Item {
 
                     // Grab QVariantMap for this cell.
                     var cell = GameManager.cell_at(x, y)
-                    var type = cell.type
-                    var occupant = cell.occupant
-                    var visible = cell.visible
 
                     var px = Math.round(x * scaledTile - camX)
                     var py = Math.round(y * scaledTile - camY)
 
-                    cntx.fillStyle = boardViewRoot.colorForTile(cell)
+                    // Draw tile.
+                    if (cell.occupant !== 255 || cell.type === 0) {
+                        var keys = sourcesForTile(cell)
 
-                    cntx.fillRect(px, py, scaledTile, scaledTile)
+                        for (var keyIndex = 0; keyIndex < keys.length; keyIndex++)
+                        {
+                            var imageEntry = tileImageCache[keys[keyIndex]]
+
+                            if (imageEntry && imageEntry.img)
+                            {
+                                cntx.drawImage(imageEntry.img, px, py, scaledTile, scaledTile)
+                            }
+                            else
+                            {
+                                console.log("failed to load", keys[keyIndex])
+                            }
+                        }
+
+                    }
+                    else {
+                        cntx.fillStyle = boardViewRoot.colorForTile(cell)
+                        cntx.fillRect(px, py, scaledTile, scaledTile)
+                    }
 
                     // Temporary, draw outline. TODO: remove this.
                     cntx.strokeStyle = "rgba(0, 0, 0, 1)"
@@ -251,6 +377,125 @@ Item {
             boardViewRoot.clampCamera()
             viewCanvas.requestPaint()
         }
+    }
+
+    function sourcesForTile(cell) {
+        var result = [];
+
+        // If empty
+        if (cell.type === 0)
+        {
+            // If visible
+            if (cell.visible)
+            {
+                result.push("visible")
+            }
+            else
+            {
+                result.push("fog")
+            }
+        }
+
+        // If tank exists, grab tank and barrel.
+        if (cell.occupant !== 255)
+        {
+            // Fetch tank data.
+            var tankData = GameManager.get_tank_data(cell.occupant)
+
+            var filename_prefix = "tank_" + tankData.owner + "_"
+
+            // Find the tank orientation and append correct cannon image.
+            switch(tankData.tank_direction)
+            {
+                case 0:
+                {
+                    result.push(filename_prefix + "north")
+                    break
+                }
+                case 1:
+                {
+                    result.push(filename_prefix + "north_east")
+                    break
+                }
+                case 2:
+                {
+                    result.push(filename_prefix + "east")
+                    break
+                }
+                case 3:
+                {
+                    result.push(filename_prefix + "south_east")
+                    break
+                }
+                case 4:
+                {
+                    result.push(filename_prefix + "south")
+                    break
+                }
+                case 5:
+                {
+                    result.push(filename_prefix + "south_west")
+                    break
+                }
+                case 6:
+                {
+                    result.push(filename_prefix + "west")
+                    break
+                }
+                case 7:
+                {
+                    result.push(filename_prefix + "north_west")
+                    break
+                }
+            }
+
+            // Find the barrel orientation and append correct cannon image.
+            switch(tankData.barrel_direction)
+            {
+                case 0:
+                {
+                    result.push("cannon_north")
+                    break
+                }
+                case 1:
+                {
+                    result.push("cannon_north_east")
+                    break
+                }
+                case 2:
+                {
+                    result.push("cannon_east")
+                    break
+                }
+                case 3:
+                {
+                    result.push("cannon_south_east")
+                    break
+                }
+                case 4:
+                {
+                    result.push("cannon_south")
+                    break
+                }
+                case 5:
+                {
+                    result.push("cannon_south_west")
+                    break
+                }
+                case 6:
+                {
+                    result.push("cannon_west")
+                    break
+                }
+                case 7:
+                {
+                    result.push("cannon_north_west")
+                    break
+                }
+            }
+        }
+
+        return result
     }
 
     function colorForTile(cell) {
@@ -462,6 +707,9 @@ Item {
         }
 
         onClosed: {
+            selectedCellX = -1
+            selectedCellY = -1
+            viewCanvas.requestPaint()
             console.log("closing popup")
         }
 
@@ -473,6 +721,8 @@ Item {
         // Give no actions for negative tile coords.
         if (cx < 0 || cy < 0)
         {
+            selectedCellX = -1
+            selectedCellY = -1
             return
         }
 
@@ -509,10 +759,19 @@ Item {
                 actionsModel.append({ action: "move_reverse", actionText: "Move\nReverse" })
                 actionsModel.append({ action: "fire", actionText: "Fire" })
             }
+            // Otherwise, stop.
+            else
+            {
+                selectedCellX = -1
+                selectedCellY = -1
+                return
+            }
         }
         // Otherwise, game is done.
         else
         {
+            selectedCellX = -1
+            selectedCellY = -1
             return
         }
 

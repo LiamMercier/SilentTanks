@@ -355,6 +355,7 @@ void MatchInstance::start_turn()
     if (players_[current_player].alive == false)
     {
         current_player = ((current_player + 1) % n_players_);
+        compute_all_views();
         start_turn_strand();
         return;
     }
@@ -497,10 +498,11 @@ void MatchInstance::on_player_move_arrived(uint16_t t_id)
     // Just show the tank placement.
     if (current_state == GameState::Setup)
     {
+        current_player = ((current_player + 1) % n_players_);
+
         // show the new tank placement
         compute_all_views();
 
-        current_player = ((current_player + 1) % n_players_);
         start_turn_strand();
         return;
     }

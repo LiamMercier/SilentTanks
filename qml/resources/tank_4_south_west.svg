@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 360 360">
+  <defs>
+    <style>
+      .cls-1 {
+        fill: url(#linear-gradient-4);
+      }
+
+      .cls-1, .cls-2 {
+        opacity: .85;
+      }
+
+      .cls-3 {
+        fill: url(#linear-gradient-2);
+      }
+
+      .cls-4, .cls-5, .cls-6 {
+        fill: #943100;
+      }
+
+      .cls-5 {
+        opacity: .69;
+      }
+
+      .cls-7 {
+        opacity: .35;
+      }
+
+      .cls-6 {
+        opacity: .71;
+      }
+
+      .cls-8 {
+        fill: #b84a00;
+      }
+
+      .cls-9 {
+        fill: #24363f;
+      }
+
+      .cls-10 {
+        fill: #660f00;
+      }
+
+      .cls-11 {
+        fill: #56646c;
+      }
+
+      .cls-2 {
+        fill: url(#linear-gradient-3);
+      }
+
+      .cls-12 {
+        fill: url(#linear-gradient);
+      }
+    </style>
+    <linearGradient id="linear-gradient" x1="70.72" y1="181.91" x2="300.05" y2="181.91" gradientTransform="translate(-4.59 -3.12)" gradientUnits="userSpaceOnUse">
+      <stop offset=".01" stop-color="#e6762b"/>
+      <stop offset=".33" stop-color="#e05a00"/>
+      <stop offset="1" stop-color="#e6762b"/>
+    </linearGradient>
+    <linearGradient id="linear-gradient-2" x1="299.69" y1="181.91" x2="319" y2="181.91" gradientTransform="translate(-216.2 84.53)" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#953200"/>
+      <stop offset=".05" stop-color="#943100"/>
+      <stop offset="1" stop-color="#b84a00"/>
+    </linearGradient>
+    <linearGradient id="linear-gradient-3" x1="185.26" y1="252.76" x2="185.26" y2="264.24" gradientTransform="translate(-58.53 -133.96)" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#681100"/>
+      <stop offset="1" stop-color="#953200"/>
+    </linearGradient>
+    <linearGradient id="linear-gradient-4" x1="185.31" y1="99.49" x2="185.31" y2="110.97" gradientTransform="translate(49.77 127.73)" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#943100"/>
+      <stop offset="1" stop-color="#660f00"/>
+    </linearGradient>
+  </defs>
+  <g id="Treads">
+    <g>
+      <g>
+        <rect class="cls-9" x="93.62" y="212.46" width="282.48" height="37.74" rx=".36" ry=".36" transform="translate(564.51 228.83) rotate(135)"/>
+        <g>
+          <rect class="cls-11" x="320.81" y="118.79" width="12.67" height="40.52" rx="1.74" ry="1.74" transform="translate(-2.51 272.05) rotate(-45)"/>
+          <rect class="cls-11" x="302.42" y="137.18" width="12.67" height="40.52" rx="1.74" ry="1.74" transform="translate(-20.89 264.44) rotate(-45)"/>
+          <rect class="cls-11" x="265.64" y="173.96" width="12.67" height="40.52" rx="1.74" ry="1.74" transform="translate(-57.67 249.2) rotate(-45)"/>
+          <rect class="cls-11" x="284.03" y="155.57" width="12.67" height="40.52" rx="1.74" ry="1.74" transform="translate(-39.28 256.82) rotate(-45)"/>
+          <rect class="cls-11" x="247.25" y="192.35" width="12.67" height="40.52" rx="1.74" ry="1.74" transform="translate(-76.06 241.58) rotate(-45)"/>
+          <rect class="cls-11" x="228.86" y="210.74" width="12.67" height="40.52" rx="1.74" ry="1.74" transform="translate(-94.45 233.97) rotate(-45)"/>
+          <rect class="cls-11" x="192.09" y="247.51" width="12.67" height="40.52" rx="1.74" ry="1.74" transform="translate(-131.23 218.73) rotate(-45)"/>
+          <rect class="cls-11" x="210.48" y="229.12" width="12.67" height="40.52" rx="1.74" ry="1.74" transform="translate(-112.84 226.35) rotate(-45)"/>
+          <rect class="cls-11" x="173.7" y="265.9" width="12.67" height="40.52" rx="1.74" ry="1.74" transform="translate(-149.62 211.12) rotate(-45)"/>
+          <rect class="cls-11" x="155.31" y="284.29" width="12.67" height="40.52" rx="1.74" ry="1.74" transform="translate(-168.01 203.5) rotate(-45)"/>
+          <rect class="cls-11" x="136.92" y="302.68" width="12.67" height="40.52" rx="1.74" ry="1.74" transform="translate(-186.4 195.88) rotate(-45)"/>
+        </g>
+      </g>
+      <g>
+        <rect class="cls-9" x="-10.22" y="108.62" width="282.48" height="37.74" rx=".36" ry=".36" transform="translate(313.82 124.99) rotate(135)"/>
+        <g>
+          <rect class="cls-11" x="216.97" y="14.95" width="12.67" height="40.52" rx="1.74" ry="1.74" transform="translate(40.51 168.21) rotate(-45)"/>
+          <rect class="cls-11" x="198.58" y="33.34" width="12.67" height="40.52" rx="1.74" ry="1.74" transform="translate(22.12 160.59) rotate(-45)"/>
+          <rect class="cls-11" x="161.8" y="70.11" width="12.67" height="40.52" rx="1.74" ry="1.74" transform="translate(-14.66 145.36) rotate(-45)"/>
+          <rect class="cls-11" x="180.19" y="51.73" width="12.67" height="40.52" rx="1.74" ry="1.74" transform="translate(3.73 152.98) rotate(-45)"/>
+          <rect class="cls-11" x="143.41" y="88.5" width="12.67" height="40.52" rx="1.74" ry="1.74" transform="translate(-33.05 137.74) rotate(-45)"/>
+          <rect class="cls-11" x="125.02" y="106.89" width="12.67" height="40.52" rx="1.74" ry="1.74" transform="translate(-51.44 130.12) rotate(-45)"/>
+          <rect class="cls-11" x="88.24" y="143.67" width="12.67" height="40.52" rx="1.74" ry="1.74" transform="translate(-88.22 114.89) rotate(-45)"/>
+          <rect class="cls-11" x="106.63" y="125.28" width="12.67" height="40.52" rx="1.74" ry="1.74" transform="translate(-69.83 122.51) rotate(-45)"/>
+          <rect class="cls-11" x="69.85" y="162.06" width="12.67" height="40.52" rx="1.74" ry="1.74" transform="translate(-106.61 107.27) rotate(-45)"/>
+          <rect class="cls-11" x="51.46" y="180.45" width="12.67" height="40.52" rx="1.74" ry="1.74" transform="translate(-124.99 99.66) rotate(-45)"/>
+          <rect class="cls-11" x="33.08" y="198.84" width="12.67" height="40.52" rx="1.74" ry="1.74" transform="translate(-143.38 92.04) rotate(-45)"/>
+        </g>
+      </g>
+    </g>
+  </g>
+  <g id="Tiger_1" data-name="Tiger 1">
+    <rect class="cls-10" x="252.18" y="76.22" width="21.84" height="44.26" transform="translate(518.68 -18.15) rotate(135)"/>
+    <rect class="cls-12" x="66.13" y="96.49" width="229.33" height="164.6" transform="translate(435.06 177.38) rotate(135)"/>
+    <rect class="cls-3" x="83.49" y="180.51" width="19.31" height="171.86" transform="translate(347.41 388.98) rotate(135)"/>
+    <rect class="cls-2" x="12.22" y="118.8" width="229.02" height="11.48" transform="translate(304.41 123) rotate(135)"/>
+    <rect class="cls-1" x="120.57" y="227.22" width="229.02" height="11.48" transform="translate(566.03 231.46) rotate(135)"/>
+    <g>
+      <ellipse class="cls-4" cx="281.64" cy="108.86" rx="10.83" ry="10.35" transform="translate(5.51 231.03) rotate(-45)"/>
+      <ellipse class="cls-4" cx="250.73" cy="77.95" rx="10.83" ry="10.35" transform="translate(18.32 200.12) rotate(-45)"/>
+    </g>
+    <g>
+      <g>
+        <rect class="cls-6" x="82.56" y="207.28" width="2.9" height="13.56" transform="translate(294.78 306.02) rotate(135)"/>
+        <rect class="cls-6" x="79.54" y="210.31" width="2.9" height="13.56" transform="translate(291.75 313.32) rotate(135)"/>
+        <rect class="cls-6" x="76.51" y="213.33" width="2.9" height="13.56" transform="translate(288.73 320.62) rotate(135)"/>
+        <rect class="cls-6" x="73.49" y="216.35" width="2.9" height="13.56" transform="translate(285.71 327.92) rotate(135)"/>
+      </g>
+      <g>
+        <rect class="cls-6" x="71.5" y="196.22" width="2.9" height="13.56" transform="translate(268.07 294.96) rotate(135)"/>
+        <rect class="cls-6" x="68.47" y="199.24" width="2.9" height="13.56" transform="translate(265.04 302.26) rotate(135)"/>
+        <rect class="cls-6" x="65.45" y="202.27" width="2.9" height="13.56" transform="translate(262.02 309.56) rotate(135)"/>
+        <rect class="cls-6" x="62.43" y="205.29" width="2.9" height="13.56" transform="translate(258.99 316.86) rotate(135)"/>
+      </g>
+      <g>
+        <rect class="cls-6" x="155.14" y="279.86" width="2.9" height="13.56" transform="translate(470 378.6) rotate(135)"/>
+        <rect class="cls-6" x="152.12" y="282.89" width="2.9" height="13.56" transform="translate(466.98 385.9) rotate(135)"/>
+        <rect class="cls-6" x="149.09" y="285.91" width="2.9" height="13.56" transform="translate(463.96 393.2) rotate(135)"/>
+        <rect class="cls-6" x="146.07" y="288.93" width="2.9" height="13.56" transform="translate(460.93 400.5) rotate(135)"/>
+      </g>
+      <g>
+        <rect class="cls-6" x="144.08" y="268.8" width="2.9" height="13.56" transform="translate(443.29 367.54) rotate(135)"/>
+        <rect class="cls-6" x="141.05" y="271.82" width="2.9" height="13.56" transform="translate(440.27 374.84) rotate(135)"/>
+        <rect class="cls-6" x="138.03" y="274.85" width="2.9" height="13.56" transform="translate(437.25 382.14) rotate(135)"/>
+        <rect class="cls-6" x="135.01" y="277.87" width="2.9" height="13.56" transform="translate(434.22 389.44) rotate(135)"/>
+      </g>
+    </g>
+    <g class="cls-7">
+      <polygon class="cls-5" points="197.44 160.6 242.5 53.06 220.24 44.6 175.18 152.14 197.44 160.6"/>
+      <polygon class="cls-5" points="209.64 183.09 317.18 138.03 308.71 115.78 201.18 160.84 209.64 183.09"/>
+    </g>
+    <g>
+      <rect class="cls-8" x="300.99" y="110.65" width="21.84" height="44.26" transform="translate(-2.54 259.44) rotate(-45)"/>
+      <rect class="cls-8" x="216.23" y="25.39" width="21.84" height="44.26" transform="translate(32.93 174.54) rotate(-45)"/>
+    </g>
+  </g>
+</svg>

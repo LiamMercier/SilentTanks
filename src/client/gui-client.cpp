@@ -102,7 +102,7 @@ client_
     [this](StaticMatchData data){
         QMetaObject::invokeMethod(this, [this, data = std::move(data)]{
             {
-                this->game_manager_.update_match_data(data);
+                this->game_manager_.update_match_data(data, username_.toStdString());
             }
         },
         Qt::QueuedConnection);
@@ -290,6 +290,11 @@ Q_INVOKABLE void GUIClient::download_match_by_id(qint64 match_id)
 
 Q_INVOKABLE void GUIClient::send_place_tank(int x, int y)
 {
+    if (!game_manager_.is_turn())
+    {
+        return;
+    }
+
     Command cmd;
 
     // Fetch from game manager.
@@ -298,11 +303,21 @@ Q_INVOKABLE void GUIClient::send_place_tank(int x, int y)
     cmd.payload_first = x;
     cmd.payload_second = y;
 
+    // Fill empty fields with 0.
+    cmd.sender = 0;
+    cmd.tank_id = 0;
+
+
     client_.send_command(std::move(cmd));
 }
 
 Q_INVOKABLE void GUIClient::send_rotate_barrel(int x, int y, int rotation)
 {
+    if (!game_manager_.is_turn())
+    {
+        return;
+    }
+
     Command cmd;
 
     cmd.type = CommandType::RotateBarrel;
@@ -310,11 +325,20 @@ Q_INVOKABLE void GUIClient::send_rotate_barrel(int x, int y, int rotation)
     cmd.tank_id = game_manager_.tank_at(x, y);
     cmd.payload_first = rotation;
 
+    // Fill empty fields with 0.
+    cmd.payload_second = 0;
+    cmd.sender = 0;
+
     client_.send_command(std::move(cmd));
 }
 
 Q_INVOKABLE void GUIClient::send_move_tank(int x, int y, int dir)
 {
+    if (!game_manager_.is_turn())
+    {
+        return;
+    }
+
     Command cmd;
 
     cmd.type = CommandType::Move;
@@ -322,11 +346,20 @@ Q_INVOKABLE void GUIClient::send_move_tank(int x, int y, int dir)
     cmd.tank_id = game_manager_.tank_at(x, y);
     cmd.payload_first = dir;
 
+    // Fill empty fields with 0.
+    cmd.payload_second = 0;
+    cmd.sender = 0;
+
     client_.send_command(std::move(cmd));
 }
 
 Q_INVOKABLE void GUIClient::send_rotate_tank(int x, int y, int rotation)
 {
+    if (!game_manager_.is_turn())
+    {
+        return;
+    }
+
     Command cmd;
 
     cmd.type = CommandType::RotateTank;
@@ -334,27 +367,51 @@ Q_INVOKABLE void GUIClient::send_rotate_tank(int x, int y, int rotation)
     cmd.tank_id = game_manager_.tank_at(x, y);
     cmd.payload_first = rotation;
 
+    // Fill empty fields with 0.
+    cmd.payload_second = 0;
+    cmd.sender = 0;
+
     client_.send_command(std::move(cmd));
 }
 
 Q_INVOKABLE void GUIClient::send_fire_tank(int x, int y)
 {
+    if (!game_manager_.is_turn())
+    {
+        return;
+    }
+
     Command cmd;
 
     cmd.type = CommandType::Fire;
     cmd.sequence_number = game_manager_.sequence_number();
     cmd.tank_id = game_manager_.tank_at(x, y);
 
+    // Fill empty fields with 0.
+    cmd.payload_first = 0;
+    cmd.payload_second = 0;
+    cmd.sender = 0;
+
     client_.send_command(std::move(cmd));
 }
 
 Q_INVOKABLE void GUIClient::send_reload_tank(int x, int y)
 {
+    if (!game_manager_.is_turn())
+    {
+        return;
+    }
+
     Command cmd;
 
     cmd.type = CommandType::Load;
     cmd.sequence_number = game_manager_.sequence_number();
     cmd.tank_id = game_manager_.tank_at(x, y);
+
+    // Fill empty fields with 0.
+    cmd.payload_first = 0;
+    cmd.payload_second = 0;
+    cmd.sender = 0;
 
     client_.send_command(std::move(cmd));
 }

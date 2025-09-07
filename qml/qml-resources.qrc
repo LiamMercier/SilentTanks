@@ -1,50 +1,69 @@
 <RCC>
-    <qresource prefix="/">
-        <file>Main.qml</file>
-    </qresource>
-    <qresource prefix="/">
-        <file>ConnectPage.qml</file>
-    </qresource>
-    <qresource prefix="/">
-        <file>LoginPage.qml</file>
-    </qresource>
-    <qresource prefix="/">
-        <file>Lobby.qml</file>
-    </qresource>
-    <qresource prefix="/">
-        <file>InfoPopup.qml</file>
-    </qresource>
-    <qresource prefix="/">
-        <file>FriendsList.qml</file>
-    </qresource>
-    <qresource prefix="/">
-        <file>FriendMenu.qml</file>
-    </qresource>
-    <qresource prefix="/">
-        <file>UserListPopup.qml</file>
-    </qresource>
-    <qresource prefix="/">
-        <file>QueueMenus.qml</file>
-    </qresource>
-    <qresource prefix="/">
-        <file>ModeMenus.qml</file>
-    </qresource>
-    <qresource prefix="/">
-        <file>ChatBox.qml</file>
-    </qresource>
-    <qresource prefix="/">
-        <file>Profile.qml</file>
-    </qresource>
-    <qresource prefix="/">
-        <file>MatchHistory.qml</file>
-    </qresource>
-    <qresource prefix="/">
-        <file>QueueArea.qml</file>
-    </qresource>
-    <qresource prefix="/">
-        <file>GamePage.qml</file>
-    </qresource>
-    <qresource prefix="/">
-        <file>BoardView.qml</file>
-    </qresource>
+  <qresource prefix="">
+    <file>BoardView.qml</file>
+    <file>ChatBox.qml</file>
+    <file>ConnectPage.qml</file>
+    <file>FriendMenu.qml</file>
+    <file>FriendsList.qml</file>
+    <file>GamePage.qml</file>
+    <file>InfoPopup.qml</file>
+    <file>Lobby.qml</file>
+    <file>LoginPage.qml</file>
+    <file>Main.qml</file>
+    <file>ModeMenus.qml</file>
+    <file>Profile.qml</file>
+    <file>QueueArea.qml</file>
+    <file>QueueMenus.qml</file>
+    <file>UserListPopup.qml</file>
+    <file>resources/cannon_east.svg</file>
+    <file>resources/cannon_north.svg</file>
+    <file>resources/cannon_north_east.svg</file>
+    <file>resources/cannon_north_west.svg</file>
+    <file>resources/cannon_south.svg</file>
+    <file>resources/cannon_south_east.svg</file>
+    <file>resources/cannon_south_west.svg</file>
+    <file>resources/cannon_west.svg</file>
+    <file>resources/fog.svg</file>
+    <file>resources/tank_0_east.svg</file>
+    <file>resources/tank_0_north.svg</file>
+    <file>resources/tank_0_north_east.svg</file>
+    <file>resources/tank_0_north_west.svg</file>
+    <file>resources/tank_0_south.svg</file>
+    <file>resources/tank_0_south_east.svg</file>
+    <file>resources/tank_0_south_west.svg</file>
+    <file>resources/tank_0_west.svg</file>
+    <file>resources/tank_1_east.svg</file>
+    <file>resources/tank_1_north.svg</file>
+    <file>resources/tank_1_north_east.svg</file>
+    <file>resources/tank_1_north_west.svg</file>
+    <file>resources/tank_1_south.svg</file>
+    <file>resources/tank_1_south_east.svg</file>
+    <file>resources/tank_1_south_west.svg</file>
+    <file>resources/tank_1_west.svg</file>
+    <file>resources/tank_2_east.svg</file>
+    <file>resources/tank_2_north.svg</file>
+    <file>resources/tank_2_north_east.svg</file>
+    <file>resources/tank_2_north_west.svg</file>
+    <file>resources/tank_2_south.svg</file>
+    <file>resources/tank_2_south_east.svg</file>
+    <file>resources/tank_2_south_west.svg</file>
+    <file>resources/tank_2_west.svg</file>
+    <file>resources/tank_3_east.svg</file>
+    <file>resources/tank_3_north.svg</file>
+    <file>resources/tank_3_north_east.svg</file>
+    <file>resources/tank_3_north_west.svg</file>
+    <file>resources/tank_3_south.svg</file>
+    <file>resources/tank_3_south_east.svg</file>
+    <file>resources/tank_3_south_west.svg</file>
+    <file>resources/tank_3_west.svg</file>
+    <file>resources/tank_4_east.svg</file>
+    <file>resources/tank_4_north.svg</file>
+    <file>resources/tank_4_north_east.svg</file>
+    <file>resources/tank_4_north_west.svg</file>
+    <file>resources/tank_4_south.svg</file>
+    <file>resources/tank_4_south_east.svg</file>
+    <file>resources/tank_4_south_west.svg</file>
+    <file>resources/tank_4_west.svg</file>
+    <file>resources/visible.svg</file>
+  </qresource>
 </RCC>

@@ -12,6 +12,7 @@ MapRepository::MapRepository()
 
 }
 
+// TODO <refactoring>: make a map file format that isn't reprehensible.
 void MapRepository::load_map_file(std::string map_file_name)
 {
     // Lock all maps.

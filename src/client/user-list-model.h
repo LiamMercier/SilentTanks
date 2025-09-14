@@ -22,6 +22,8 @@ public:
 
     void set_users(const UserMap & user_map);
 
+    void set_users(const UserList & user_list);
+
     int rowCount(const QModelIndex & parent) const override;
 
     QVariant data(const QModelIndex & index, int role) const override;

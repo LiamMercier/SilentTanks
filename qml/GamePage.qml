@@ -28,17 +28,17 @@ Item {
             id: sidePanel
             Layout.preferredWidth: parent.width * 0.2
             Layout.fillHeight: true
-            border.color: "purple"
-            border.width: 1
+            border.width: 0
 
             ColumnLayout {
                 anchors.fill: parent
+                spacing: 0
 
                 Rectangle {
-                    Layout.preferredHeight: 60
+                    Layout.preferredHeight: 40
                     Layout.fillWidth: true
                     Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
-                    border.width: 1
+                    border.width: 0
 
                     Text {
                         text: {
@@ -50,9 +50,114 @@ Item {
                             }
                         }
                         font.bold: true
+                        font.pointSize: 12
                         anchors.centerIn: parent
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
+                    }
+                }
+
+                Rectangle {
+                    Layout.preferredHeight: 1
+                    Layout.fillWidth: true
+                    color: Qt.rgba(0, 0, 0, 1)
+                }
+
+                Rectangle {
+                    Layout.preferredHeight: 40
+                    Layout.fillWidth: true
+                    Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
+                    border.width: 0
+
+                    ColumnLayout {
+                        anchors.fill: parent
+                        spacing: 0
+
+                        Text {
+                            text: GameManager.player + "'s Turn"
+                            font.pointSize: 10
+                            font.weight: Font.DemiBold
+
+                            Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
+
+                            horizontalAlignment: Text.AlignHCenter
+                            verticalAlignment: Text.AlignVCenter
+                            elide: Text.ElideRight
+                        }
+
+                        Text {
+                            text: "Fuel Remaining: " + GameManager.fuel
+
+                            Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
+
+                            horizontalAlignment: Text.AlignHCenter
+                            verticalAlignment: Text.AlignVCenter
+                        }
+                    }
+                }
+
+                Rectangle {
+                    Layout.preferredHeight: 1
+                    Layout.fillWidth: true
+                    color: Qt.rgba(0, 0, 0, 1)
+                }
+
+                Rectangle {
+                    Layout.preferredHeight: 26
+                    Layout.fillWidth: true
+                    Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
+                    border.width: 0
+                    color: "transparent"
+
+                    Text {
+                        text: "Players"
+                        font.weight: Font.DemiBold
+                        font.pointSize: 12
+                        anchors.centerIn: parent
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                    }
+                }
+
+                Rectangle {
+                    Layout.preferredHeight: 1
+                    Layout.fillWidth: true
+                    color: Qt.rgba(0, 0, 0, 1)
+                }
+
+                ListView {
+                    id: playerListView
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    model: PlayersModel
+                    clip: true
+
+                    delegate: Rectangle {
+                        width: playerListView.width
+                        height: playerListView.height / 5
+                        color: "transparent"
+
+                        Text {
+                            anchors.fill: parent
+                            anchors.margins: 3
+
+                            text: model.username
+                            font.family: "Roboto"
+                            font.weight: Font.DemiBold
+                            color: "black"
+                            elide: Text.ElideRight
+
+                            verticalAlignment: Text.AlignVCenter
+                            horizontalAlignment: Text.AlignHCenter
+
+                            width: parent.width - 6
+                        }
+
+                        Rectangle {
+                            width: parent.width
+                            height: 1
+                            color: Qt.rgba(0, 0, 0, 0.3)
+                        }
                     }
                 }
 
@@ -62,31 +167,15 @@ Item {
                     Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
                     border.width: 1
 
-                    Text {
-                        text: GameManager.player + "'s Turn"
+                    Button {
+                        text: "Forfeit"
+
                         anchors.centerIn: parent
-                        horizontalAlignment: Text.AlignHCenter
-                        verticalAlignment: Text.AlignVCenter
+
+                        onClicked: {
+                            Client.send_forfeit()
+                        }
                     }
-                }
-
-                Rectangle {
-                    Layout.preferredHeight: 20
-                    Layout.fillWidth: true
-                    Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
-                    border.width: 1
-
-                    Text {
-                        text: "Fuel Remaining: " + GameManager.fuel
-                        anchors.centerIn: parent
-                        horizontalAlignment: Text.AlignHCenter
-                        verticalAlignment: Text.AlignVCenter
-                    }
-                }
-
-                Item {
-                    Layout.fillWidth: true
-                    Layout.fillHeight: true
                 }
 
                 Rectangle {

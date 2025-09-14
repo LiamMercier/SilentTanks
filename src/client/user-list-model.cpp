@@ -19,6 +19,13 @@ void UserListModel::set_users(const UserMap & user_map)
     endResetModel();
 }
 
+void UserListModel::set_users(const UserList & user_list)
+{
+    beginResetModel();
+    users_ = user_list.users;
+    endResetModel();
+}
+
 int UserListModel::rowCount(const QModelIndex & parent = QModelIndex()) const
 {
     return static_cast<int>(users_.size());

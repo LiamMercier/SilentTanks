@@ -189,6 +189,11 @@ GameManager* GUIClient::game_manager()
     return & game_manager_;
 }
 
+UserListModel* GUIClient::players_model()
+{
+    return game_manager_.players_model();
+}
+
 Q_INVOKABLE void GUIClient::notify_popup_closed()
 {
     {
@@ -291,6 +296,11 @@ Q_INVOKABLE void GUIClient::fetch_match_history(QueueType mode)
 Q_INVOKABLE void GUIClient::download_match_by_id(qint64 match_id)
 {
     client_.request_match_replay(static_cast<uint64_t>(match_id));
+}
+
+Q_INVOKABLE void GUIClient::send_forfeit()
+{
+    client_.forfeit_request();
 }
 
 Q_INVOKABLE void GUIClient::send_place_tank(int x, int y)

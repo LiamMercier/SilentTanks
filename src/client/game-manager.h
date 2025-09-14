@@ -4,6 +4,7 @@
 #include <QVariantMap>
 #include <QObject>
 
+#include "user-list-model.h"
 #include "player-view.h"
 #include "message-structs.h"
 
@@ -54,6 +55,8 @@ public:
 
     Q_INVOKABLE QVariantMap get_tank_data(int occupant) const;
 
+    UserListModel* players_model();
+
     // Callable from C++ code for changing the view.
     void update_view(PlayerView new_view);
 
@@ -97,6 +100,7 @@ signals:
 private:
     PlayerView current_view_;
     StaticMatchData current_data_;
+    UserListModel players_;
 
     uint8_t player_id_{UINT8_MAX};
 

@@ -117,6 +117,11 @@ Q_INVOKABLE QVariantMap GameManager::get_tank_data(int occupant) const
     return m;
 }
 
+UserListModel* GameManager::players_model()
+{
+    return & players_;
+}
+
 void GameManager::update_view(PlayerView new_view)
 {
     bool width_changed = (new_view.width() != current_view_.width());
@@ -154,6 +159,7 @@ void GameManager::update_view(PlayerView new_view)
 void GameManager::update_match_data(StaticMatchData data, std::string username)
 {
     current_data_ = data;
+    players_.set_users(data.player_list);
 
     // Game server will dump old commands, so just reset our sequence number.
     sequence_number_ = 0;

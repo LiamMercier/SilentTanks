@@ -77,6 +77,8 @@ public:
 
     GameManager* game_manager();
 
+    UserListModel* players_model();
+
     Q_INVOKABLE void set_selected_mode(QueueType mode);
 
     Q_INVOKABLE void notify_popup_closed();
@@ -108,6 +110,8 @@ public:
     Q_INVOKABLE void fetch_match_history(QueueType mode);
 
     Q_INVOKABLE void download_match_by_id(qint64 match_id);
+
+    Q_INVOKABLE void send_forfeit();
 
     Q_INVOKABLE void send_place_tank(int x, int y);
 

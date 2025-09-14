@@ -245,7 +245,7 @@ Item {
                 var sy = Math.round(boardViewRoot.selectedCellY * scaledTile - camY)
 
                 cntx.lineWidth = 2
-                cntx.strokeStyle = "#ff8800"
+                cntx.strokeStyle = "#008080"
                 cntx.strokeRect(sx + 1, sy + 1, scaledTile - 2, scaledTile - 2)
             }
         }
@@ -350,7 +350,6 @@ Item {
                     {
                         boardViewRoot.selectedCellX = cell.x
                         boardViewRoot.selectedCellY = cell.y
-                        console.log(boardViewRoot.selectedCellX, boardViewRoot.selectedCellY)
                         viewCanvas.requestPaint()
 
                         // open popup.
@@ -719,7 +718,6 @@ Item {
             selectedCellX = -1
             selectedCellY = -1
             viewCanvas.requestPaint()
-            console.log("closing popup")
         }
 
     }

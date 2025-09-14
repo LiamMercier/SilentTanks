@@ -918,7 +918,23 @@ try {
                 std::array<int, RANKED_MODES_COUNT> elos = msg.to_elos();
                 client_data_.display_elos = std::move(elos);
 
-                change_state(ClientState::Lobby);
+                bool should_change = false;
+
+                {
+                    std::lock_guard lock(state_mutex_);
+                    // Prevent swapping back to lobby on bad packet ordering
+                    // when we reconnect to a game.
+                    if (state_ != ClientState::Playing)
+                    {
+                        should_change = true;
+                    }
+                }
+
+                if (should_change)
+                {
+                    change_state(ClientState::Lobby);
+                }
+
                 login_callback_(client_data_.client_username);
             }
 
@@ -1198,7 +1214,7 @@ try {
                 queue_update_callback_(last_queued_mode_);
             }
             std::string body = std::string("You are not queued up or the ")
-                               + std::string("server failed cancel the queue.");
+                               + std::string("server failed to cancel the queue.");
             popup_callback_(Popup(
                             PopupType::Info,
                             "Cancel Failed",
@@ -1419,6 +1435,15 @@ try {
             change_state(ClientState::Lobby);
             break;
         }
+        case HeaderType::ForfeitMatch:
+        {
+            std::cerr << "You were eliminated from the game via forfeit.\n";
+
+            playing_.store(false, std::memory_order_release);
+
+            change_state(ClientState::Lobby);
+            break;
+        }
         case HeaderType::Victory:
         {
             std::cerr << "You won your match.\n";
@@ -1448,7 +1473,6 @@ try {
         {
             std::cerr << "Connection dropped by server because heartbeat "
                       << "ping was not responded to.\n";
-
             break;
         }
         case HeaderType::RateLimited:

@@ -68,6 +68,9 @@ int main(int argc, char* argv[])
         engine.rootContext()->setContextProperty("GameManager",
                                                  client.game_manager());
 
+        engine.rootContext()->setContextProperty("PlayersModel",
+                                                 client.players_model());
+
         qmlRegisterUncreatableMetaObject(GUI::staticMetaObject,
                                          "GUICommon",
                                          1,

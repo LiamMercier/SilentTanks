@@ -102,6 +102,8 @@ private:
     mutable std::mutex state_mutex_;
     ClientState state_;
 
+    std::atomic<bool> playing_{true};
+
     mutable std::mutex data_mutex_;
     ClientData client_data_;
     GameMode last_queued_mode_{GameMode::NO_MODE};

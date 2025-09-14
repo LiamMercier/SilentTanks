@@ -176,4 +176,6 @@ struct StaticMatchData
 {
     // List of users indexed by their player IDs.
     UserList player_list;
+    // Map placement area's.
+    std::vector<uint8_t> placement_mask;
 };

@@ -101,7 +101,7 @@ Q_INVOKABLE QVariantMap GameManager::cell_at(int x, int y) const
 Q_INVOKABLE QVariantMap GameManager::get_tank_data(int occupant) const
 {
     QVariantMap m;
-    if (occupant < 0 || occupant >= 255)
+    if (occupant < 0 || occupant >= NO_OCCUPANT)
     {
         return m;
     }
@@ -215,9 +215,41 @@ uint8_t GameManager::tank_at(int x, int y)
     return current_view_.map_view[current_view_.indx(x, y)].occupant_;
 }
 
-bool GameManager::is_turn()
+Q_INVOKABLE bool GameManager::is_turn()
 {
     return current_view_.current_player == player_id_;
+}
+
+Q_INVOKABLE bool GameManager::is_friendly_tank(uint8_t tank_id)
+{
+    for (const auto tank : current_view_.visible_tanks)
+    {
+        if (tank.id_ == tank_id)
+        {
+            return tank.owner_ == player_id_;
+        }
+    }
+
+    // Default to false if we can't find the tank.
+    return false;
+}
+
+Q_INVOKABLE bool GameManager::valid_placement_tile(int x, int y)
+{
+    size_t index = current_view_.indx(x, y);
+
+    if (index > current_data_.placement_mask.size())
+    {
+        return false;
+    }
+
+    if (current_view_.map_view[index].occupant_ != NO_OCCUPANT)
+    {
+        return false;
+    }
+
+    // See if this is our tile or not.
+    return (player_id_ == current_data_.placement_mask[index]);
 }
 
 bool GameManager::tank_has_ammo(uint8_t tank_id)

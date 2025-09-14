@@ -227,6 +227,14 @@ Item {
                     // Temporary, draw outline. TODO: remove this.
                     cntx.strokeStyle = "rgba(0, 0, 0, 1)"
                     cntx.strokeRect(px + 0.5, py + 0.5, scaledTile - 1, scaledTile - 1)
+
+                    // Draw overlay if in setup.
+                    if (GameManager.state === 0
+                        && GameManager.valid_placement_tile(x, y))
+                    {
+                        cntx.fillStyle = "rgba(0, 200, 64, 0.04)"
+                        cntx.fillRect(px, py, scaledTile, scaledTile)
+                    }
                 }
             }
 
@@ -733,6 +741,12 @@ Item {
         // If in setup.
         if (state === 0)
         {
+            // Don't do anything on invalid placement tiles.
+            if (!GameManager.valid_placement_tile(cx, cy))
+            {
+                return
+            }
+
             // Allow place only if not occupied and not terraine.
             if (cell.occupant === 255 && cell.type !== 2)
             {
@@ -745,20 +759,24 @@ Item {
             // Add commands if tank exists.
             if (cell.occupant !== 255)
             {
-                // First 3
-                actionsModel.append({ action: "rotate_barrel_left", actionText: "Rotate\nBarrel\nLeft" })
-                actionsModel.append({ action: "move_forward", actionText: "Move\nForward" })
-                actionsModel.append({ action: "rotate_barrel_right", actionText: "Rotate\nBarrel\nRight" })
+                // Unless it is not our tank.
+                if (GameManager.is_friendly_tank(cell.occupant))
+                {
+                    // First 3.
+                    actionsModel.append({ action: "rotate_barrel_left", actionText: "Rotate\nBarrel\nLeft" })
+                    actionsModel.append({ action: "move_forward", actionText: "Move\nForward" })
+                    actionsModel.append({ action: "rotate_barrel_right", actionText: "Rotate\nBarrel\nRight" })
 
-                // Next 3
-                actionsModel.append({ action: "rotate_tank_left", actionText: "Rotate\nTank\nLeft" })
-                actionsModel.append({ action: "no_op", actionText: "" })
-                actionsModel.append({ action: "rotate_tank_right", actionText: "Rotate\nTank\nRight" })
+                    // Next 3.
+                    actionsModel.append({ action: "rotate_tank_left", actionText: "Rotate\nTank\nLeft" })
+                    actionsModel.append({ action: "no_op", actionText: "" })
+                    actionsModel.append({ action: "rotate_tank_right", actionText: "Rotate\nTank\nRight" })
 
-                // Bottom 3.
-                actionsModel.append({ action: "reload", actionText: "Reload" })
-                actionsModel.append({ action: "move_reverse", actionText: "Move\nReverse" })
-                actionsModel.append({ action: "fire", actionText: "Fire" })
+                    // Bottom 3.
+                    actionsModel.append({ action: "reload", actionText: "Reload" })
+                    actionsModel.append({ action: "move_reverse", actionText: "Move\nReverse" })
+                    actionsModel.append({ action: "fire", actionText: "Fire" })
+                }
             }
             // Otherwise, stop.
             else

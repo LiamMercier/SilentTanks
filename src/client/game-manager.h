@@ -73,7 +73,11 @@ public:
 
     uint8_t tank_at(int x, int y);
 
-    bool is_turn();
+    Q_INVOKABLE bool is_turn();
+
+    Q_INVOKABLE bool is_friendly_tank(uint8_t tank_id);
+
+    Q_INVOKABLE bool valid_placement_tile(int x, int y);
 
     bool tank_has_ammo(uint8_t tank_id);
 

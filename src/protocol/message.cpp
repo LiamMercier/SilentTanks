@@ -190,13 +190,22 @@ StaticMatchData Message::to_static_match_data(bool & op_status)
     StaticMatchData match_data;
 
     // Convert the list of users.
-    size_t offset = 0;
+    uint8_t num_players = payload[0];
+
+    // Ensure valid number of players.
+    if (num_players > MAX_PLAYERS)
+    {
+        op_status = false;
+        return StaticMatchData{};
+    }
+
+    size_t offset = 1;
     size_t total = payload.size();
 
     UserList user_list;
 
     // While we still have more users to go through.
-    while (offset < total)
+    while (user_list.users.size() < num_players)
     {
         // If we can't read another 17 bytes, stop.
         if (offset + 16 + 1 > total)
@@ -220,7 +229,6 @@ StaticMatchData Message::to_static_match_data(bool & op_status)
         // If invalid username length.
         if (username_len > MAX_USERNAME_LENGTH)
         {
-            std::cout << +username_len << "bad \n";
             op_status = false;
             return {};
         }
@@ -252,6 +260,17 @@ StaticMatchData Message::to_static_match_data(bool & op_status)
     }
 
     match_data.player_list = user_list;
+
+    // Finally, grab the placement mask.
+    std::vector<uint8_t> mask;
+
+    mask.insert(
+        mask.end(),
+        reinterpret_cast<const uint8_t*>(payload.data()) + offset,
+        reinterpret_cast<const uint8_t*>(payload.data()) + total
+        );
+
+    match_data.placement_mask = mask;
 
     op_status = true;
     return match_data;
@@ -1004,6 +1023,10 @@ void Message::create_serialized(const mType & req)
     {
         header.type_ = HeaderType::StaticMatchData;
 
+        // Add player list size.
+        payload_buffer.push_back(
+            static_cast<uint8_t>(req.player_list.users.size()));
+
         // Loop over the users and add them.
         for (const auto & user : req.player_list.users)
         {
@@ -1024,6 +1047,12 @@ void Message::create_serialized(const mType & req)
                                                  + username_len);
         }
 
+        // Copy the placement mask.
+        payload_buffer.insert(
+                payload_buffer.end(),
+                reinterpret_cast<const uint8_t*>(req.placement_mask.data()),
+                reinterpret_cast<const uint8_t*>(req.placement_mask.data())
+                                                 + req.placement_mask.size());
     }
     // For views, we need to put the FlatArray of grid cells into the buffer.
     //

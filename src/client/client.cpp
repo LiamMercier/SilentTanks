@@ -1234,6 +1234,8 @@ try {
                 change_state(ClientState::Playing);
             }
 
+            playing_.store(true, std::memory_order_release);
+
             break;
         }
         case HeaderType::MatchCreationError:
@@ -1261,6 +1263,7 @@ try {
             std::cerr << "You have a match in progress.\n";
 
             {
+                playing_.store(true, std::memory_order_release);
                 change_state(ClientState::Playing);
             }
 
@@ -1272,6 +1275,8 @@ try {
 
             bool status;
             StaticMatchData match_data = msg.to_static_match_data(status);
+
+            std::cout << match_data.placement_mask.size();
 
             if (status == false)
             {
@@ -1364,6 +1369,16 @@ try {
 
             view_callback_(current_view);
 
+            // Change to playing if necessary.
+            {
+                std::lock_guard lock(state_mutex_);
+                if (state_ != ClientState::Playing
+                    && playing_.load(std::memory_order_acquire))
+                {
+                    change_state(ClientState::Playing);
+                }
+            }
+
             break;
         }
         case HeaderType::FailedMove:
@@ -1385,6 +1400,8 @@ try {
                             "You were eliminated from the game."),
                             STANDARD_POPUP);
 
+            playing_.store(false, std::memory_order_release);
+
             change_state(ClientState::Lobby);
             break;
         }
@@ -1396,6 +1413,8 @@ try {
                             "Eliminated",
                             "You were eliminated from the game via timeout."),
                             STANDARD_POPUP);
+
+            playing_.store(false, std::memory_order_release);
 
             change_state(ClientState::Lobby);
             break;
@@ -1409,12 +1428,15 @@ try {
                             "You won your match."),
                             STANDARD_POPUP);
 
+            playing_.store(false, std::memory_order_release);
+
             change_state(ClientState::Lobby);
             break;
         }
         case HeaderType::GameEnded:
         {
             std::cerr << "Game has already ended.\n";
+            playing_.store(false, std::memory_order_release);
             break;
         }
         case HeaderType::BadMessage:
@@ -1583,6 +1605,8 @@ void Client::on_disconnect()
                             URGENT_POPUP);
 
         // TODO: figure out how disconnects should work later.
+
+        playing_.store(false, std::memory_order_release);
         change_state(ClientState::ConnectScreen);
     });
 

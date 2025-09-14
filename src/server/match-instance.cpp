@@ -323,6 +323,8 @@ StaticMatchData MatchInstance::compute_static_data()
         match_data.player_list.users.emplace_back(curr_player);
     }
 
+    match_data.placement_mask = game_instance_.get_mask();
+
     return match_data;
 }
 

@@ -49,6 +49,8 @@ public:
 
     void load_tank(uint8_t ID);
 
+    const std::vector<uint8_t> get_mask();
+
     inline Player & get_player(uint8_t index);
 
     inline const Player & get_player(uint8_t index) const;

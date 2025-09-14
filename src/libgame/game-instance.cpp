@@ -849,6 +849,11 @@ void GameInstance::load_tank(uint8_t ID)
     return;
 }
 
+const std::vector<uint8_t> GameInstance::get_mask()
+{
+    return placement_mask_;
+}
+
 bool GameInstance::read_env_by_name(const std::string& filename,
                                     uint16_t total)
 {

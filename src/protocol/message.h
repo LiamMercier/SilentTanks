@@ -47,6 +47,9 @@ constexpr std::array<uint8_t, NUMBER_OF_MODES> players_for_gamemode = []
     return a;
 }();
 
+constexpr uint8_t MAX_PLAYERS = players_for_gamemode[static_cast<uint8_t>(
+                                    GameMode::ClassicFivePlayer)];
+
 constexpr int LATEST_MATCHES_COUNT = 10;
 
 struct Message

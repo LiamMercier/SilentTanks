@@ -18,6 +18,8 @@ class GUIClient : public QObject
 public:
     Q_ENUM(ClientState)
 
+    Q_ENUM(SoundType)
+
     Q_PROPERTY(ClientState state
                READ state
                NOTIFY state_changed)
@@ -134,6 +136,8 @@ signals:
     void show_popup(PopupType type,
                     QString title,
                     QString body);
+
+    void play_sound(SoundType type);
 
 private:
     Client client_;

@@ -110,7 +110,12 @@ client_
 ),
 friends_(this),
 friend_requests_(this),
-blocked_(this)
+blocked_(this),
+game_manager_(nullptr,
+    [this](){
+        emit play_sound(SoundType::NotifyTurn);
+    }
+)
 {
 
 }
@@ -330,6 +335,8 @@ Q_INVOKABLE void GUIClient::send_rotate_barrel(int x, int y, int rotation)
     cmd.sender = 0;
 
     client_.send_command(std::move(cmd));
+
+    emit play_sound(SoundType::Rotate);
 }
 
 Q_INVOKABLE void GUIClient::send_move_tank(int x, int y, int dir)
@@ -351,6 +358,8 @@ Q_INVOKABLE void GUIClient::send_move_tank(int x, int y, int dir)
     cmd.sender = 0;
 
     client_.send_command(std::move(cmd));
+
+    emit play_sound(SoundType::Move);
 }
 
 Q_INVOKABLE void GUIClient::send_rotate_tank(int x, int y, int rotation)
@@ -372,6 +381,8 @@ Q_INVOKABLE void GUIClient::send_rotate_tank(int x, int y, int rotation)
     cmd.sender = 0;
 
     client_.send_command(std::move(cmd));
+
+    emit play_sound(SoundType::Rotate);
 }
 
 Q_INVOKABLE void GUIClient::send_fire_tank(int x, int y)
@@ -382,10 +393,18 @@ Q_INVOKABLE void GUIClient::send_fire_tank(int x, int y)
     }
 
     Command cmd;
+    cmd.tank_id = game_manager_.tank_at(x, y);
 
+    // See if there is ammo before sending.
+    if (!game_manager_.tank_has_ammo(cmd.tank_id))
+    {
+        emit play_sound(SoundType::OutOfAmmo);
+        return;
+    }
+
+    // If we have ammo, send firing command.
     cmd.type = CommandType::Fire;
     cmd.sequence_number = game_manager_.sequence_number();
-    cmd.tank_id = game_manager_.tank_at(x, y);
 
     // Fill empty fields with 0.
     cmd.payload_first = 0;
@@ -393,6 +412,8 @@ Q_INVOKABLE void GUIClient::send_fire_tank(int x, int y)
     cmd.sender = 0;
 
     client_.send_command(std::move(cmd));
+
+    emit play_sound(SoundType::CannonFiring);
 }
 
 Q_INVOKABLE void GUIClient::send_reload_tank(int x, int y)
@@ -414,6 +435,8 @@ Q_INVOKABLE void GUIClient::send_reload_tank(int x, int y)
     cmd.sender = 0;
 
     client_.send_command(std::move(cmd));
+
+    emit play_sound(SoundType::Reload);
 }
 
 void GUIClient::try_show_popup()

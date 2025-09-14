@@ -9,6 +9,8 @@
 
 class GameManager : public QAbstractListModel
 {
+    using PlaySoundCallback = std::function<void()>;
+
     Q_OBJECT
 
     Q_PROPERTY(int map_width
@@ -38,7 +40,8 @@ public:
         VisibleRole
     };
 
-    GameManager(QObject * parent = nullptr);
+    GameManager(QObject * parent = nullptr,
+                PlaySoundCallback sound_callback = nullptr);
 
     int rowCount(const QModelIndex & parent) const override;
 
@@ -72,6 +75,8 @@ public:
 
     bool is_turn();
 
+    bool tank_has_ammo(uint8_t tank_id);
+
 signals:
     void view_changed();
 
@@ -93,4 +98,6 @@ private:
 
     // Increasing number across a game,
     uint16_t sequence_number_{0};
+
+    PlaySoundCallback sound_callback_;
 };

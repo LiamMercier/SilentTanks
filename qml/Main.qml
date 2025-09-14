@@ -64,6 +64,11 @@ ApplicationWindow {
             popup.popupText = body;
             popup.show();
         }
+
+        function onPlay_sound(type) {
+            SoundManager.playSound(type)
+            console.log(type)
+        }
     }
 
     // Handle application close. TODO: implement later.

@@ -89,6 +89,19 @@ int main(int argc, char* argv[])
                                          "QueueType",
                                          "Tried to create GUI namespace enum.");
 
+        qmlRegisterUncreatableMetaObject(GUI::staticMetaObject,
+                                         "GUICommon",
+                                         1,
+                                         0,
+                                         "SoundType",
+                                         "Tried to create GUI namespace enum.");
+
+        qmlRegisterSingletonType(QUrl("qrc:/SoundManager.qml"),
+                                 "SoundManager",
+                                 1,
+                                 0,
+                                 "SoundManager");
+
         // Load our main QML file.
         engine.load(QUrl(QStringLiteral("qrc:/Main.qml")));
 

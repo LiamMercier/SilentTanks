@@ -15,10 +15,13 @@ set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
 set(CMAKE_CXX_FLAGS_DEBUG
     "${CMAKE_CXX_FLAGS_DEBUG} -fsanitize=address -fno-omit-frame-pointer")
 
-file(GLOB TILE_SVGS "${CMAKE_CURRENT_SOURCE_DIR}/qml/resources/*.svg")
+file(GLOB TILE_SVGS "${CMAKE_CURRENT_SOURCE_DIR}/qml/svgs/tiles/*.svg")
+file(GLOB SOUNDS "${CMAKE_CURRENT_SOURCE_DIR}/qml/sounds/*.wav")
 file(GLOB QML_FILES "${CMAKE_CURRENT_SOURCE_DIR}/qml/*.qml")
 
 set(QML_RCC ${CMAKE_SOURCE_DIR}/qml/qml-resources.qrc)
+
+set(QML_DIR ${CMAKE_SOURCE_DIR}/qml)
 
 file(WRITE "${QML_RCC}" "<RCC>\n  <qresource prefix=\"\">\n")
 
@@ -29,6 +32,11 @@ endforeach()
 
 foreach(svg ${TILE_SVGS})
     file(RELATIVE_PATH REL_PATH "${CMAKE_CURRENT_SOURCE_DIR}/qml" "${svg}")
+    file(APPEND "${QML_RCC}" "    <file>${REL_PATH}</file>\n")
+endforeach()
+
+foreach(wav ${SOUNDS})
+    file(RELATIVE_PATH REL_PATH "${CMAKE_CURRENT_SOURCE_DIR}/qml" "${wav}")
     file(APPEND "${QML_RCC}" "    <file>${REL_PATH}</file>\n")
 endforeach()
 

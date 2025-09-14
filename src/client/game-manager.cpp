@@ -32,8 +32,9 @@ constexpr bool same_username(const std::string & a, const std::string & b)
     return true;
 }
 
-GameManager::GameManager(QObject * parent)
-:QAbstractListModel(parent)
+GameManager::GameManager(QObject * parent, PlaySoundCallback sound_callback)
+:QAbstractListModel(parent),
+sound_callback_(sound_callback)
 {
 }
 
@@ -125,6 +126,16 @@ void GameManager::update_view(PlayerView new_view)
     current_view_ = new_view;
     endResetModel();
 
+    if (sound_callback_)
+    {
+        // Determine if it is now our turn, with 3 fuel.
+        if (current_view_.current_player == player_id_
+            && current_view_.current_fuel == TURN_PLAYER_FUEL)
+        {
+            sound_callback_();
+        }
+    }
+
     if (width_changed)
     {
         emit map_width_changed();
@@ -207,4 +218,17 @@ uint8_t GameManager::tank_at(int x, int y)
 bool GameManager::is_turn()
 {
     return current_view_.current_player == player_id_;
+}
+
+bool GameManager::tank_has_ammo(uint8_t tank_id)
+{
+    for (const auto tank : current_view_.visible_tanks)
+    {
+        if (tank.id_ == tank_id)
+        {
+            return tank.loaded_;
+        }
+    }
+    // If we can't find the tank return false.
+    return false;
 }

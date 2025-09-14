@@ -35,6 +35,18 @@ enum class QueueType : uint8_t
 
 Q_ENUM_NS(QueueType)
 
+enum class SoundType : uint8_t
+{
+    NotifyTurn,
+    Move,
+    CannonFiring,
+    OutOfAmmo,
+    Reload,
+    Rotate
+};
+
+Q_ENUM_NS(SoundType)
+
 }
 
 using ClientState = GUI::ClientState;
@@ -42,3 +54,5 @@ using ClientState = GUI::ClientState;
 using PopupType = GUI::PopupType;
 
 using QueueType = GUI::QueueType;
+
+using SoundType = GUI::SoundType;

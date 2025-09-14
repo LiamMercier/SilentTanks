@@ -3,6 +3,7 @@ import QtQuick.Controls 2.15
 import QtQuick.Layouts 2.15
 
 import GUICommon 1.0
+import SoundManager 1.0
 
 Item {
     id: boardViewRoot
@@ -137,7 +138,7 @@ Item {
                 // grab source
                 img.width = pixelSize
                 img.height = pixelSize
-                img.source = "qrc:/resources/" + key + ".svg"
+                img.source = "qrc:/svgs/tiles/" + key + ".svg"
 
                 // store into the cache
                 tileImageCache[key] = {img: img, size: pixelSize}

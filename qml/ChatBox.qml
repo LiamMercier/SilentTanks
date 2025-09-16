@@ -30,14 +30,15 @@ ColumnLayout {
             height: messageText.paintedHeight + padding * 2
 
             color: "transparent"
-            border.width: 1
-            border.color: "green"
 
             Text {
                 id: messageText
                 text: modelData
                 wrapMode: Text.Wrap
                 font.pixelSize: 14
+
+                color: "#ffffff"
+                opacity: 0.87
 
                 anchors.fill: parent
                 anchors.margins: parent.padding
@@ -62,6 +63,8 @@ ColumnLayout {
             wrapMode: Text.Wrap
             font.pixelSize: 14
 
+            color: "#f2f2f2"
+
             topPadding: 4
             bottomPadding: 8
             leftPadding: 6
@@ -69,9 +72,9 @@ ColumnLayout {
 
             background: Rectangle {
                 anchors.fill:parent
-                color: "white"
+                color: "#26282a"
                 border.width: 1
-                border.color: "gray"
+                border.color: "#3e4042"
                 radius: 0
             }
 

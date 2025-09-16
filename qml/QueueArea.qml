@@ -7,9 +7,8 @@ import GUICommon 1.0
 // Queue selection area
 Rectangle {
     id: queueArea
-    border.color: "purple"
-    border.width: 1
-    opacity: 0.8
+    border.width: 0
+    color: "#323436"
 
     Layout.fillWidth: true
     // Give queues area 60% of height
@@ -24,8 +23,9 @@ Rectangle {
             id: topQueueBar
             Layout.preferredHeight: 56
             Layout.fillWidth: true
-            border.width: 1
             clip: true
+
+            color: "#202122"
 
             RowLayout {
                 anchors.fill: parent
@@ -62,6 +62,7 @@ Rectangle {
             Text {
                 text: "Queue selection"
                 anchors.centerIn: parent
+                color: "#f2f2f2"
             }
         }
     }

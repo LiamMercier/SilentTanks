@@ -15,6 +15,7 @@
     <file>QueueArea.qml</file>
     <file>QueueMenus.qml</file>
     <file>SoundManager.qml</file>
+    <file>SvgButton.qml</file>
     <file>UserListPopup.qml</file>
     <file>svgs/tiles/cannon_east.svg</file>
     <file>svgs/tiles/cannon_north.svg</file>
@@ -66,6 +67,9 @@
     <file>svgs/tiles/tank_4_south_west.svg</file>
     <file>svgs/tiles/tank_4_west.svg</file>
     <file>svgs/tiles/visible.svg</file>
+    <file>svgs/buttons/queue_button.svg</file>
+    <file>svgs/buttons/queue_button_clicked.svg</file>
+    <file>svgs/buttons/queue_button_hover.svg</file>
     <file>sounds/CannonFiring.wav</file>
     <file>sounds/Move.wav</file>
     <file>sounds/NotifyTurn.wav</file>

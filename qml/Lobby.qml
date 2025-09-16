@@ -23,8 +23,8 @@ Item {
             Rectangle {
                 id: lobbyBackground
                 anchors.fill: parent
-                border.color: "red"
-                border.width: 1
+                color: "#1b1c1d"
+                border.width: 0
 
                 Text {
                     text: "Background"
@@ -64,8 +64,7 @@ Item {
             // Chat area.
             Rectangle {
                 id: chatArea
-                border.color: "green"
-                border.width: 1
+                color: "#2a2c2e"
 
                 Layout.preferredWidth: lobbyBackground.width * 0.5
                 Layout.fillHeight: true
@@ -73,13 +72,6 @@ Item {
                 Layout.margins: 6
                 Layout.rightMargin: 3
                 Layout.topMargin: 0
-
-                opacity: 0.8
-
-                Text {
-                    anchors.centerIn: parent
-                    text: "Chat area"
-                }
 
                 ChatBox {
                     id: chatBoxRoot
@@ -93,8 +85,7 @@ Item {
             // Queue status area.
             Rectangle {
                 id: queueStatusArea
-                border.color: "blue"
-                border.width: 1
+                color: "#2a2c2e"
 
                 Layout.fillWidth: true
                 Layout.fillHeight: true
@@ -103,25 +94,27 @@ Item {
                 Layout.leftMargin: 3
                 Layout.topMargin: 0
 
-                opacity: 0.8
+                SvgButton {
+                    toggled: Client.queued_mode === QueueType.NO_MODE
 
-                Text {
-                    anchors.centerIn: parent
-                    text: "Queue status"
-                }
+                    normalSource: "qrc:/svgs/buttons/queue_button.svg"
+                    hoverSource: "qrc:/svgs/buttons/queue_button_hover.svg"
+                    pressedSource: "qrc:/svgs/buttons/queue_button_clicked.svg"
 
-                Button {
-                        text: Client.queued_mode === QueueType.NO_MODE ? "Queue for match" : "Cancel queue"
-                        font.pointSize: 16
-                        implicitHeight: parent.height * 0.175
-                        anchors.horizontalCenter: parent.horizontalCenter
+                    normalSourceToggled: "qrc:/svgs/buttons/queue_button.svg"
+                    hoverSourceToggled: "qrc:/svgs/buttons/queue_button_hover.svg"
+                    pressedSourceToggled: "qrc:/svgs/buttons/queue_button_clicked.svg"
 
-                        y: parent.height * 0.70
+                    height: parent.height * 0.25
+                    width: parent.width * 0.8
 
-                        onClicked: {
-                            Client.toggle_queue()
-                        }
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    y: parent.height * 0.70
+
+                    onClicked: {
+                        Client.toggle_queue()
                     }
+                }
 
             }
 
@@ -136,13 +129,15 @@ Item {
             Layout.maximumWidth: 0.2 * lobbyRoot.width
             Layout.fillHeight: true
 
+            spacing: 0
+
             // Profile header.
             Rectangle {
                 id: userHeader
                 Layout.fillWidth: true
                 Layout.preferredHeight: 56
-                border.color: "yellow"
-                border.width: 1
+                color: "#2a2c2e"
+                border.width: 0
 
                 Column {
                     anchors.fill: parent
@@ -152,6 +147,7 @@ Item {
                     Text {
                         id: usernameText
                         text: Client.username !== "" ? Client.username : "Not signed in"
+                        color: "#f2f2f2"
                         horizontalAlignment: Text.AlignHCenter
                         anchors.horizontalCenter: parent.horizontalCenter
                     }
@@ -180,16 +176,33 @@ Item {
                 }
             }
 
+            Rectangle {
+                color: "#202122"
+                Layout.fillWidth: true
+                Layout.minimumHeight: 8
+                Layout.preferredHeight: 8
+            }
+
             // Friends list on the right side
-            FriendsList {
+            Rectangle {
+                id: friendsListRect
                 Layout.fillHeight: true
                 Layout.fillWidth: true
-                onMessageFriend: function(username) {
-                    let input = chatBoxRoot.messageInput
-                    input.text = "/msg " + username + " "
-                    // Set current position of cursor to the end instead of start.
-                    input.cursorPosition = input.length
-                    input.forceActiveFocus()
+                color: "#202122"
+                border.width: 0
+
+                FriendsList {
+                    // Layout.fillHeight: true
+                    // Layout.fillWidth: true
+                    anchors.fill: parent
+
+                    onMessageFriend: function(username) {
+                        let input = chatBoxRoot.messageInput
+                        input.text = "/msg " + username + " "
+                        // Set current position of cursor to the end instead of start.
+                        input.cursorPosition = input.length
+                        input.forceActiveFocus()
+                    }
                 }
             }
         }

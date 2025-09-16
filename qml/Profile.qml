@@ -19,8 +19,8 @@ Item {
         Rectangle {
             Layout.preferredHeight: profileRoot.height
             Layout.preferredWidth: profileRoot.width * 0.3
-            border.color: "red"
-            border.width: 1
+
+            color: "#2a2c2e"
 
             // Area for mode selection and elo display.
             ColumnLayout {
@@ -74,6 +74,7 @@ Item {
                     id: modeText
                     font.pointSize: 14
                     text: ""
+                    color: "#f2f2f2"
                     Layout.alignment: Qt.AlignHCenter
                 }
 
@@ -93,8 +94,8 @@ Item {
 
         Rectangle {
             id: matchHistoryRoot
-            border.color: "black"
-            border.width: 1
+
+            color: "#202122"
 
             Layout.fillHeight: true
             Layout.fillWidth: true
@@ -114,13 +115,13 @@ Item {
                     text: "Match History"
                     font.pixelSize: 20
                     font.bold: true
+                    color: "#f2f2f2"
                     Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
                 }
 
                 // Header row.
                 Rectangle {
-                    border.color: "black"
-                    border.width: 1
+                    color: "#2a2c2e"
                     Layout.fillWidth: true
                     Layout.preferredHeight: 40
 
@@ -133,11 +134,14 @@ Item {
                             Layout.preferredWidth: matchHistoryRoot.matchIDWidth
                             Layout.fillHeight: true
                             Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
-                            border.width: 1
+
+                            color: "transparent"
 
                             Text {
                                 text: "Match ID"
                                 font.bold: true
+                                color: "#f2f2f2"
+
                                 anchors.centerIn: parent
                                 horizontalAlignment: Text.AlignHCenter
                                 verticalAlignment: Text.AlignVCenter
@@ -148,11 +152,14 @@ Item {
                             Layout.preferredWidth: matchHistoryRoot.timeWidth
                             Layout.fillHeight: true
                             Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
-                            border.width: 1
+
+                            color: "transparent"
 
                             Text {
                                 text: "Finished Time"
                                 font.bold: true
+                                color: "#f2f2f2"
+
                                 anchors.centerIn: parent
                                 horizontalAlignment: Text.AlignHCenter
                                 verticalAlignment: Text.AlignVCenter
@@ -163,11 +170,14 @@ Item {
                             Layout.preferredWidth: matchHistoryRoot.placementWidth
                             Layout.fillHeight: true
                             Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
-                            border.width: 1
+
+                            color: "transparent"
 
                             Text {
                                 text: "Placement"
                                 font.bold: true
+                                color: "#f2f2f2"
+
                                 anchors.centerIn: parent
                                 horizontalAlignment: Text.AlignHCenter
                                 verticalAlignment: Text.AlignVCenter
@@ -178,11 +188,14 @@ Item {
                             Layout.preferredWidth: matchHistoryRoot.eloWidth
                             Layout.fillHeight: true
                             Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
-                            border.width: 1
+
+                            color: "transparent"
 
                             Text {
                                 text: "Elo\nChange"
                                 font.bold: true
+                                color: "#f2f2f2"
+
                                 anchors.centerIn: parent
                                 horizontalAlignment: Text.AlignHCenter
                                 verticalAlignment: Text.AlignVCenter
@@ -193,11 +206,14 @@ Item {
                             Layout.preferredWidth: matchHistoryRoot.actionRowWidth
                             Layout.fillHeight: true
                             Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
-                            border.width: 1
+
+                            color: "transparent"
 
                             Text {
                                 text: "Actions"
                                 font.bold: true
+                                color: "#f2f2f2"
+
                                 anchors.centerIn: parent
                                 horizontalAlignment: Text.AlignHCenter
                                 verticalAlignment: Text.AlignVCenter
@@ -217,23 +233,31 @@ Item {
                     delegate: Rectangle {
                         height: 40
                         width:  historyList.width
-                        border.color: "purple"
+                        border.color: "#202122"
                         border.width: 1
+
+                        color: "transparent"
 
                         // [ID | Placement | Elo diff | Time | Download Button]
                         RowLayout {
                             anchors.fill: parent
                             spacing: 0
 
+
+                            // color: "#2a2c2e"
+
+
                             Rectangle {
                                 Layout.preferredWidth: matchHistoryRoot.matchIDWidth
                                 Layout.fillHeight: true
                                 Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
-                                border.width: 1
+                                color: "transparent"
 
                                 Text {
                                     text: model.MatchID
                                     anchors.centerIn: parent
+                                    color: "#f2f2f2"
+
                                     horizontalAlignment: Text.AlignHCenter
                                     verticalAlignment: Text.AlignVCenter
                                 }
@@ -243,11 +267,13 @@ Item {
                                 Layout.preferredWidth: matchHistoryRoot.timeWidth
                                 Layout.fillHeight: true
                                 Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
-                                border.width: 1
+                                color: "transparent"
 
                                 Text {
                                     text: model.finished_at
                                     anchors.centerIn: parent
+                                    color: "#f2f2f2"
+
                                     horizontalAlignment: Text.AlignHCenter
                                     verticalAlignment: Text.AlignVCenter
                                 }
@@ -257,11 +283,13 @@ Item {
                                 Layout.preferredWidth: matchHistoryRoot.placementWidth
                                 Layout.fillHeight: true
                                 Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
-                                border.width: 1
+                                color: "transparent"
 
                                 Text {
                                     text: model.placement
                                     anchors.centerIn: parent
+                                    color: "#f2f2f2"
+
                                     horizontalAlignment: Text.AlignHCenter
                                     verticalAlignment: Text.AlignVCenter
                                 }
@@ -271,11 +299,13 @@ Item {
                                 Layout.preferredWidth: matchHistoryRoot.eloWidth
                                 Layout.fillHeight: true
                                 Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
-                                border.width: 1
+                                color: "transparent"
 
                                 Text {
                                     text: model.elo_change
                                     anchors.centerIn: parent
+                                    color: "#f2f2f2"
+
                                     horizontalAlignment: Text.AlignHCenter
                                     verticalAlignment: Text.AlignVCenter
                                 }
@@ -285,7 +315,7 @@ Item {
                                 Layout.preferredWidth: matchHistoryRoot.actionRowWidth
                                 Layout.fillHeight: true
                                 Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
-                                border.width: 1
+                                color: "transparent"
 
                                 Button {
                                     icon.name: "download"

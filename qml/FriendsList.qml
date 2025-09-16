@@ -58,6 +58,7 @@ Item {
                 text: "Friends"
                 font.pointSize: 12
                 font.bold: true
+                color: "#f2f2f2"
 
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
@@ -111,10 +112,8 @@ Item {
                 width: ListView.view.width
                 height: friendsListView.height / 10
 
-                // Give some variety to the elements.
-                //
                 // TODO: replace this with a graphic.
-                color: index % 2 === 0 ? "#f9f9f9" : "#ffffff"
+                color: "#323436"
 
                 Text {
                     anchors.fill: parent
@@ -124,7 +123,7 @@ Item {
                     font.family: "Roboto"
                     font.pointSize: 10
                     font.weight: Font.DemiBold
-                    color: "#333333"
+                    color: "#f2f2f2"
                     elide: Text.ElideRight
 
                     verticalAlignment: Text.AlignVCenter

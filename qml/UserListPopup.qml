@@ -28,7 +28,7 @@ Popup {
     anchors.centerIn: parent
 
     background: Rectangle {
-        color: "white"
+        color: "#3e4042"
         radius: 8
         border.width: 1
     }
@@ -55,10 +55,19 @@ Popup {
             spacing: 8
 
             Button {
+                id: closeButton
                 text: "\u{1F50D}"
                 font.pixelSize: 14
                 implicitHeight: 35
                 implicitWidth: 35
+
+                contentItem: Text {
+                    text: closeButton.text
+                    font: closeButton.font
+                    color: "#f2f2f2"
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                }
 
                 background: null
 
@@ -77,6 +86,7 @@ Popup {
             Label {
                 id: headerLabel
                 text: "Users"
+                color: "#eaeaea"
                 font.pointSize: 14
                 font.bold: true
                 Layout.alignment: Qt.AlignCenter
@@ -104,6 +114,15 @@ Popup {
             id: searchInput
             placeholderText: "Enter username to " + (showActionButtons ? "add" : "block")
             visible: false
+
+            color: "#eaeaea"
+
+            background: Rectangle {
+                color: "#2a2c2e"
+                radius: 2
+                width: parent.width
+            }
+
             Layout.fillWidth: true
             focus: visible
             onAccepted: {
@@ -128,68 +147,81 @@ Popup {
             model: null
             clip: true
 
-            delegate: Rectangle {
+            delegate: ColumnLayout {
                 width: ListView.view.width
-                height: 48
-                color: "white"
 
-                border.width: 1
+                Rectangle {
+                    Layout.fillWidth: true
+                    height: 48
+                    color: "#2a2c2e"
 
-                RowLayout {
-                    anchors.fill: parent
-                    spacing: 8
-                    anchors.rightMargin: 16
-
-                    Label {
-                        text: model.username
-                        font.family: "Roboto"
-                        font.pointSize: 10
-                        font.weight: Font.DemiBold
-                        padding: 4
-
-                        Layout.alignment: Qt.AlignVCenter
-                    }
-
-                    // Create space between the buttons and username.
-                    Item {
-                        Layout.fillWidth: true
-                    }
+                    border.width: 1
 
                     RowLayout {
+                        anchors.fill: parent
                         spacing: 8
-                        Layout.alignment: Qt.AlignVCenter | Qt.AlignRight
-                        anchors.rightMargin: 8
+                        anchors.rightMargin: 16
 
-                        Button {
-                            text: "Y"
-                            font.pointSize: 6
-                            implicitHeight: 20
-                            implicitWidth: 20
-                            visible: userListPopup.showActionButtons
-                            onClicked: {
-                                Client.respond_friend_request(model.uuid, true)
-                            }
+                        Label {
+                            text: model.username
+                            font.family: "Roboto"
+                            font.pointSize: 10
+                            font.weight: Font.DemiBold
+                            padding: 4
+
+                            color: "#eaeaea"
+
+                            Layout.alignment: Qt.AlignVCenter
                         }
 
-                        Button {
-                            text: "X"
-                            font.pointSize: 6
-                            implicitHeight: 20
-                            implicitWidth: 20
-                            onClicked: {
-                                if (userListPopup.showActionButtons)
-                                {
-                                    Client.respond_friend_request(model.uuid, false)
-                                }
-                                else {
-                                    Client.unblock_user(model.uuid)
+                        // Create space between the buttons and username.
+                        Item {
+                            Layout.fillWidth: true
+                        }
+
+                        RowLayout {
+                            spacing: 8
+                            Layout.alignment: Qt.AlignVCenter | Qt.AlignRight
+                            anchors.rightMargin: 8
+
+                            Button {
+                                text: "Y"
+                                font.pointSize: 6
+                                implicitHeight: 20
+                                implicitWidth: 20
+                                visible: userListPopup.showActionButtons
+                                onClicked: {
+                                    Client.respond_friend_request(model.uuid, true)
                                 }
                             }
+
+                            Button {
+                                text: "X"
+                                font.pointSize: 6
+                                implicitHeight: 20
+                                implicitWidth: 20
+                                onClicked: {
+                                    if (userListPopup.showActionButtons)
+                                    {
+                                        Client.respond_friend_request(model.uuid, false)
+                                    }
+                                    else {
+                                        Client.unblock_user(model.uuid)
+                                    }
+                                }
+                            }
+
                         }
 
                     }
-
                 }
+
+                Rectangle {
+                    Layout.fillWidth: true
+                    height: 1
+                    color: "transparent"
+                }
+
             }
 
         }

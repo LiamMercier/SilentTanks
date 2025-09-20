@@ -7,6 +7,7 @@ Item
     id: svgButton
 
     property bool toggled
+    property bool doSmooth: false
 
     // Button sources to be set by the parent.
     property url normalSource: ""
@@ -58,6 +59,7 @@ Item
             return src
         }
         fillMode: Image.PreserveAspectFit
+        smooth: doSmooth
     }
 
     MouseArea {

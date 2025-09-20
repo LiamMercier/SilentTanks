@@ -17,7 +17,7 @@ Item {
     // a row for the user.
     RowLayout {
         id: contentRow
-        spacing: 6
+        spacing: 10
         anchors.centerIn: parent
 
         ListModel {

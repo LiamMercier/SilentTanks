@@ -20,7 +20,7 @@ Item {
             Layout.preferredHeight: profileRoot.height
             Layout.preferredWidth: profileRoot.width * 0.3
 
-            color: "#2a2c2e"
+            color: "#202122"
 
             // Area for mode selection and elo display.
             ColumnLayout {
@@ -72,7 +72,7 @@ Item {
 
                 Text {
                     id: modeText
-                    font.pointSize: 14
+                    font.pointSize: 16
                     text: ""
                     color: "#f2f2f2"
                     Layout.alignment: Qt.AlignHCenter

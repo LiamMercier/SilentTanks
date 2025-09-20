@@ -98,18 +98,20 @@ Item {
                     toggled: Client.queued_mode === QueueType.NO_MODE
 
                     normalSource: "qrc:/svgs/buttons/queue_button.svg"
-                    hoverSource: "qrc:/svgs/buttons/queue_button_hover.svg"
-                    pressedSource: "qrc:/svgs/buttons/queue_button_clicked.svg"
+                    hoverSource: "qrc:/svgs/buttons/queue_button_hovered.svg"
+                    pressedSource: "qrc:/svgs/buttons/queue_button_pressed.svg"
 
                     normalSourceToggled: "qrc:/svgs/buttons/queue_button.svg"
-                    hoverSourceToggled: "qrc:/svgs/buttons/queue_button_hover.svg"
-                    pressedSourceToggled: "qrc:/svgs/buttons/queue_button_clicked.svg"
+                    hoverSourceToggled: "qrc:/svgs/buttons/queue_button_hovered.svg"
+                    pressedSourceToggled: "qrc:/svgs/buttons/queue_button_pressed.svg"
 
                     height: parent.height * 0.25
                     width: parent.width * 0.8
 
                     anchors.horizontalCenter: parent.horizontalCenter
                     y: parent.height * 0.70
+
+                    doSmooth: true
 
                     onClicked: {
                         Client.toggle_queue()

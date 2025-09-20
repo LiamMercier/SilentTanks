@@ -55,15 +55,15 @@ Popup {
             spacing: 8
 
             Button {
-                id: closeButton
+                id: searchButton
                 text: "\u{1F50D}"
                 font.pixelSize: 14
                 implicitHeight: 35
                 implicitWidth: 35
 
                 contentItem: Text {
-                    text: closeButton.text
-                    font: closeButton.font
+                    text: searchButton.text
+                    font: searchButton.font
                     color: "#f2f2f2"
                     horizontalAlignment: Text.AlignHCenter
                     verticalAlignment: Text.AlignVCenter
@@ -95,13 +95,23 @@ Popup {
             Item {
                 Layout.fillWidth: true
             }
-
             Button {
+                id: closeButton
                 text: "X"
                 font.pointSize: 10
                 implicitHeight: 25
                 implicitWidth: 25
                 Layout.alignment: Qt.AlignVCenter | Qt.AlignRight
+
+                contentItem: Text {
+                    text: closeButton.text
+                    font: closeButton.font
+                    color: "#f2f2f2"
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                }
+
+                background: null
 
                 onClicked: {
                     userListPopup.close()
@@ -184,22 +194,33 @@ Popup {
                             Layout.alignment: Qt.AlignVCenter | Qt.AlignRight
                             anchors.rightMargin: 8
 
-                            Button {
-                                text: "Y"
-                                font.pointSize: 6
-                                implicitHeight: 20
-                                implicitWidth: 20
+                            SvgButton {
+                                Layout.preferredWidth: 20
+                                Layout.preferredHeight: 20
+
                                 visible: userListPopup.showActionButtons
+
+                                toggled: false
+
+                                normalSource: "qrc:/pngs/accept_button.png"
+                                hoverSource: "qrc:/pngs/accept_button_hovered.png"
+                                pressedSource: "qrc:/pngs/accept_button_pressed.png"
+
                                 onClicked: {
                                     Client.respond_friend_request(model.uuid, true)
                                 }
                             }
 
-                            Button {
-                                text: "X"
-                                font.pointSize: 6
-                                implicitHeight: 20
-                                implicitWidth: 20
+                            SvgButton {
+                                Layout.preferredWidth: 20
+                                Layout.preferredHeight: 20
+
+                                toggled: false
+
+                                normalSource: "qrc:/pngs/reject_button.png"
+                                hoverSource: "qrc:/pngs/reject_button_hovered.png"
+                                pressedSource: "qrc:/pngs/reject_button_pressed.png"
+
                                 onClicked: {
                                     if (userListPopup.showActionButtons)
                                     {
@@ -210,6 +231,7 @@ Popup {
                                     }
                                 }
                             }
+
 
                         }
 

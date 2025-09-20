@@ -17,7 +17,6 @@ Item {
             id: mapArea
             Layout.preferredWidth: parent.width * 0.8
             Layout.fillHeight: true
-            border.width: 1
 
             BoardView {
                 anchors.fill: parent
@@ -40,6 +39,8 @@ Item {
                     Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
                     border.width: 0
 
+                    color: "#2a2c2e"
+
                     Text {
                         text: {
                             switch (GameManager.state) {
@@ -51,6 +52,7 @@ Item {
                         }
                         font.bold: true
                         font.pointSize: 12
+                        color: "#f2f2f2"
                         anchors.centerIn: parent
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
@@ -69,6 +71,8 @@ Item {
                     Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
                     border.width: 0
 
+                    color: "#2a2c2e"
+
                     ColumnLayout {
                         anchors.fill: parent
                         spacing: 0
@@ -77,6 +81,8 @@ Item {
                             text: GameManager.player + "'s Turn"
                             font.pointSize: 10
                             font.weight: Font.DemiBold
+
+                            color: "#f2f2f2"
 
                             Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
 
@@ -89,6 +95,8 @@ Item {
                             text: "Fuel Remaining: " + GameManager.fuel
 
                             Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
+
+                            color: "#f2f2f2"
 
                             horizontalAlignment: Text.AlignHCenter
                             verticalAlignment: Text.AlignVCenter
@@ -107,13 +115,16 @@ Item {
                     Layout.fillWidth: true
                     Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
                     border.width: 0
-                    color: "transparent"
+                    color: "#2a2c2e"
 
                     Text {
                         text: "Players"
                         font.weight: Font.DemiBold
                         font.pointSize: 12
                         anchors.centerIn: parent
+
+                        color: "#f2f2f2"
+
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
                     }
@@ -125,40 +136,47 @@ Item {
                     color: Qt.rgba(0, 0, 0, 1)
                 }
 
-                ListView {
-                    id: playerListView
+                Rectangle {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
-                    model: PlayersModel
-                    clip: true
 
-                    delegate: Rectangle {
-                        width: playerListView.width
-                        height: playerListView.height / 5
-                        color: "transparent"
+                    color: "#2a2c2e"
 
-                        Text {
-                            anchors.fill: parent
-                            anchors.margins: 3
+                    ListView {
+                        id: playerListView
+                        anchors.fill: parent
+                        model: PlayersModel
+                        clip: true
 
-                            text: model.username
-                            font.family: "Roboto"
-                            font.weight: Font.DemiBold
-                            color: "black"
-                            elide: Text.ElideRight
+                        delegate: Rectangle {
+                            width: playerListView.width
+                            height: playerListView.height / 5
+                            color: "transparent"
 
-                            verticalAlignment: Text.AlignVCenter
-                            horizontalAlignment: Text.AlignHCenter
+                            Text {
+                                anchors.fill: parent
+                                anchors.margins: 3
 
-                            width: parent.width - 6
-                        }
+                                text: model.username
+                                font.family: "Roboto"
+                                font.weight: Font.DemiBold
+                                color: "#f2f2f2"
+                                elide: Text.ElideRight
 
-                        Rectangle {
-                            width: parent.width
-                            height: 1
-                            color: Qt.rgba(0, 0, 0, 0.3)
+                                verticalAlignment: Text.AlignVCenter
+                                horizontalAlignment: Text.AlignHCenter
+
+                                width: parent.width - 6
+                            }
+
+                            Rectangle {
+                                width: parent.width
+                                height: 1
+                                color: Qt.rgba(0, 0, 0, 0.3)
+                            }
                         }
                     }
+
                 }
 
                 Rectangle {
@@ -166,6 +184,8 @@ Item {
                     Layout.fillWidth: true
                     Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
                     border.width: 1
+
+                    color: "#2a2c2e"
 
                     Button {
                         text: "Forfeit"
@@ -180,8 +200,7 @@ Item {
 
                 Rectangle {
                     id: chatBoxBackground
-                    border.width: 1
-                    border.color: "green"
+                    color: "#2a2c2e"
 
                     Layout.preferredHeight: sidePanel.height * 0.4
                     Layout.maximumHeight: sidePanel.height * 0.4

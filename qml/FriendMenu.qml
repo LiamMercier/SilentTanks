@@ -17,9 +17,14 @@ Popup {
 
     signal messageFriend(string username)
 
+    background: Rectangle {
+        color: "#202122"
+        radius: 4
+    }
+
     ColumnLayout {
         id: menuColumn
-        spacing: 0
+        spacing: 4
         anchors.fill: parent
         anchors.margins: 4
 
@@ -27,6 +32,20 @@ Popup {
             id: messageButton
             text: "Message"
             Layout.fillWidth: true
+
+            background: Rectangle {
+                radius: 2
+                anchors.fill: parent
+                color: "#3e4042"
+            }
+
+            contentItem: Text {
+                text: messageButton.text
+                font: messageButton.font
+                color: "#f2f2f2"
+                horizontalAlignment: Text.AlignHCenter
+                verticalAlignment: Text.AlignVCenter
+            }
 
             onClicked: {
                 messageFriend(friendUsername)
@@ -38,6 +57,20 @@ Popup {
             id: unfriendButton
             text: "Remove"
             Layout.fillWidth: true
+
+            background: Rectangle {
+                radius: 2
+                anchors.fill: parent
+                color: "#3e4042"
+            }
+
+            contentItem: Text {
+                text: unfriendButton.text
+                font: unfriendButton.font
+                color: "#f2f2f2"
+                horizontalAlignment: Text.AlignHCenter
+                verticalAlignment: Text.AlignVCenter
+            }
 
             onClicked: {
                 Client.unfriend_user(friendID)

@@ -17,6 +17,7 @@ set(CMAKE_CXX_FLAGS_DEBUG
 
 file(GLOB TILE_SVGS "${CMAKE_CURRENT_SOURCE_DIR}/qml/svgs/tiles/*.svg")
 file(GLOB BUTTON_SVGS "${CMAKE_CURRENT_SOURCE_DIR}/qml/svgs/buttons/*.svg")
+file(GLOB PNGS "${CMAKE_CURRENT_SOURCE_DIR}/qml/pngs/*.png")
 file(GLOB SOUNDS "${CMAKE_CURRENT_SOURCE_DIR}/qml/sounds/*.wav")
 file(GLOB QML_FILES "${CMAKE_CURRENT_SOURCE_DIR}/qml/*.qml")
 
@@ -38,6 +39,11 @@ endforeach()
 
 foreach(svg ${BUTTON_SVGS})
     file(RELATIVE_PATH REL_PATH "${CMAKE_CURRENT_SOURCE_DIR}/qml" "${svg}")
+    file(APPEND "${QML_RCC}" "    <file>${REL_PATH}</file>\n")
+endforeach()
+
+foreach(png ${PNGS})
+    file(RELATIVE_PATH REL_PATH "${CMAKE_CURRENT_SOURCE_DIR}/qml" "${png}")
     file(APPEND "${QML_RCC}" "    <file>${REL_PATH}</file>\n")
 endforeach()
 

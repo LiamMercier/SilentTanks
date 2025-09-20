@@ -68,8 +68,14 @@
     <file>svgs/tiles/tank_4_west.svg</file>
     <file>svgs/tiles/visible.svg</file>
     <file>svgs/buttons/queue_button.svg</file>
-    <file>svgs/buttons/queue_button_clicked.svg</file>
-    <file>svgs/buttons/queue_button_hover.svg</file>
+    <file>svgs/buttons/queue_button_hovered.svg</file>
+    <file>svgs/buttons/queue_button_pressed.svg</file>
+    <file>pngs/accept_button.png</file>
+    <file>pngs/accept_button_hovered.png</file>
+    <file>pngs/accept_button_pressed.png</file>
+    <file>pngs/reject_button.png</file>
+    <file>pngs/reject_button_hovered.png</file>
+    <file>pngs/reject_button_pressed.png</file>
     <file>sounds/CannonFiring.wav</file>
     <file>sounds/Move.wav</file>
     <file>sounds/NotifyTurn.wav</file>

@@ -59,11 +59,6 @@ Rectangle {
             Layout.fillHeight: true
             Layout.fillWidth: true
             color: "transparent"
-            Text {
-                text: "Queue selection"
-                anchors.centerIn: parent
-                color: "#f2f2f2"
-            }
         }
     }
 }

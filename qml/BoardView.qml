@@ -172,12 +172,19 @@ Item {
             cntx.reset()
             cntx.clearRect(0, 0, width, height)
 
+            cntx.imageSmoothingEnabled = false;
+
             var scaledTile = cellTileSize * boardViewRoot.scale
 
             var startX = Math.floor(camX / scaledTile)
             var startY = Math.floor(camY / scaledTile)
             var cols = Math.ceil(width / scaledTile) + 1
             var rows = Math.ceil(height / scaledTile) + 1
+
+            // Prevent subpixel drawing.
+            var camXRounded = Math.round(camX)
+            var camYRounded = Math.round(camY)
+            var tilePx = Math.max(1, Math.round(scaledTile))
 
             // Go through each element and draw it.
             for (var y = startY; y < startY + rows; y++)
@@ -197,8 +204,11 @@ Item {
                     // Grab QVariantMap for this cell.
                     var cell = GameManager.cell_at(x, y)
 
-                    var px = Math.round(x * scaledTile - camX)
-                    var py = Math.round(y * scaledTile - camY)
+                    // var px = Math.round(x * scaledTile - camX)
+                    // var py = Math.round(y * scaledTile - camY)
+
+                    var px = x * tilePx - camXRounded
+                    var py = y * tilePx - camYRounded
 
                     // Draw tile.
                     if (cell.occupant !== 255 || cell.type === 0) {
@@ -210,7 +220,7 @@ Item {
 
                             if (imageEntry && imageEntry.img)
                             {
-                                cntx.drawImage(imageEntry.img, px, py, scaledTile, scaledTile)
+                                cntx.drawImage(imageEntry.img, px, py, tilePx, tilePx)
                             }
                             else
                             {
@@ -221,19 +231,19 @@ Item {
                     }
                     else {
                         cntx.fillStyle = boardViewRoot.colorForTile(cell)
-                        cntx.fillRect(px, py, scaledTile, scaledTile)
+                        cntx.fillRect(px, py, tilePx, tilePx)
                     }
 
                     // Temporary, draw outline. TODO: remove this.
-                    cntx.strokeStyle = "rgba(0, 0, 0, 1)"
-                    cntx.strokeRect(px + 0.5, py + 0.5, scaledTile - 1, scaledTile - 1)
+                    // cntx.strokeStyle = "rgba(0, 0, 0, 1)"
+                    // cntx.strokeRect(px + 0.5, py + 0.5, scaledTile - 1, scaledTile - 1)
 
                     // Draw overlay if in setup.
                     if (GameManager.state === 0
                         && GameManager.valid_placement_tile(x, y))
                     {
                         cntx.fillStyle = "rgba(0, 200, 64, 0.04)"
-                        cntx.fillRect(px, py, scaledTile, scaledTile)
+                        cntx.fillRect(px, py, tilePx, tilePx)
                     }
                 }
             }

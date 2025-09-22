@@ -171,6 +171,7 @@ Popup {
                         anchors.fill: parent
                         spacing: 8
                         anchors.rightMargin: 16
+                        anchors.leftMargin: 8
 
                         Label {
                             text: model.username

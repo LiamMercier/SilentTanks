@@ -23,6 +23,14 @@ Item {
             }
         }
 
+        // Divider between map and side side panel
+        Rectangle {
+            id: panelDivider
+            Layout.fillHeight: true
+            Layout.preferredWidth: 1
+            color: "#1b1c1d"
+        }
+
         Rectangle {
             id: sidePanel
             Layout.preferredWidth: parent.width * 0.2
@@ -34,12 +42,12 @@ Item {
                 spacing: 0
 
                 Rectangle {
-                    Layout.preferredHeight: 40
+                    Layout.preferredHeight: 35
                     Layout.fillWidth: true
                     Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
                     border.width: 0
 
-                    color: "#2a2c2e"
+                    color: "#26282a"
 
                     Text {
                         text: {
@@ -54,15 +62,12 @@ Item {
                         font.pointSize: 12
                         color: "#f2f2f2"
                         anchors.centerIn: parent
+
+                        transform: Translate { y: 3 }
+
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
                     }
-                }
-
-                Rectangle {
-                    Layout.preferredHeight: 1
-                    Layout.fillWidth: true
-                    color: Qt.rgba(0, 0, 0, 1)
                 }
 
                 Rectangle {
@@ -71,7 +76,7 @@ Item {
                     Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
                     border.width: 0
 
-                    color: "#2a2c2e"
+                    color: "#26282a"
 
                     ColumnLayout {
                         anchors.fill: parent
@@ -105,17 +110,11 @@ Item {
                 }
 
                 Rectangle {
-                    Layout.preferredHeight: 1
-                    Layout.fillWidth: true
-                    color: Qt.rgba(0, 0, 0, 1)
-                }
-
-                Rectangle {
-                    Layout.preferredHeight: 26
+                    Layout.preferredHeight: 40
                     Layout.fillWidth: true
                     Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
                     border.width: 0
-                    color: "#2a2c2e"
+                    color: "#202122"
 
                     Text {
                         text: "Players"
@@ -131,16 +130,10 @@ Item {
                 }
 
                 Rectangle {
-                    Layout.preferredHeight: 1
-                    Layout.fillWidth: true
-                    color: Qt.rgba(0, 0, 0, 1)
-                }
-
-                Rectangle {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
 
-                    color: "#2a2c2e"
+                    color: "#202122"
 
                     ListView {
                         id: playerListView
@@ -151,7 +144,7 @@ Item {
                         delegate: Rectangle {
                             width: playerListView.width
                             height: playerListView.height / 5
-                            color: "transparent"
+                            color: "#323436"
 
                             Text {
                                 anchors.fill: parent
@@ -180,22 +173,34 @@ Item {
                 }
 
                 Rectangle {
-                    Layout.preferredHeight: 40
+                    Layout.preferredHeight: 50
                     Layout.fillWidth: true
                     Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
-                    border.width: 1
 
-                    color: "#2a2c2e"
+                    color: "#202122"
 
-                    Button {
-                        text: "Forfeit"
+                    SvgButton {
+                        id: forfeitButton
+                        implicitHeight: 40
+                        implicitWidth: 80
 
                         anchors.centerIn: parent
+
+                        buttonText: "Forfeit"
+                        fontChoice: "#1f1f1f"
+                        unfocusedOpacity: 1.00
+
+                        normalSource: "qrc:/svgs/buttons/forfeit_button.svg"
+                        hoverSource: "qrc:/svgs/buttons/forfeit_button_hovered.svg"
+                        pressedSource: "qrc:/svgs/buttons/forfeit_button_pressed.svg"
+
+                        toggled: false
 
                         onClicked: {
                             Client.send_forfeit()
                         }
                     }
+
                 }
 
                 Rectangle {

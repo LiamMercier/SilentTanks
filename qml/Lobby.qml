@@ -25,11 +25,6 @@ Item {
                 anchors.fill: parent
                 color: "#1b1c1d"
                 border.width: 0
-
-                Text {
-                    text: "Background"
-                    anchors.centerIn: parent
-                }
             }
 
             // Layout for queue's on top and then the bottom UI row
@@ -154,12 +149,21 @@ Item {
                         anchors.horizontalCenter: parent.horizontalCenter
                     }
 
-                    Button {
-                        text: "Profile"
+                    SvgButton {
+                        id: profileButton
                         implicitHeight: 20
+                        implicitWidth: 80
                         anchors.horizontalCenter: parent.horizontalCenter
 
                         property bool showingProfile: false
+
+                        buttonText: "Profile"
+
+                        normalSource: "qrc:/svgs/buttons/profile_button.svg"
+                        hoverSource: "qrc:/svgs/buttons/profile_button_hovered.svg"
+                        pressedSource: "qrc:/svgs/buttons/profile_button_pressed.svg"
+
+                        toggled: false
 
                         onClicked: {
                             if (showingProfile)

@@ -18,6 +18,12 @@ Item
     property url hoverSourceToggled: ""
     property url pressedSourceToggled: ""
 
+    property string buttonText: ""
+
+    property string fontChoice: "#ffffff"
+
+    property real unfocusedOpacity: 0.87
+
     signal clicked
 
     Image {
@@ -67,6 +73,28 @@ Item
         anchors.fill: parent
         hoverEnabled: true
         onClicked: svgButton.clicked()
+    }
+
+    Text {
+        id: svgButtonText
+        text: buttonText
+        color: fontChoice
+        anchors.centerIn: parent
+
+        opacity: {
+            var op = 1.0
+
+            if (!svgButtonMouseArea.containsMouse)
+            {
+                op = unfocusedOpacity
+            }
+
+            return op
+        }
+
+        font.family: root.font.family
+        font.pixelSize: root.font.pixelSize
+        font.bold: root.font.bold
     }
 
 }

@@ -77,21 +77,33 @@ Item {
 
                 Layout.rightMargin: 8
 
-                Button {
-                    text: "+"
-                    font.pointSize: 8
+                SvgButton {
+                    id: friendsButton
                     implicitHeight: 20
                     implicitWidth: 20
+
+                    normalSource: "qrc:/pngs/friends_button.png"
+                    hoverSource: "qrc:/pngs/friends_button_hovered.png"
+                    pressedSource: "qrc:/pngs/friends_button_pressed.png"
+
+                    toggled: false
+
                     onClicked: {
                         friendRequestsPopup.open()
                     }
                 }
 
-                Button {
-                    text: "X"
-                    font.pointSize: 6
+                SvgButton {
+                    id: blockedButton
                     implicitHeight: 20
                     implicitWidth: 20
+
+                    normalSource: "qrc:/pngs/blocked_button.png"
+                    hoverSource: "qrc:/pngs/blocked_button_hovered.png"
+                    pressedSource: "qrc:/pngs/blocked_button_pressed.png"
+
+                    toggled: false
+
                     onClicked: {
                         blockedUsersPopup.open()
                     }

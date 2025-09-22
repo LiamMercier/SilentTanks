@@ -67,12 +67,24 @@
     <file>svgs/tiles/tank_4_south_west.svg</file>
     <file>svgs/tiles/tank_4_west.svg</file>
     <file>svgs/tiles/visible.svg</file>
+    <file>svgs/buttons/forfeit_button.svg</file>
+    <file>svgs/buttons/forfeit_button_hovered.svg</file>
+    <file>svgs/buttons/forfeit_button_pressed.svg</file>
+    <file>svgs/buttons/profile_button.svg</file>
+    <file>svgs/buttons/profile_button_hovered.svg</file>
+    <file>svgs/buttons/profile_button_pressed.svg</file>
     <file>svgs/buttons/queue_button.svg</file>
     <file>svgs/buttons/queue_button_hovered.svg</file>
     <file>svgs/buttons/queue_button_pressed.svg</file>
     <file>pngs/accept_button.png</file>
     <file>pngs/accept_button_hovered.png</file>
     <file>pngs/accept_button_pressed.png</file>
+    <file>pngs/blocked_button.png</file>
+    <file>pngs/blocked_button_hovered.png</file>
+    <file>pngs/blocked_button_pressed.png</file>
+    <file>pngs/friends_button.png</file>
+    <file>pngs/friends_button_hovered.png</file>
+    <file>pngs/friends_button_pressed.png</file>
     <file>pngs/reject_button.png</file>
     <file>pngs/reject_button_hovered.png</file>
     <file>pngs/reject_button_pressed.png</file>

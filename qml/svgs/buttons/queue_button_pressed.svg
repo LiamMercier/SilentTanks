@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="210"
+   height="60"
+   viewBox="0 0 210 60"
+   version="1.1"
+   id="svg1"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs1" />
+  <g
+     id="layer1">
+    <path
+       id="rect1"
+       style="fill:#432fb3;fill-opacity:1;stroke:#352b91;stroke-width:0.529167;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1"
+       d="M 6.8791666,0.26458333 H 48.683333 l 5.961643,6.91550687 a 1.1600001,1.1600001 90 0 1 0,1.51482 L 48.683333,15.610417 H 6.8791666 L 0.91752294,8.6949102 a 1.16,1.16 90 0 1 0,-1.51482 z"
+       transform="matrix(3.8308906,0,0,3.778406,-1.4287642,0.0018311)" />
+    <text
+       xml:space="preserve"
+       id="text1"
+       style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:19.3176px;line-height:0;font-family:'Noto Sans';-inkscape-font-specification:'Noto Sans Bold';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;direction:ltr;white-space:pre;display:inline;fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:1.54164;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1"
+       x="25.936008"
+       y="34.676929"
+       transform="scale(0.96594129,1.0352596)"><tspan
+         id="tspan2"
+         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;line-height:0;font-family:'Noto Sans';-inkscape-font-specification:'Noto Sans Bold';letter-spacing:0px;word-spacing:0px;fill:#ffffff;fill-opacity:1;stroke-width:1.54164;stroke-dasharray:none">Queue For Match</tspan></text>
+  </g>
+</svg>

@@ -67,6 +67,9 @@
     <file>svgs/tiles/tank_4_south_west.svg</file>
     <file>svgs/tiles/tank_4_west.svg</file>
     <file>svgs/tiles/visible.svg</file>
+    <file>svgs/buttons/barrel_left.svg</file>
+    <file>svgs/buttons/barrel_right.svg</file>
+    <file>svgs/buttons/fire.svg</file>
     <file>svgs/buttons/forfeit_button.svg</file>
     <file>svgs/buttons/forfeit_button_hovered.svg</file>
     <file>svgs/buttons/forfeit_button_pressed.svg</file>
@@ -76,6 +79,12 @@
     <file>svgs/buttons/queue_button.svg</file>
     <file>svgs/buttons/queue_button_hovered.svg</file>
     <file>svgs/buttons/queue_button_pressed.svg</file>
+    <file>svgs/buttons/reload.svg</file>
+    <file>svgs/buttons/tank_forward.svg</file>
+    <file>svgs/buttons/tank_left.svg</file>
+    <file>svgs/buttons/tank_reverse.svg</file>
+    <file>svgs/buttons/tank_right.svg</file>
+    <file>svgs/buttons/turn_background.svg</file>
     <file>pngs/accept_button.png</file>
     <file>pngs/accept_button_hovered.png</file>
     <file>pngs/accept_button_pressed.png</file>

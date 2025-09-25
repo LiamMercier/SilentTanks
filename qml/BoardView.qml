@@ -588,14 +588,35 @@ Item {
         modal: true
         focus: true
 
+        background: Rectangle {
+            color: "transparent"
+        }
+
         closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
+
+        property var svgMap: ({
+            "rotate_barrel_left" : "qrc:/svgs/buttons/barrel_left",
+            "move_forward" : "qrc:/svgs/buttons/tank_forward",
+            "rotate_barrel_right" : "qrc:/svgs/buttons/barrel_right",
+            "rotate_tank_left" : "qrc:/svgs/buttons/tank_left",
+            "rotate_tank_right" : "qrc:/svgs/buttons/tank_right",
+            "reload" : "qrc:/svgs/buttons/reload",
+            "move_reverse" : "qrc:/svgs/buttons/tank_reverse",
+            "fire" : "qrc:/svgs/buttons/fire",
+            "no_op" : ""
+        })
 
         contentItem: Rectangle {
             id: contentItemRect
             implicitWidth: 240
             implicitHeight: 240
-            border.width: 1
-            color: "#3f3f3f"
+            color: "transparent"
+
+            Image {
+                anchors.fill: parent
+                source: "qrc:/svgs/buttons/turn_background.svg"
+                fillMode: Image.PreserveAspectFit
+            }
 
             GridLayout {
                 id: grid
@@ -611,7 +632,31 @@ Item {
                 Repeater {
                     model: actionsModel
                     delegate: Button {
+                        id: actionButton
+                        Layout.preferredWidth: grid.width / grid.columns
+                        Layout.preferredHeight: grid.height / grid.rows
+                        Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
+
                         text: model.actionText
+                        property string svgSource: actionPopup.svgMap[model.action] ? actionPopup.svgMap[model.action] : actionPopup.svgMap["no_op"]
+
+                        background: Rectangle {
+                            color: "transparent"
+                        }
+
+                        // Load icon for button based on action type.
+                        contentItem: Column {
+                            anchors.fill: parent
+                            anchors.centerIn: parent
+
+                            Image {
+                                source: svgSource
+                                width: actionButton.width
+                                height: actionButton.height
+
+                                fillMode: Image.PreserveAspectFit
+                            }
+                        }
 
                         onClicked: {
                             switch (model.action)
@@ -803,6 +848,7 @@ Item {
         }
 
         // compute screen coordinates for popup.
+        // TODO: place this on the top right of the tile, with some padding out.
         var pos = cellToScreen(cx, cy)
         var px = pos.x + cellTileSize * scale + 8
         var py = pos.y
@@ -811,8 +857,8 @@ Item {
         if (clickX !== undefined && clickX > 0
             && clickY !== undefined && clickY > 0)
         {
-            px = clickX
-            py = clickY
+            px = clickX + cellTileSize * scale
+            py = clickY - cellTileSize * scale
         }
 
         // Clamp to window.

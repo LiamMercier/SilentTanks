@@ -364,9 +364,7 @@ Item {
 
                         // open popup.
                         showActionsPopup(boardViewRoot.selectedCellX,
-                                         boardViewRoot.selectedCellY,
-                                         mouse.x,
-                                         mouse.y)
+                                         boardViewRoot.selectedCellY)
                     }
                 }
             }
@@ -607,166 +605,192 @@ Item {
         })
 
         contentItem: Rectangle {
-            id: contentItemRect
-            implicitWidth: 240
-            implicitHeight: 240
-            color: "transparent"
+            id: popupContentItemRect
+            implicitWidth: boardViewRoot.width * 0.30
+            implicitHeight: boardViewRoot.width * 0.30
+            color: Qt.rgba(1, 1, 1, 0.60)
+            border.width: 1
 
-            Image {
+            Rectangle {
                 anchors.fill: parent
-                source: "qrc:/svgs/buttons/turn_background.svg"
-                fillMode: Image.PreserveAspectFit
-            }
+                color: "transparent"
+                opacity: 1.0
 
-            GridLayout {
-                id: grid
-                anchors.margins: 0
-                anchors.fill: parent
-                rowSpacing: 0
-                columnSpacing: 0
+                Image {
+                    anchors.fill: parent
+                    source: "qrc:/svgs/buttons/turn_background.svg"
+                    fillMode: Image.PreserveAspectFit
+                }
 
-                // 3x3 action grid.
-                rows: 3
-                columns: 3
+                GridLayout {
+                    id: grid
+                    anchors.margins: 0
+                    anchors.fill: parent
+                    rowSpacing: 0
+                    columnSpacing: 0
 
-                Repeater {
-                    model: actionsModel
-                    delegate: Button {
-                        id: actionButton
-                        Layout.preferredWidth: grid.width / grid.columns
-                        Layout.preferredHeight: grid.height / grid.rows
-                        Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
+                    // 3x3 action grid.
+                    rows: 3
+                    columns: 3
 
-                        text: model.actionText
-                        property string svgSource: actionPopup.svgMap[model.action] ? actionPopup.svgMap[model.action] : actionPopup.svgMap["no_op"]
+                    Repeater {
+                        model: actionsModel
+                        delegate: Button {
+                            id: actionButton
+                            Layout.preferredWidth: grid.width / grid.columns
+                            Layout.preferredHeight: grid.height / grid.rows
+                            Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
 
-                        background: Rectangle {
-                            color: "transparent"
-                        }
+                            text: model.actionText
+                            property string svgSource: {
+                                var src = ""
 
-                        // Load icon for button based on action type.
-                        contentItem: Column {
-                            anchors.fill: parent
-                            anchors.centerIn: parent
+                                var cell = GameManager.cell_at(selectedCellX, selectedCellY)
+                                var tank_data = GameManager.get_tank_data(cell.occupant)
 
-                            Image {
-                                source: svgSource
-                                width: actionButton.width
-                                height: actionButton.height
+                                // Handle reload specific icon.
+                                if (model.action == "reload" && tank_data.loaded)
+                                {
+                                    src = "qrc:/svgs/buttons/reload_loaded.svg"
+                                }
+                                // Otherwise, give the default.
+                                else
+                                {
+                                    src = actionPopup.svgMap[model.action] ? actionPopup.svgMap[model.action] : actionPopup.svgMap["no_op"]
+                                }
 
-                                fillMode: Image.PreserveAspectFit
+                                return src
                             }
-                        }
 
-                        onClicked: {
-                            switch (model.action)
-                            {
-                                case "place":
-                                {
-                                    if (selectedCellX >= 0 && selectedCellY >= 0)
-                                    {
-                                        Client.send_place_tank(selectedCellX,
-                                                               selectedCellY)
-                                    }
-                                    break
+                            background: Rectangle {
+                                color: "transparent"
+                            }
+
+                            // Load icon for button based on action type.
+                            contentItem: Column {
+                                anchors.fill: parent
+                                anchors.centerIn: parent
+
+                                Image {
+                                    source: svgSource
+                                    width: actionButton.width
+                                    height: actionButton.height
+
+                                    fillMode: Image.PreserveAspectFit
                                 }
-                                case "rotate_barrel_left":
+                            }
+
+                            onClicked: {
+                                switch (model.action)
                                 {
-                                    if (selectedCellX >= 0 && selectedCellY >= 0)
+                                    case "place":
                                     {
-                                        Client.send_rotate_barrel(selectedCellX,
-                                                                  selectedCellY,
-                                                                  1)
+                                        if (selectedCellX >= 0 && selectedCellY >= 0)
+                                        {
+                                            Client.send_place_tank(selectedCellX,
+                                                                selectedCellY)
+                                        }
+                                        break
                                     }
-                                    break
-                                }
-                                case "move_forward":
-                                {
-                                    if (selectedCellX >= 0 && selectedCellY >= 0)
+                                    case "rotate_barrel_left":
                                     {
-                                        Client.send_move_tank(selectedCellX,
-                                                              selectedCellY,
-                                                              0)
+                                        if (selectedCellX >= 0 && selectedCellY >= 0)
+                                        {
+                                            Client.send_rotate_barrel(selectedCellX,
+                                                                    selectedCellY,
+                                                                    1)
+                                        }
+                                        break
                                     }
-                                    break
-                                }
-                                case "rotate_barrel_right":
-                                {
-                                    if (selectedCellX >= 0 && selectedCellY >= 0)
+                                    case "move_forward":
                                     {
-                                        Client.send_rotate_barrel(selectedCellX,
-                                                                  selectedCellY,
-                                                                  0)
-                                    }
-                                    break
-                                }
-                                case "rotate_tank_left":
-                                {
-                                    if (selectedCellX >= 0 && selectedCellY >= 0)
-                                    {
-                                        Client.send_rotate_tank(selectedCellX,
-                                                                selectedCellY,
-                                                                1)
-                                    }
-                                    break
-                                }
-                                case "fire":
-                                {
-                                    if (selectedCellX >= 0 && selectedCellY >= 0)
-                                    {
-                                        Client.send_fire_tank(selectedCellX,
-                                                              selectedCellY)
-                                    }
-                                    break
-                                }
-                                case "rotate_tank_right":
-                                {
-                                    if (selectedCellX >= 0 && selectedCellY >= 0)
-                                    {
-                                        Client.send_rotate_tank(selectedCellX,
+                                        if (selectedCellX >= 0 && selectedCellY >= 0)
+                                        {
+                                            Client.send_move_tank(selectedCellX,
                                                                 selectedCellY,
                                                                 0)
+                                        }
+                                        break
                                     }
-                                    break
-                                }
-                                case "reload":
-                                {
-                                    if (selectedCellX >= 0 && selectedCellY >= 0)
+                                    case "rotate_barrel_right":
                                     {
-                                        Client.send_reload_tank(selectedCellX,
+                                        if (selectedCellX >= 0 && selectedCellY >= 0)
+                                        {
+                                            Client.send_rotate_barrel(selectedCellX,
+                                                                    selectedCellY,
+                                                                    0)
+                                        }
+                                        break
+                                    }
+                                    case "rotate_tank_left":
+                                    {
+                                        if (selectedCellX >= 0 && selectedCellY >= 0)
+                                        {
+                                            Client.send_rotate_tank(selectedCellX,
+                                                                    selectedCellY,
+                                                                    1)
+                                        }
+                                        break
+                                    }
+                                    case "fire":
+                                    {
+                                        if (selectedCellX >= 0 && selectedCellY >= 0)
+                                        {
+                                            Client.send_fire_tank(selectedCellX,
                                                                 selectedCellY)
+                                        }
+                                        break
                                     }
-                                    break
-                                }
-                                case "move_reverse":
-                                {
-                                    if (selectedCellX >= 0 && selectedCellY >= 0)
+                                    case "rotate_tank_right":
                                     {
-                                        Client.send_move_tank(selectedCellX,
-                                                              selectedCellY,
-                                                              1)
+                                        if (selectedCellX >= 0 && selectedCellY >= 0)
+                                        {
+                                            Client.send_rotate_tank(selectedCellX,
+                                                                    selectedCellY,
+                                                                    0)
+                                        }
+                                        break
                                     }
-                                    break
+                                    case "reload":
+                                    {
+                                        if (selectedCellX >= 0 && selectedCellY >= 0)
+                                        {
+                                            Client.send_reload_tank(selectedCellX,
+                                                                    selectedCellY)
+                                        }
+                                        break
+                                    }
+                                    case "move_reverse":
+                                    {
+                                        if (selectedCellX >= 0 && selectedCellY >= 0)
+                                        {
+                                            Client.send_move_tank(selectedCellX,
+                                                                selectedCellY,
+                                                                1)
+                                        }
+                                        break
+                                    }
+                                    case "no_op":
+                                    {
+                                        console.log("no_op found")
+                                        break
+                                    }
+                                    default:
+                                    {
+                                        break
+                                    }
                                 }
-                                case "no_op":
-                                {
-                                    console.log("no_op found")
-                                    break
-                                }
-                                default:
-                                {
-                                    break
-                                }
+
+                                actionPopup.close()
                             }
 
-                            actionPopup.close()
+                            implicitWidth: popupContentItemRect.width / grid.rows
+                            implicitHeight: popupContentItemRect.height / grid.columns
                         }
-
-                        implicitWidth: contentItemRect.width / grid.rows
-                        implicitHeight: contentItemRect.height / grid.columns
                     }
                 }
             }
+
         }
 
         onClosed: {
@@ -777,7 +801,7 @@ Item {
 
     }
 
-    function showActionsPopup(cx, cy, clickX, clickY) {
+    function showActionsPopup(cx, cy) {
         actionsModel.clear()
 
         // Give no actions for negative tile coords.
@@ -850,16 +874,8 @@ Item {
         // compute screen coordinates for popup.
         // TODO: place this on the top right of the tile, with some padding out.
         var pos = cellToScreen(cx, cy)
-        var px = pos.x + cellTileSize * scale + 8
-        var py = pos.y
-
-        // if we gave coordinates, switch to those.
-        if (clickX !== undefined && clickX > 0
-            && clickY !== undefined && clickY > 0)
-        {
-            px = clickX + cellTileSize * scale
-            py = clickY - cellTileSize * scale
-        }
+        var px = pos.x + cellTileSize * scale
+        var py = pos.y - popupContentItemRect.height - 12
 
         // Clamp to window.
         px = Math.max(4, Math.min(px, boardViewRoot.width - actionPopup.implicitWidth - 4))

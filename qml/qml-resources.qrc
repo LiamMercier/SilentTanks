@@ -80,6 +80,7 @@
     <file>svgs/buttons/queue_button_hovered.svg</file>
     <file>svgs/buttons/queue_button_pressed.svg</file>
     <file>svgs/buttons/reload.svg</file>
+    <file>svgs/buttons/reload_loaded.svg</file>
     <file>svgs/buttons/tank_forward.svg</file>
     <file>svgs/buttons/tank_left.svg</file>
     <file>svgs/buttons/tank_reverse.svg</file>

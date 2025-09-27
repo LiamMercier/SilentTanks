@@ -711,7 +711,8 @@ Item {
                                         if (selectedCellX >= 0 && selectedCellY >= 0)
                                         {
                                             Client.send_place_tank(selectedCellX,
-                                                                selectedCellY)
+                                                                   selectedCellY,
+                                                                   model.dir)
                                         }
                                         break
                                     }
@@ -720,8 +721,8 @@ Item {
                                         if (selectedCellX >= 0 && selectedCellY >= 0)
                                         {
                                             Client.send_rotate_barrel(selectedCellX,
-                                                                    selectedCellY,
-                                                                    1)
+                                                                      selectedCellY,
+                                                                      1)
                                         }
                                         break
                                     }
@@ -847,10 +848,20 @@ Item {
                 return
             }
 
-            // Allow place only if not occupied and not terraine.
+            // Allow place only if not occupied and not terrain.
             if (cell.occupant === 255 && cell.type !== 2)
             {
-                actionsModel.append({ action: "place", actionText: "Place Tank" })
+                actionsModel.append({ action: "place", actionText: "Place Tank", dir: 7 })
+                actionsModel.append({ action: "place", actionText: "Place Tank", dir: 0 })
+                actionsModel.append({ action: "place", actionText: "Place Tank", dir: 1 })
+
+                actionsModel.append({ action: "place", actionText: "Place Tank", dir: 6 })
+                actionsModel.append({ action: "no_op", actionText: "" })
+                actionsModel.append({ action: "place", actionText: "Place Tank", dir: 2 })
+
+                actionsModel.append({ action: "place", actionText: "Place Tank", dir: 5 })
+                actionsModel.append({ action: "place", actionText: "Place Tank", dir: 4 })
+                actionsModel.append({ action: "place", actionText: "Place Tank", dir: 3 })
             }
         }
         // If playing.

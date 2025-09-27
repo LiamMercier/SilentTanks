@@ -303,7 +303,9 @@ Q_INVOKABLE void GUIClient::send_forfeit()
     client_.forfeit_request();
 }
 
-Q_INVOKABLE void GUIClient::send_place_tank(int x, int y)
+Q_INVOKABLE void GUIClient::send_place_tank(int x,
+                                            int y,
+                                            int placement_direction)
 {
     if (!game_manager_.is_turn())
     {
@@ -318,9 +320,11 @@ Q_INVOKABLE void GUIClient::send_place_tank(int x, int y)
     cmd.payload_first = x;
     cmd.payload_second = y;
 
-    // Fill empty fields with 0.
+    // tank_id holds placement direction for placement command.
+    cmd.tank_id = placement_direction;
+
+    // Fill empty field with 0.
     cmd.sender = 0;
-    cmd.tank_id = 0;
 
 
     client_.send_command(std::move(cmd));

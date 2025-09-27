@@ -19,6 +19,7 @@ struct Command
 {
     uint8_t sender;
     CommandType type;
+    // Doubles as "direction" when placed in setup phase.
     uint8_t tank_id;
     // Primary place to put a command parameter.
     uint8_t payload_first;

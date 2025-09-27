@@ -113,7 +113,7 @@ public:
 
     Q_INVOKABLE void send_forfeit();
 
-    Q_INVOKABLE void send_place_tank(int x, int y);
+    Q_INVOKABLE void send_place_tank(int x, int y, int placement_direction);
 
     Q_INVOKABLE void send_rotate_barrel(int x, int y, int rotation);
 

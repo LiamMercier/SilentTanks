@@ -384,7 +384,6 @@ bool GameInstance::move_tank(uint8_t ID, bool reverse)
     return true;
 }
 
-// TODO: fix firing distance versus rotation (4 for horizontal, 3 diagonal)
 bool GameInstance::fire_tank(uint8_t ID)
 {
     Tank & curr_tank = tanks_[ID];
@@ -813,7 +812,9 @@ void GameInstance::cast_ray(PlayerView & player_view, vec2 start, vec2 slope, fl
     return;
 }
 
-void GameInstance::place_tank(vec2 pos, uint8_t player_ID)
+void GameInstance::place_tank(vec2 pos,
+                              uint8_t player_ID,
+                              uint8_t placement_direction)
 {
 
     GridCell & this_cell = game_env_[idx(pos)];
@@ -828,6 +829,8 @@ void GameInstance::place_tank(vec2 pos, uint8_t player_ID)
     this_tank.health_ = 3;
     this_tank.loaded_ = true;
     this_tank.id_ = tank_ID;
+    this_tank.current_direction_ = placement_direction;
+    this_tank.barrel_direction_ = placement_direction;
 
     // set occupant
     this_cell.occupant_ = tank_ID;

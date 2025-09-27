@@ -758,7 +758,17 @@ ApplyResult MatchInstance::apply_command(const Command & cmd)
                 break;
             }
 
-            game_instance_.place_tank(pos, cmd.sender);
+            uint8_t placement_direction = cmd.tank_id;
+
+            if (placement_direction >= 8)
+            {
+                res.valid_move = false;
+                break;
+            }
+
+            game_instance_.place_tank(pos,
+                                      cmd.sender,
+                                      placement_direction);
 
             if (res.valid_move == true)
             {

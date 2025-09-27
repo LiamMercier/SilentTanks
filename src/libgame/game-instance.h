@@ -45,7 +45,7 @@ public:
                   float max_range,
                   uint8_t dir) const;
 
-    void place_tank(vec2 pos, uint8_t player_ID);
+    void place_tank(vec2 pos, uint8_t player_ID, uint8_t placement_direction);
 
     void load_tank(uint8_t ID);
 

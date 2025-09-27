@@ -6,7 +6,9 @@ constexpr uint8_t INITIAL_HEALTH = 3;
 
 constexpr uint8_t TURN_PLAYER_FUEL = 3;
 
-constexpr uint8_t FIRING_DIST = 3;
+constexpr uint8_t FIRING_DIST_DIAGONAL = 3;
+
+constexpr uint8_t FIRING_DIST_HORIZONTAL = 4;
 
 constexpr uint8_t SHELL_DAMAGE = 1;
 

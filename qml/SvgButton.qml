@@ -6,7 +6,7 @@ Item
 {
     id: svgButton
 
-    property bool toggled
+    property bool toggled: false
     property bool doSmooth: false
 
     // Button sources to be set by the parent.

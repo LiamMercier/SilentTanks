@@ -82,6 +82,7 @@ Item {
                     id: eloText
                     font.pointSize: 14
                     text: ""
+                    color: "#f2f2f2"
                     Layout.alignment: Qt.AlignHCenter
                 }
 

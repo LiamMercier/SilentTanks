@@ -384,6 +384,7 @@ bool GameInstance::move_tank(uint8_t ID, bool reverse)
     return true;
 }
 
+// TODO: fix firing distance versus rotation (4 for horizontal, 3 diagonal)
 bool GameInstance::fire_tank(uint8_t ID)
 {
     Tank & curr_tank = tanks_[ID];
@@ -394,7 +395,10 @@ bool GameInstance::fire_tank(uint8_t ID)
     // Expend the shell
     curr_tank.loaded_ = false;
 
-    for (int i = 1; i <= FIRING_DIST; i++)
+    uint8_t shell_distance = (curr_tank.barrel_direction_ % 2) == 0
+                             ? FIRING_DIST_HORIZONTAL : FIRING_DIST_DIAGONAL;
+
+    for (int i = 1; i <= shell_distance; i++)
     {
         // Take a step
         curr_loc = curr_loc + shell_dir;

@@ -90,15 +90,15 @@ Item {
                 Layout.topMargin: 0
 
                 SvgButton {
-                    toggled: Client.queued_mode === QueueType.NO_MODE
+                    toggled: !(Client.queued_mode === QueueType.NO_MODE)
 
                     normalSource: "qrc:/svgs/buttons/queue_button.svg"
                     hoverSource: "qrc:/svgs/buttons/queue_button_hovered.svg"
                     pressedSource: "qrc:/svgs/buttons/queue_button_pressed.svg"
 
-                    normalSourceToggled: "qrc:/svgs/buttons/queue_button.svg"
-                    hoverSourceToggled: "qrc:/svgs/buttons/queue_button_hovered.svg"
-                    pressedSourceToggled: "qrc:/svgs/buttons/queue_button_pressed.svg"
+                    normalSourceToggled: "qrc:/svgs/buttons/cancel_button.svg"
+                    hoverSourceToggled: "qrc:/svgs/buttons/cancel_button_hovered.svg"
+                    pressedSourceToggled: "qrc:/svgs/buttons/cancel_button_pressed.svg"
 
                     height: parent.height * 0.25
                     width: parent.width * 0.8

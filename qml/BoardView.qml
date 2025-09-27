@@ -608,7 +608,7 @@ Item {
             id: popupContentItemRect
             implicitWidth: boardViewRoot.width * 0.30
             implicitHeight: boardViewRoot.width * 0.30
-            color: Qt.rgba(1, 1, 1, 0.60)
+            color: Qt.rgba(1, 1, 1, 0.25)
             border.width: 1
 
             Rectangle {
@@ -652,6 +652,29 @@ Item {
                                 if (model.action == "reload" && tank_data.loaded)
                                 {
                                     src = "qrc:/svgs/buttons/reload_loaded.svg"
+                                }
+                                // Handle middle "button" icon
+                                else if (model.action == "no_op")
+                                {
+                                    switch (tank_data.health)
+                                    {
+                                        case 1:
+                                        {
+                                            src = "qrc:/svgs/buttons/one_health.svg"
+                                            break
+                                        }
+                                        case 2:
+                                        {
+                                            src = "qrc:/svgs/buttons/two_health.svg"
+                                            break
+                                        }
+                                        case 3:
+                                        {
+                                            src = "qrc:/svgs/buttons/three_health.svg"
+                                            break
+                                        }
+                                    }
+                                    actionButton.enabled = false
                                 }
                                 // Otherwise, give the default.
                                 else

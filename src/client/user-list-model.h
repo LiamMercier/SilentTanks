@@ -13,7 +13,8 @@ public:
 
     enum Roles {
         UsernameRole = Qt::UserRole + 1,
-        UUIDRole
+        UUIDRole,
+        TimeRole
     };
 
     Q_ENUM(Roles)
@@ -24,7 +25,9 @@ public:
 
     void set_users(const UserList & user_list);
 
-    int rowCount(const QModelIndex & parent) const override;
+    void set_timers(const std::vector<std::chrono::milliseconds> & timers);
+
+    int rowCount(const QModelIndex & parent = QModelIndex()) const override;
 
     QVariant data(const QModelIndex & index, int role) const override;
 
@@ -33,4 +36,5 @@ public:
 
 private:
     std::vector<ExternalUser> users_;
+    std::vector<std::chrono::milliseconds> timers_;
 };

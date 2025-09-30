@@ -8,6 +8,8 @@ Item {
     id: gamePageRoot
     anchors.fill: parent
 
+    property double nowMs: Date.now()
+
     Timer {
         id: timeoutTimer
         interval: 100
@@ -15,7 +17,7 @@ Item {
         repeat: true
 
         onTriggered: {
-
+            nowMs = Date.now()
         }
     }
 
@@ -153,9 +155,28 @@ Item {
                         clip: true
 
                         delegate: Rectangle {
+                            id: playerDelegate
+
                             width: playerListView.width
                             height: playerListView.height / 5
                             color: "#323436"
+
+                            property double endTimeMs: Date.now() + model.timer
+
+                            property double remainingMs: {
+                                if (!model || typeof model.timer === "undefined"
+                                    || typeof GameManager === "undefined")
+                                {
+                                    return 0
+                                }
+
+                                if (model.username != GameManager.player)
+                                {
+                                    return model.timer
+                                }
+
+                                return Math.max(0, endTimeMs - gamePageRoot.nowMs)
+                            }
 
                             ColumnLayout {
                                 anchors.fill: parent
@@ -192,7 +213,21 @@ Item {
                                         anchors.fill: parent
                                         anchors.margins: 3
 
-                                        text: GameManager.remaining_time(mode.uuid)
+                                        text: {
+                                            var msTotal = playerDelegate.remainingMs
+
+                                            var minutes = Math.floor(msTotal / 60000)
+                                            var seconds = Math.floor((msTotal % 60000) / 1000)
+                                            var ms = Math.round((msTotal % 1000) / 100)
+
+                                            // Fix rounding errors.
+                                            var msStr = (ms == 10) ? 9 : ms
+
+                                            // Append leading 0 if necessary
+                                            var secondsStr = seconds < 10 ? "0" + seconds : seconds
+
+                                            return minutes + ":" + secondsStr + "." + msStr
+                                        }
                                         font.family: "Roboto"
                                         font.weight: Font.DemiBold
                                         color: "#f2f2f2"
@@ -210,6 +245,17 @@ Item {
                                 width: parent.width
                                 height: 1
                                 color: Qt.rgba(0, 0, 0, 0.3)
+                            }
+
+                            Connections {
+                                target: GameManager
+                                function onTimers_changed() {
+                                    endTimeMs = Date.now() + model.timer
+                                }
+                            }
+
+                            Component.onCompleted: {
+                                endTimeMs = Date.now() + model.timer
                             }
                         }
                     }

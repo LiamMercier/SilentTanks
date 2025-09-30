@@ -117,17 +117,6 @@ Q_INVOKABLE QVariantMap GameManager::get_tank_data(int occupant) const
     return m;
 }
 
-Q_INVOKABLE qint64 GameManager::remaining_time(qint64 player_id) const
-{
-    if (player_id < 0 || static_cast<size_t>(player_id) >= current_data_.player_list.size())
-    {
-        return 0;
-    }
-
-    std::chrono::milliseconds remaining = current_view_.timers[player_id];
-    return remaining.count();
-}
-
 UserListModel* GameManager::players_model()
 {
     return & players_;
@@ -140,6 +129,7 @@ void GameManager::update_view(PlayerView new_view)
 
     beginResetModel();
     current_view_ = new_view;
+    players_.set_timers(current_view_.timers);
     endResetModel();
 
     if (sound_callback_)

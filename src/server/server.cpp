@@ -658,6 +658,7 @@ try {
 
             // TODO: set true in game finish callback.
             session->set_has_matches(false, mode);
+            break;
         }
         case HeaderType::MatchReplayRequest:
         {
@@ -672,6 +673,7 @@ try {
 
             ReplayRequest req = msg.to_replay_request();
             db_.fetch_replay(req, session);
+            break;
         }
         default:
             // do nothing, should never happen

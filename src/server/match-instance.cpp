@@ -229,7 +229,8 @@ void MatchInstance::sync_player(uint64_t session_id,
             // Views were already computed in previous strand call
             // because we always compute everyone's view at
             // the end of an operation. Just grab this and send
-            // the view to the client.
+            // the view to the client with updated timer.
+            self->update_view_timer(correct_id);
 
             Message view_message;
             view_message.create_serialized(self->player_views_[correct_id]);
@@ -328,6 +329,19 @@ StaticMatchData MatchInstance::compute_static_data()
     return match_data;
 }
 
+void MatchInstance::update_view_timer(uint8_t player_ID)
+{
+    steady_clock::time_point now = steady_clock::now();
+    std::chrono::milliseconds time = std::chrono::milliseconds(0);
+
+    // Compute the elapsed time and update this timer.
+    steady_clock::duration remaining = expiry_time_ - now;
+    time = std::chrono::duration_cast<std::chrono::milliseconds>(remaining);
+
+    player_views_[player_ID].timers[current_player] = time;
+    return;
+}
+
 // Handles one turn of the game. Should not be called directly.
 void MatchInstance::start_turn()
 {
@@ -416,7 +430,7 @@ void MatchInstance::start_turn_strand()
 
 }
 
-void MatchInstance::on_player_move_arrived(uint16_t t_id)
+void MatchInstance::on_player_move_arrived(uint32_t t_id)
 {
     // Measure time of completion before timer cancel.
     steady_clock::time_point now = steady_clock::now();
@@ -821,6 +835,9 @@ void MatchInstance::compute_all_views()
         player_views_[i].current_player = current_player;
         player_views_[i].current_fuel = current_fuel;
         player_views_[i].current_state = current_state;
+
+        // Append time for each player.
+        player_views_[i].timers = time_left_;
 
         // Send view to the player
         Message view_message;

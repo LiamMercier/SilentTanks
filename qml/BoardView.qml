@@ -601,6 +601,7 @@ Item {
             "reload" : "qrc:/svgs/buttons/reload",
             "move_reverse" : "qrc:/svgs/buttons/tank_reverse",
             "fire" : "qrc:/svgs/buttons/fire",
+            "" : "",
             "no_op" : ""
         })
 
@@ -675,6 +676,11 @@ Item {
                                         }
                                     }
                                     actionButton.enabled = false
+                                }
+                                // Handle place directions.
+                                else if (model.action == "place")
+                                {
+                                    src = "qrc:/svgs/buttons/place_dir_" + model.dir + ".svg"
                                 }
                                 // Otherwise, give the default.
                                 else

@@ -67,6 +67,8 @@ template void Message::create_serialized<MatchResultList>(MatchResultList const&
 
 template void Message::create_serialized<ReplayRequest>(ReplayRequest const&);
 
+template void Message::create_serialized<MatchReplay>(MatchReplay const&);
+
 template void Message::create_serialized<StaticMatchData>(StaticMatchData const&);
 
 std::array<int, RANKED_MODES_COUNT> Message::to_elos()
@@ -279,9 +281,11 @@ StaticMatchData Message::to_static_match_data(bool & op_status)
 // Modify view with success return type.
 PlayerView Message::to_player_view(bool & op_status)
 {
+    constexpr size_t FIXED_BYTES_SIZE = 7;
+
     // If our payload is not able to be turned into
     // a view then return failure.
-    if (payload.size() < 6)
+    if (payload.size() < FIXED_BYTES_SIZE)
     {
         op_status = false;
         return PlayerView{};
@@ -293,20 +297,14 @@ PlayerView Message::to_player_view(bool & op_status)
     uint8_t height = payload[3];
     uint8_t current_fuel = payload[4];
     GameState current_state = static_cast<GameState>(payload[5]);
+    uint8_t n_timers = payload[6];
 
-    // Grab the view dimensions and check that we have valid data
-    //
-    // We need 6 bytes for the previous data, plus width*height bytes
-    // for the environment, plus 9*num_tanks to hold the tank data
-    size_t view_size = 6
-                     + (size_t(width) * size_t(height) * 3)
-                     + size_t(n_tanks) * 9;
+    // Start at payload[7] since we already read the first 7 bytes
+    size_t index = FIXED_BYTES_SIZE;
 
     // If we have malformed data, simply return false
-    if (payload.size() != view_size)
+    if (payload.size() - index < (size_t(width) * size_t(height) * 3))
     {
-        std::cout << "wrong size in message to player view \n";
-        std::cout << "Payload " << payload.size() << "vs " << view_size << "\n";
         op_status = false;
         return PlayerView{};
     }
@@ -323,22 +321,26 @@ PlayerView Message::to_player_view(bool & op_status)
     map_view.set_width(width);
     map_view.set_height(height);
 
-    // Start at payload[6] since we already read the first 6 bytes
-    size_t idx = 6;
-
     for (int y = 0; y < height; y++)
     {
         for (int x = 0; x < width; x++)
         {
             // Read 3 bytes at a time, these are the cell values
             GridCell curr_cell;
-            curr_cell.type_ = static_cast<CellType>(payload[idx++]);
-            curr_cell.occupant_ = payload[idx++];
-            curr_cell.visible_ = static_cast<bool>(payload[idx++]);
+            curr_cell.type_ = static_cast<CellType>(payload[index++]);
+            curr_cell.occupant_ = payload[index++];
+            curr_cell.visible_ = static_cast<bool>(payload[index++]);
 
             // Put the grid cell back into the map view
             map_view[map_view.idx(x,y)] = curr_cell;
         }
+    }
+
+    // If we can't fit the tank information.
+    if (payload.size() - index < size_t(n_tanks) * 9)
+    {
+        op_status = false;
+        return PlayerView{};
     }
 
     // Now add the tank information
@@ -349,17 +351,38 @@ PlayerView Message::to_player_view(bool & op_status)
     {
         Tank this_tank;
 
-        this_tank.pos_.x_ = payload[idx++];
-        this_tank.pos_.y_ = payload[idx++];
-        this_tank.current_direction_ = payload[idx++];
-        this_tank.barrel_direction_ = payload[idx++];
-        this_tank.id_ = payload[idx++];
-        this_tank.health_ = payload[idx++];
-        this_tank.aim_focused_ = static_cast<bool>(payload[idx++]);
-        this_tank.loaded_ = static_cast<bool>(payload[idx++]);
-        this_tank.owner_ = payload[idx++];
+        this_tank.pos_.x_ = payload[index++];
+        this_tank.pos_.y_ = payload[index++];
+        this_tank.current_direction_ = payload[index++];
+        this_tank.barrel_direction_ = payload[index++];
+        this_tank.id_ = payload[index++];
+        this_tank.health_ = payload[index++];
+        this_tank.aim_focused_ = static_cast<bool>(payload[index++]);
+        this_tank.loaded_ = static_cast<bool>(payload[index++]);
+        this_tank.owner_ = payload[index++];
 
         view.visible_tanks.push_back(this_tank);
+    }
+
+    // If we don't have the correct data for timers.
+    if (payload.size() - index < size_t(n_timers) * 8)
+    {
+        op_status = false;
+        return PlayerView{};
+    }
+
+    for (uint8_t j = 0; j < n_timers; j++)
+    {
+        uint64_t raw;
+        std::memcpy(&raw,
+                    payload.data() + index,
+                    sizeof(raw));
+
+        int64_t ms_int = static_cast<int64_t>(htonll(raw));
+        std::chrono::milliseconds ms{ms_int};
+
+        view.timers.push_back(ms);
+        index += sizeof(raw);
     }
 
     op_status = true;
@@ -739,6 +762,146 @@ ReplayRequest Message::to_replay_request()
     return req;
 }
 
+MatchReplay Message::to_match_replay(bool & op_status)
+{
+    MatchReplay replay{};
+
+    size_t index = 0;
+
+    uint32_t turn_count;
+
+    if (payload.size() - index < sizeof(turn_count))
+    {
+        op_status = false;
+        return replay;
+    }
+
+    std::memcpy(&turn_count,
+                payload.data() + index,
+                sizeof(turn_count));
+
+    turn_count = ntohl(turn_count);
+    index += sizeof(turn_count);
+
+    uint16_t filename_length;
+
+    if (payload.size() - index < sizeof(filename_length))
+    {
+        op_status = false;
+        return replay;
+    }
+
+    std::memcpy(&filename_length,
+                payload.data() + index,
+                sizeof(filename_length));
+
+    filename_length = ntohs(filename_length);
+    index += sizeof(filename_length);
+
+    uint64_t time_ms;
+
+    if (payload.size() - index < sizeof(time_ms))
+    {
+        op_status = false;
+        return replay;
+    }
+
+    std::memcpy(&time_ms,
+                payload.data() + index,
+                sizeof(time_ms));
+
+    time_ms = htonll(time_ms);
+    index += sizeof(time_ms);
+
+    uint64_t increment_ms;
+
+    if (payload.size() - index < sizeof(increment_ms))
+    {
+        op_status = false;
+        return replay;
+    }
+
+    std::memcpy(&increment_ms,
+                payload.data() + index,
+                sizeof(increment_ms));
+
+    increment_ms = htonll(increment_ms);
+    index += sizeof(increment_ms);
+
+    uint64_t match_id;
+
+    if (payload.size() - index < sizeof(match_id))
+    {
+        op_status = false;
+        return replay;
+    }
+
+    std::memcpy(&match_id,
+                payload.data() + index,
+                sizeof(match_id));
+
+    match_id = htonll(match_id);
+    index += sizeof(match_id);
+
+    // Add the main metadata to the replay.
+    replay.initial_time_ms = time_ms;
+    replay.increment_ms = increment_ms;
+    replay.match_id = match_id;
+
+    // If not enough data for filename, exit.
+    if (payload.size() - index < filename_length)
+    {
+        op_status = false;
+        return replay;
+    }
+
+    // grab the filename
+    std::string filename;
+    filename.assign(reinterpret_cast<const char*>(&payload[index]),
+                    filename_length);
+    index += filename_length;
+
+    // If not enough data for settings, exit.
+    if (payload.size() - index < 5 * sizeof(uint8_t))
+    {
+        op_status = false;
+        return replay;
+    }
+
+    replay.settings.filename = std::move(filename);
+    replay.settings.width = payload[index];
+    replay.settings.height = payload[index + 1];
+    replay.settings.num_tanks = payload[index + 2];
+    replay.settings.num_players = payload[index + 3];
+    replay.settings.mode = payload[index + 4];
+    index += 5;
+
+    // If not exactly turn_count commands of data, exit.
+    if (payload.size() - index != (CommandHead::COMMAND_SIZE) * turn_count)
+    {
+        op_status = false;
+        return replay;
+    }
+
+    // While there is still a command to process.
+    while (payload.size() - index >= (CommandHead::COMMAND_SIZE))
+    {
+        CommandHead command;
+
+        command.sender = payload[index];
+        command.type = static_cast<CommandType>(payload[index + 1]);
+        command.tank_id = payload[index + 2];
+        command.payload_first = payload[index + 3];
+        command.payload_second = payload[index + 4];
+
+        replay.moves.push_back(command);
+        index += CommandHead::COMMAND_SIZE;
+    }
+
+    op_status = true;
+    return replay;
+}
+
 // Function to create a network serialized message for a message type.
 template <typename mType>
 void Message::create_serialized(const mType & req)
@@ -832,6 +995,76 @@ void Message::create_serialized(const mType & req)
         payload_buffer.insert(payload_buffer.end(),
                               id_bytes,
                               id_bytes + sizeof(net_match_id));
+    }
+    else if constexpr (std::is_same_v<mType, MatchReplay>)
+    {
+        header.type_ = HeaderType::MatchReplay;
+
+        // Serialize the number of entries as a uint32_t since
+        // we may have many turns.
+        uint32_t turn_count = req.moves.size();
+        turn_count = htonl(turn_count);
+
+        uint8_t* turn_count_bytes = reinterpret_cast<uint8_t*>(&turn_count);
+        payload_buffer.insert(payload_buffer.end(),
+                              turn_count_bytes,
+                              turn_count_bytes + sizeof(turn_count));
+
+        // Serialize the map name length.
+        uint16_t filename_length = req.settings.filename.length();
+        filename_length = htons(filename_length);
+
+        uint8_t* name_length_bytes = reinterpret_cast<uint8_t*>(&filename_length);
+        payload_buffer.insert(payload_buffer.end(),
+                              name_length_bytes,
+                              name_length_bytes + sizeof(filename_length));
+
+        // Serialize the initial time and increment.
+        uint64_t time_ms = req.initial_time_ms;
+        time_ms = htonll(time_ms);
+
+        uint8_t* initial_time_bytes = reinterpret_cast<uint8_t*>(&time_ms);
+        payload_buffer.insert(payload_buffer.end(),
+                              initial_time_bytes,
+                              initial_time_bytes + sizeof(time_ms));
+
+        uint64_t increment_ms = req.increment_ms;
+        increment_ms = htonll(increment_ms);
+
+        uint8_t* increment_bytes = reinterpret_cast<uint8_t*>(&increment_ms);
+        payload_buffer.insert(payload_buffer.end(),
+                              increment_bytes,
+                              increment_bytes + sizeof(increment_ms));
+
+        uint64_t match_id = req.match_id;
+        match_id = htonll(match_id);
+
+        uint8_t* match_id_bytes = reinterpret_cast<uint8_t*>(&match_id);
+        payload_buffer.insert(payload_buffer.end(),
+                              match_id_bytes,
+                              match_id_bytes + sizeof(match_id));
+
+        // Now push the match settings.
+        payload_buffer.insert(payload_buffer.end(),
+                              req.settings.filename.begin(),
+                              req.settings.filename.end());
+
+        payload_buffer.push_back(req.settings.width);
+        payload_buffer.push_back(req.settings.height);
+        payload_buffer.push_back(req.settings.num_tanks);
+        payload_buffer.push_back(req.settings.num_players);
+        payload_buffer.push_back(req.settings.mode);
+
+        // Finally, go through the command list and push moves.
+        for (const auto & move : req.moves)
+        {
+            payload_buffer.push_back(move.sender);
+            payload_buffer.push_back(static_cast<uint8_t>(move.type));
+            payload_buffer.push_back(move.tank_id);
+            payload_buffer.push_back(move.payload_first);
+            payload_buffer.push_back(move.payload_second);
+        }
+
     }
     // Create a message to notify the player of their
     // player ID and match status.
@@ -1083,6 +1316,10 @@ void Message::create_serialized(const mType & req)
         payload_buffer.push_back(req.current_fuel);
         payload_buffer.push_back(static_cast<uint8_t>(req.current_state));
 
+        // Push back the number of timers.
+        uint8_t n_timers = static_cast<uint8_t>(req.timers.size());
+        payload_buffer.push_back(n_timers);
+
         // Then all of the environment data
         for (int y = 0; y < map_view.get_height(); y++)
         {
@@ -1098,7 +1335,7 @@ void Message::create_serialized(const mType & req)
             }
         }
 
-        // Finally, add the tank information
+        // Add the tank information
         for (int i = 0; i < n_tanks; i++)
         {
             const Tank & curr_tank = req.visible_tanks[i];
@@ -1112,6 +1349,18 @@ void Message::create_serialized(const mType & req)
             payload_buffer.push_back(static_cast<uint8_t>(curr_tank.aim_focused_));
             payload_buffer.push_back(static_cast<uint8_t>(curr_tank.loaded_));
             payload_buffer.push_back(curr_tank.owner_);
+        }
+
+        // Finally add each player timer.
+        for (size_t j = 0; j < req.timers.size(); j++)
+        {
+            int64_t ms = static_cast<int64_t>(req.timers[j].count());
+            ms = htonll(ms);
+
+            uint8_t* ms_bytes = reinterpret_cast<uint8_t*>(&ms);
+            payload_buffer.insert(payload_buffer.end(),
+                                  ms_bytes,
+                                  ms_bytes + sizeof(ms));
         }
 
     }

@@ -1383,6 +1383,11 @@ try {
         std::cout << "state: "
                   << +static_cast<uint8_t>(current_view.current_state) << "\n";
 
+        for (const auto & timer : current_view.timers)
+        {
+            std::cout << timer.count() << "\n";
+        }
+
             view_callback_(current_view);
 
             // Change to playing if necessary.
@@ -1583,6 +1588,45 @@ try {
             }
 
             match_history_callback_(std::move(results));
+            break;
+        }
+        case HeaderType::MatchReplay:
+        {
+            std::cout << "Got replay (" << msg.payload.size() << " bytes).\n";
+
+            bool status;
+
+            MatchReplay replay = msg.to_match_replay(status);
+
+            if (status == false)
+            {
+                std::cerr << "Failed to convert match replay.\n";
+                break;
+            }
+
+            std::cout << "\n" << "Match Settings (id: " << replay.match_id << ")\n"
+                  << "filename: " << replay.settings.filename
+                  << " width: " << +replay.settings.width
+                  << " height: " << +replay.settings.height
+                  << " num_tanks: " << +replay.settings.num_tanks
+                  << " num_players: " << +replay.settings.num_players
+                  << " mode: " << +replay.settings.mode
+                  << " initial_time_ms: " << +replay.initial_time_ms
+                  << " increment_ms: " << +replay.increment_ms
+                  << "\n";
+
+            for (size_t i = 0; i < replay.moves.size(); i++)
+            {
+                const auto & m = replay.moves[i];
+                std::cout << "Move " << i
+                        << " type: " << +static_cast<uint8_t>(m.type)
+                        << " sender: " << +m.sender
+                        << " tank id: " << +m.tank_id
+                        << " payload_first: " << +m.payload_first
+                        << " payload_second: " << +m.payload_second << "\n";
+            }
+
+            // TODO: implement replay system.
             break;
         }
         default:

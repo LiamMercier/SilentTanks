@@ -84,6 +84,8 @@ public:
 private:
     StaticMatchData compute_static_data();
 
+    void update_view_timer(uint8_t player_ID);
+
     // Code for one turn of the match.
     void start_turn();
 
@@ -91,7 +93,7 @@ private:
     void start_turn_strand();
 
     // Handles the arrival of a move in the context of a turn.
-    void on_player_move_arrived(uint16_t t_id);
+    void on_player_move_arrived(uint32_t t_id);
 
     // Handles timing out the player and preparing for the next game state.
     void handle_timeout();
@@ -145,7 +147,7 @@ private:
     // The turn ID exists to ensure commands put into the queue
     // for a given turn are not used in later turns due to client or
     // server strand ordering differences.
-    uint16_t turn_ID_;
+    uint32_t turn_ID_;
 
     // Allows the winning async function (timer or move received) to
     // claim the turn and prevent the race condition caused by

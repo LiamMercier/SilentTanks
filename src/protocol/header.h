@@ -88,6 +88,7 @@ enum class HeaderType : uint8_t
     NoNewMatches,
     MatchReplayRequest,
     MatchReplay,
+    NoReplay,
 
     MAX_TYPE
 };

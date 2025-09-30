@@ -90,6 +90,8 @@ public:
 
     ReplayRequest to_replay_request();
 
+    MatchReplay to_match_replay(bool & op_status);
+
     template <typename mType>
     void create_serialized(const mType & req);
 

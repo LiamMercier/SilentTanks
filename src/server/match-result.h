@@ -25,6 +25,17 @@ struct MatchResult
 
     }
 
+    MatchResult()
+    :move_history(),
+    user_ids(),
+    elimination_order(),
+    settings(),
+    initial_time_ms(0),
+    increment_ms(0)
+    {
+
+    }
+
     std::vector<CommandHead> move_history;
     // user_id's and elimination_order are both indexed by player_id
     std::vector<boost::uuids::uuid> user_ids;

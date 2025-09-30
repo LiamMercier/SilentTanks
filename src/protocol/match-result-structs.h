@@ -1,6 +1,8 @@
 #pragma once
 
 #include "gamemodes.h"
+#include "command.h"
+#include "match-settings.h"
 
 struct MatchResultRow
 {
@@ -20,4 +22,13 @@ struct MatchResultList
 {
     GameMode mode;
     std::vector<MatchResultRow> match_results;
+};
+
+struct MatchReplay
+{
+    std::vector<CommandHead> moves;
+    MapSettings settings;
+    uint64_t initial_time_ms;
+    uint64_t increment_ms;
+    uint64_t match_id;
 };

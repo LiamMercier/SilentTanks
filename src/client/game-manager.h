@@ -55,6 +55,8 @@ public:
 
     Q_INVOKABLE QVariantMap get_tank_data(int occupant) const;
 
+    Q_INVOKABLE qint64 remaining_time(qint64 player_id) const;
+
     UserListModel* players_model();
 
     // Callable from C++ code for changing the view.
@@ -96,6 +98,8 @@ signals:
     void fuel_changed();
 
     void player_changed();
+
+    void timers_changed();
 
 private:
     PlayerView current_view_;

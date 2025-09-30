@@ -22,4 +22,9 @@ struct ExternalUser
 struct UserList
 {
     std::vector<ExternalUser> users;
+
+    size_t size() const
+    {
+        return users.size();
+    }
 };

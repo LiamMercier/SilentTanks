@@ -8,6 +8,17 @@ Item {
     id: gamePageRoot
     anchors.fill: parent
 
+    Timer {
+        id: timeoutTimer
+        interval: 100
+        running: true
+        repeat: true
+
+        onTriggered: {
+
+        }
+    }
+
     RowLayout {
         anchors.fill: parent
         spacing: 0
@@ -146,20 +157,53 @@ Item {
                             height: playerListView.height / 5
                             color: "#323436"
 
-                            Text {
+                            ColumnLayout {
                                 anchors.fill: parent
-                                anchors.margins: 3
+                                spacing: 0
 
-                                text: model.username
-                                font.family: "Roboto"
-                                font.weight: Font.DemiBold
-                                color: "#f2f2f2"
-                                elide: Text.ElideRight
+                                Rectangle {
+                                    Layout.fillWidth: true
+                                    Layout.preferredHeight: 0.5 * parent.height
+                                    color: "transparent"
 
-                                verticalAlignment: Text.AlignVCenter
-                                horizontalAlignment: Text.AlignHCenter
+                                    Text {
+                                        anchors.fill: parent
+                                        anchors.margins: 3
 
-                                width: parent.width - 6
+                                        text: model.username
+                                        font.family: "Roboto"
+                                        font.weight: Font.DemiBold
+                                        color: "#f2f2f2"
+                                        elide: Text.ElideRight
+
+                                        verticalAlignment: Text.AlignVCenter
+                                        horizontalAlignment: Text.AlignHCenter
+
+                                        width: parent.width - 6
+                                    }
+                                }
+
+                                Rectangle {
+                                    Layout.fillWidth: true
+                                    Layout.preferredHeight: 0.5 * parent.height
+                                    color: "transparent"
+
+                                    Text {
+                                        anchors.fill: parent
+                                        anchors.margins: 3
+
+                                        text: GameManager.remaining_time(mode.uuid)
+                                        font.family: "Roboto"
+                                        font.weight: Font.DemiBold
+                                        color: "#f2f2f2"
+                                        elide: Text.ElideRight
+
+                                        verticalAlignment: Text.AlignVCenter
+                                        horizontalAlignment: Text.AlignHCenter
+
+                                        width: parent.width - 6
+                                    }
+                                }
                             }
 
                             Rectangle {

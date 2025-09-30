@@ -1990,14 +1990,14 @@ void Database::do_fetch_replay(ReplayRequest req,
         if (replay_res.empty())
         {
             Message empty_replay;
-            empty_replay.create_serialized(HeaderType::MatchReplay);
+            empty_replay.create_serialized(HeaderType::NoReplay);
             s->deliver(empty_replay);
             return;
         }
 
         // Otherwise, take our json bytes and deserialize into a list of commands.
         std::string moves_json = replay_res[0]["move_history"].as<std::string>();
-        std::vector<CommandHead> moves;
+        std::vector<CommandHead> moves{};
 
         // TODO: implement JSON deserialization.
 
@@ -2023,10 +2023,38 @@ void Database::do_fetch_replay(ReplayRequest req,
                       << " payload_second: " << +m.payload_second << "\n";
         }
 
-        if (moves.size() == 0)
-        {
-            std::cout << "no moves detected, error...";
+        std::string settings_json = replay_res[0]["settings"].as<std::string>();
+        MatchResult result_settings;
+
+        auto settings_ec = glz::read_json(result_settings, settings_json);
+
+        if (settings_ec) {
+            std::string lmsg = "Failed to parse settings. Input: " + settings_json;
+            Console::instance().log(std::move(lmsg),
+                                    LogLevel::ERROR);
+            return;
         }
+
+        std::cout << "Match Settings (id: " << req.match_id << ")\n"
+                  << "filename: " << result_settings.settings.filename
+                  << " width: " << +result_settings.settings.width
+                  << " height: " << +result_settings.settings.height
+                  << " num_tanks: " << +result_settings.settings.num_tanks
+                  << " num_players: " << +result_settings.settings.num_players
+                  << " mode: " << +result_settings.settings.mode << "\n";
+
+        MatchReplay match_replay;
+
+        match_replay.moves = std::move(moves);
+
+        match_replay.settings = std::move(result_settings.settings);
+        match_replay.initial_time_ms = result_settings.initial_time_ms;
+        match_replay.increment_ms = result_settings.increment_ms;
+        match_replay.match_id = req.match_id;
+
+        Message match_replay_message;
+        match_replay_message.create_serialized(match_replay);
+        s->deliver(match_replay_message);
 
     }
     catch (const std::exception & e)

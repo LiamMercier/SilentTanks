@@ -16,6 +16,16 @@ public:
                 uint8_t n_players,
                 uint8_t mode);
 
+    MapSettings()
+    :filename(""),
+    width(0),
+    height(0),
+    num_tanks(0),
+    num_players(0),
+    mode(0)
+    {
+    }
+
 public:
     std::string filename;
     uint8_t width;
@@ -34,6 +44,10 @@ struct GameMap
 {
 public:
     GameMap(MapSettings settings);
+
+    GameMap()
+    :map_settings()
+    {}
 
 public:
     MapSettings map_settings;

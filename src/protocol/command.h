@@ -58,6 +58,8 @@ struct CommandHead
     uint8_t payload_first;
     // Mostly used to give a second x coordinate for placement.
     uint8_t payload_second;
+
+    static constexpr std::size_t COMMAND_SIZE = 5 * sizeof(uint8_t);
 };
 
 namespace glz{

@@ -1,6 +1,8 @@
 #pragma once
 
 #include <vector>
+#include <chrono>
+
 #include "grid-cell.h"
 #include "tank-entity.h"
 #include "flat-array.h"
@@ -51,6 +53,7 @@ struct PlayerView
 
     FlatArray<GridCell> map_view;
     std::vector<Tank> visible_tanks;
+    std::vector<std::chrono::milliseconds> timers;
     uint8_t current_player;
     uint8_t current_fuel;
     GameState current_state;

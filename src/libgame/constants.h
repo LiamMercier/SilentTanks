@@ -15,6 +15,7 @@ constexpr uint8_t SHELL_DAMAGE = 1;
 constexpr uint8_t NO_OWNER = UINT8_MAX;
 constexpr uint8_t NO_OCCUPANT = UINT8_MAX;
 constexpr uint8_t NO_TANK = UINT8_MAX;
+constexpr uint8_t NO_PLAYER = UINT8_MAX;
 
 // lookup table for converting from directions to vectors
 constexpr vec2 dir_to_vec[8]

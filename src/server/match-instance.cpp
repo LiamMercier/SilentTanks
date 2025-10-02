@@ -590,7 +590,7 @@ void MatchInstance::handle_elimination(uint8_t p_id, HeaderType reason)
     }
 
     // Set all tank health to zero.
-    int * t_IDs = this_player.get_tanks_list();
+    std::vector<int> & t_IDs = this_player.get_tanks_list();
     for (int i = 0; i < this_player.tanks_placed_; i++)
     {
         int t_ID = t_IDs[i];

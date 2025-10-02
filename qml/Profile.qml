@@ -318,16 +318,46 @@ Item {
                                 Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
                                 color: "transparent"
 
-                                Button {
-                                    icon.name: "download"
-                                    anchors.centerIn: parent
-                                    onClicked: {
-                                        Client.download_match_by_id(model.MatchID)
+                                RowLayout {
+                                    anchors.fill: parent
+                                    spacing: 0
+
+                                    Button {
+                                        // TODO: icon.source: "qrc:/icons/..."
+                                        icon.name: "download"
+                                        onClicked: {
+                                            Client.download_match_by_id(model.MatchID)
+                                        }
+                                    }
+
+                                    Button {
+                                        id: matchReplayButton
+                                        visible: matchDownloaded
+
+                                        icon.name: "go-next"
+                                        onClicked: {
+                                            Client.start_replay(model.MatchID)
+                                        }
                                     }
                                 }
+
                             }
 
                         }
+
+                        // Only show button state when the C++ client downloads
+                        // the desired match.
+                        property bool matchDownloaded: false
+
+                        Connections {
+                            target: ReplayManager
+                            function onMatch_downloaded(id) {
+                                if (id === model.MatchID) {
+                                    matchDownloaded = true
+                                }
+                            }
+                        }
+
                     }
                 }
             }

@@ -16,14 +16,14 @@
 class GameInstance
 {
 public:
-    GameInstance() = delete;
+    GameInstance();
 
     // Create a predefined environment from map
     GameInstance(GameMap map);
 
     GameInstance(const MapSettings & map);
 
-    ~GameInstance();
+    ~GameInstance() = default;
 
     // Print the current instance state to the console
     void print_instance_console() const;
@@ -36,7 +36,7 @@ public:
 
     bool fire_tank(uint8_t ID);
 
-    PlayerView compute_view(uint8_t player_ID, uint8_t & live_tanks);
+    PlayerView compute_view(uint8_t player_ID, uint8_t & num_live_tanks);
 
     void cast_ray(PlayerView & player_view,
                   vec2 start,
@@ -88,7 +88,7 @@ private:
     std::vector<uint8_t> placement_mask_;
 
 public:
-    Tank* tanks_;
+    std::vector<Tank> tanks_;
 };
 
 inline size_t GameInstance::idx(size_t x, size_t y) const

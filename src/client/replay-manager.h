@@ -36,6 +36,10 @@ class ReplayManager : public QAbstractListModel
                READ player
                NOTIFY player_changed)
 public:
+    // Upper bound on how many bytes the client is willing to store
+    // as replays. This should generally never be hit under normal operation
+    // because the replay structures are often small.
+    static constexpr size_t MAX_REPLAY_BYTES = 16 * 1024 * 1024;
 
     enum Roles {
         TypeRole = Qt::UserRole + 1,
@@ -63,8 +67,9 @@ public:
 
     Q_INVOKABLE void set_replay(qint64 replay_id);
 
-    // Callable from C++ code for changing the view.
-    void update_view();
+    Q_INVOKABLE void step_forward_turn();
+
+    Q_INVOKABLE void step_backward_turn();
 
     void update_match_data(StaticMatchData data, std::string username);
 
@@ -88,6 +93,10 @@ public:
 
     Q_INVOKABLE bool valid_placement_tile(int x, int y);
 
+private:
+    // Callable from C++ code for changing the view.
+    void update_view();
+
 signals:
     void view_changed();
 
@@ -101,22 +110,26 @@ signals:
 
     void player_changed();
 
+    void match_downloaded(qint64 id);
+
 private:
     // Replay management data.
     std::vector<MatchReplay> replays_;
+    size_t total_replay_bytes_{0};
+
     MatchReplay current_replay_;
-    size_t current_replay_index_;
+    size_t current_replay_id_;
 
     // Match specific data.
-    // GameInstance current_instance_;
+    GameInstance current_instance_;
 
     // Current selected perspective.
+    uint8_t current_perspective_{NO_PLAYER};
     PlayerView current_view_;
 
     // TODO: fetch data for match.
     StaticMatchData current_data_;
     UserListModel players_;
-    uint8_t player_id_{UINT8_MAX};
 
     PlaySoundCallback sound_callback_;
 };

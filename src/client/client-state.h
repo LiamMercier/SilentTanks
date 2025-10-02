@@ -12,6 +12,7 @@ enum class ClientState : uint8_t
     LoginScreen,
     Lobby,
     Playing,
+    Replaying,
     Disconnected
 };
 

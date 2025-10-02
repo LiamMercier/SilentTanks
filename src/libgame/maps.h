@@ -26,6 +26,16 @@ public:
     {
     }
 
+    size_t get_size_in_bytes()
+    {
+        return filename.size()
+               + sizeof(width)
+               + sizeof(height)
+               + sizeof(num_tanks)
+               + sizeof(num_players)
+               + sizeof(mode);
+    }
+
 public:
     std::string filename;
     uint8_t width;

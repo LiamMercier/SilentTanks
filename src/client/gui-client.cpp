@@ -202,6 +202,11 @@ GameManager* GUIClient::game_manager()
     return & game_manager_;
 }
 
+ReplayManager* GUIClient::replay_manager()
+{
+    return & replay_manager_;
+}
+
 UserListModel* GUIClient::players_model()
 {
     return game_manager_.players_model();

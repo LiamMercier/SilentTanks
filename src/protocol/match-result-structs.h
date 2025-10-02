@@ -26,6 +26,15 @@ struct MatchResultList
 
 struct MatchReplay
 {
+    size_t get_size_in_bytes()
+    {
+        return moves.size()
+               + settings.get_size_in_bytes()
+               + sizeof(initial_time_ms)
+               + sizeof(increment_ms)
+               + sizeof(match_id);
+    }
+
     std::vector<CommandHead> moves;
     MapSettings settings;
     uint64_t initial_time_ms;

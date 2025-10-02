@@ -35,6 +35,8 @@ ApplicationWindow {
                 case ClientState.Playing:
                     pageLoader.source = "GamePage.qml"
                     break;
+                case ClientState.Replaying:
+                    pageLoader.source = "ReplayPage.qml"
                 default:
                     pageLoader.source = ""
                     break;

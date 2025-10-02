@@ -78,6 +78,8 @@ public:
 
     GameManager* game_manager();
 
+    ReplayManager* replay_manager();
+
     UserListModel* players_model();
 
     Q_INVOKABLE void set_selected_mode(QueueType mode);

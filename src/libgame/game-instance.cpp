@@ -3,12 +3,22 @@
 
 #include <filesystem>
 
+GameInstance::GameInstance()
+:num_players_(0),
+num_tanks_(0),
+game_env_(),
+placement_mask_(0),
+tanks_(0)
+{
+}
+
 // Constructor for match instances.
 GameInstance::GameInstance(GameMap map)
 :num_players_(map.map_settings.num_players),
 num_tanks_(map.map_settings.num_tanks),
 game_env_(std::move(map.env)),
-placement_mask_(std::move(map.mask))
+placement_mask_(std::move(map.mask)),
+tanks_(num_tanks_ * num_players_)
 {
     players_.reserve(num_players_);
 
@@ -17,8 +27,6 @@ placement_mask_(std::move(map.mask))
     {
         players_.emplace_back(num_tanks_, i);
     }
-
-    tanks_ = (new Tank[num_tanks_ * num_players_]{});
 }
 
 // Constructor when no map repository exists.
@@ -26,7 +34,8 @@ GameInstance::GameInstance(const MapSettings & map_settings)
 :num_players_(map_settings.num_players),
 num_tanks_(map_settings.num_tanks),
 game_env_(map_settings.width, map_settings.height),
-placement_mask_(map_settings.width * map_settings.height)
+placement_mask_(map_settings.width * map_settings.height),
+tanks_(num_tanks_ * num_players_)
 {
     players_.reserve(num_players_);
 
@@ -35,19 +44,12 @@ placement_mask_(map_settings.width * map_settings.height)
     {
         players_.emplace_back(num_tanks_, i);
     }
-
-    tanks_ = (new Tank[num_tanks_ * num_players_]{});
-}
-
-GameInstance::~GameInstance()
-{
-    delete[] tanks_;
 }
 
 // Rotate a tank of given ID
 void GameInstance::rotate_tank(uint8_t ID, uint8_t dir)
 {
-    Tank& curr_tank = tanks_[ID];
+    Tank & curr_tank = tanks_[ID];
     if (dir == 0)
     {
         curr_tank.turn_clockwise();
@@ -61,7 +63,7 @@ void GameInstance::rotate_tank(uint8_t ID, uint8_t dir)
 // Rotate the barrel of a tank of given ID
 void GameInstance::rotate_tank_barrel(uint8_t ID, uint8_t dir)
 {
-    Tank& curr_tank = tanks_[ID];
+    Tank & curr_tank = tanks_[ID];
     if (dir == 0)
     {
         curr_tank.barrel_clockwise();
@@ -77,7 +79,7 @@ void GameInstance::rotate_tank_barrel(uint8_t ID, uint8_t dir)
 // Return True if the move was successful, or false if there was terrain or other objects.
 bool GameInstance::move_tank(uint8_t ID, bool reverse)
 {
-    Tank& curr_tank = tanks_[ID];
+    Tank & curr_tank = tanks_[ID];
     uint8_t dir = curr_tank.current_direction_;
 
     if (reverse == true)
@@ -420,7 +422,7 @@ bool GameInstance::fire_tank(uint8_t ID)
         // test if the tile has a tank
         if (curr_cell.occupant_ != NO_OCCUPANT)
         {
-            Tank& hit_tank = tanks_[curr_cell.occupant_];
+            Tank & hit_tank = tanks_[curr_cell.occupant_];
             hit_tank.deal_damage(SHELL_DAMAGE);
 
             // if the health of the tank is zero, remove it from play
@@ -449,7 +451,7 @@ bool GameInstance::fire_tank(uint8_t ID)
 //
 // We start with the current game environment and set all cells
 // to having no vision
-PlayerView GameInstance::compute_view(uint8_t player_ID, uint8_t & live_tanks)
+PlayerView GameInstance::compute_view(uint8_t player_ID, uint8_t & num_live_tanks)
 {
     uint8_t width = game_env_.get_width();
     uint8_t height = game_env_.get_height();
@@ -473,7 +475,7 @@ PlayerView GameInstance::compute_view(uint8_t player_ID, uint8_t & live_tanks)
     // the visibility depends on the aim_state_ of the tank
 
     const Player& this_player =  get_player(player_ID);
-    const int* player_tank_IDs = this_player.get_tanks_list();
+    const std::vector<int> & player_tank_IDs = this_player.get_tanks_list();
 
     for (size_t i = 0; i < num_tanks_; i++)
     {
@@ -495,7 +497,7 @@ PlayerView GameInstance::compute_view(uint8_t player_ID, uint8_t & live_tanks)
         }
 
         // otherwise increment the number of alive tanks
-        live_tanks += 1;
+        num_live_tanks += 1;
 
         // Add the current tank to the visibility map
         vec2 tank_pos = curr_tank.pos_;
@@ -802,7 +804,7 @@ void GameInstance::cast_ray(PlayerView & player_view, vec2 start, vec2 slope, fl
         // Add occupant to list of tanks.
         if (occ != NO_OCCUPANT)
         {
-            Tank & this_tank = tanks_[occ];
+            const Tank & this_tank = tanks_[occ];
             player_view.visible_tanks.push_back(this_tank);
         }
 
@@ -836,7 +838,7 @@ void GameInstance::place_tank(vec2 pos,
     this_cell.occupant_ = tank_ID;
 
     // update the tank list for the player
-    int * tank_list = this_player.get_tanks_list();
+    std::vector<int> & tank_list = this_player.get_tanks_list();
     tank_list[this_player.tanks_placed_] = tank_ID;
     this_player.tanks_placed_ += 1;
 

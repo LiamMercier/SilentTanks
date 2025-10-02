@@ -106,14 +106,27 @@ client_
             }
         },
         Qt::QueuedConnection);
+    },
+    [this](MatchReplay replay){
+        QMetaObject::invokeMethod(this, [this, replay = std::move(replay)]{
+            {
+                this->replay_manager_.add_replay(replay);
+            }
+        },
+        Qt::QueuedConnection);
     }
 ),
 friends_(this),
 friend_requests_(this),
 blocked_(this),
 game_manager_(nullptr,
-    [this](){
-        emit play_sound(SoundType::NotifyTurn);
+    [this](SoundType sound){
+        emit play_sound(sound);
+    }
+),
+replay_manager_(nullptr,
+    [this](SoundType sound){
+        emit play_sound(sound);
     }
 )
 {

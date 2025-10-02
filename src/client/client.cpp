@@ -40,7 +40,8 @@ Client::Client(asio::io_context & cntx,
                DisplayMessageCallback display_message_callback,
                MatchHistoryCallback match_history_callback,
                ViewUpdateCallback view_callback,
-               MatchDataCallback match_data_callback)
+               MatchDataCallback match_data_callback,
+               MatchReplayCallback match_replay_callback)
 :io_context_(cntx),
 client_strand_(cntx.get_executor()),
 state_(ClientState::ConnectScreen),
@@ -52,7 +53,8 @@ queue_update_callback_(std::move(queue_update_callback)),
 display_message_callback_(std::move(display_message_callback)),
 match_history_callback_(std::move(match_history_callback)),
 view_callback_(std::move(view_callback)),
-match_data_callback_(std::move(match_data_callback))
+match_data_callback_(std::move(match_data_callback)),
+match_replay_callback_(std::move(match_replay_callback))
 {
 
 }
@@ -1625,6 +1627,8 @@ try {
                         << " payload_first: " << +m.payload_first
                         << " payload_second: " << +m.payload_second << "\n";
             }
+
+            match_replay_callback_(std::move(replay));
 
             // TODO: implement replay system.
             break;

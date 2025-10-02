@@ -5,6 +5,7 @@
 #include "message-model.h"
 #include "match-history-model.h"
 #include "game-manager.h"
+#include "replay-manager.h"
 
 #include <queue>
 
@@ -177,4 +178,7 @@ private:
 
     // For managing client's view of the game.
     GameManager game_manager_;
+
+    // For managing replay downloads and stepping through the game.
+    ReplayManager replay_manager_;
 };

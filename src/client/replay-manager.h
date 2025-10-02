@@ -1,15 +1,16 @@
 #pragma once
 
 #include <QAbstractListModel>
-#include <QVariantMap>
 #include <QObject>
 
-#include "client-state.h"
 #include "user-list-model.h"
 #include "player-view.h"
 #include "message-structs.h"
+#include "game-instance.h"
+#include "client-state.h"
+#include "match-result-structs.h"
 
-class GameManager : public QAbstractListModel
+class ReplayManager : public QAbstractListModel
 {
     using PlaySoundCallback = std::function<void(SoundType sound)>;
 
@@ -42,8 +43,8 @@ public:
         VisibleRole
     };
 
-    GameManager(QObject * parent = nullptr,
-                PlaySoundCallback sound_callback = nullptr);
+    ReplayManager(QObject * parent = nullptr,
+                  PlaySoundCallback sound_callback = nullptr);
 
     int rowCount(const QModelIndex & parent) const override;
 
@@ -58,8 +59,12 @@ public:
 
     UserListModel* players_model();
 
+    void add_replay(MatchReplay replay);
+
+    Q_INVOKABLE void set_replay(qint64 replay_id);
+
     // Callable from C++ code for changing the view.
-    void update_view(PlayerView new_view);
+    void update_view();
 
     void update_match_data(StaticMatchData data, std::string username);
 
@@ -83,8 +88,6 @@ public:
 
     Q_INVOKABLE bool valid_placement_tile(int x, int y);
 
-    bool tank_has_ammo(uint8_t tank_id);
-
 signals:
     void view_changed();
 
@@ -98,17 +101,22 @@ signals:
 
     void player_changed();
 
-    void timers_changed();
-
 private:
+    // Replay management data.
+    std::vector<MatchReplay> replays_;
+    MatchReplay current_replay_;
+    size_t current_replay_index_;
+
+    // Match specific data.
+    // GameInstance current_instance_;
+
+    // Current selected perspective.
     PlayerView current_view_;
+
+    // TODO: fetch data for match.
     StaticMatchData current_data_;
     UserListModel players_;
-
     uint8_t player_id_{UINT8_MAX};
-
-    // Increasing number across a game,
-    uint16_t sequence_number_{0};
 
     PlaySoundCallback sound_callback_;
 };

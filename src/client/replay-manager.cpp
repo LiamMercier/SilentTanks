@@ -1,4 +1,4 @@
-#include "game-manager.h"
+#include "replay-manager.h"
 
 // Helper to compare usernames.
 constexpr bool same_username(const std::string & a, const std::string & b)
@@ -32,53 +32,54 @@ constexpr bool same_username(const std::string & a, const std::string & b)
     return true;
 }
 
-GameManager::GameManager(QObject * parent, PlaySoundCallback sound_callback)
+ReplayManager::ReplayManager(QObject * parent, PlaySoundCallback sound_callback)
 :QAbstractListModel(parent),
 sound_callback_(sound_callback)
 {
 }
 
-int GameManager::rowCount(const QModelIndex & parent = QModelIndex()) const
+int ReplayManager::rowCount(const QModelIndex & parent = QModelIndex()) const
 {
-    Q_UNUSED(parent)
-    return current_view_.width() * current_view_.height();
+    return replays_.size();
 }
 
-QVariant GameManager::data(const QModelIndex & index, int role) const
+QVariant ReplayManager::data(const QModelIndex & index, int role) const
 {
     if (!index.isValid()
-        || index.row() >= static_cast<int>(current_view_.width()
-                                           * current_view_.height())
+        || index.row() >= static_cast<int>(replays_.size())
         || index.row() < 0)
     {
         return {};
     }
 
-    const GridCell & cell = current_view_.map_view[index.row()];
-
+    // TODO: replay data
+    /*
     switch (role)
     {
         case TypeRole:
-            return static_cast<int>(cell.type_);
+            return
         case OccupantRole:
-            return static_cast<int>(cell.occupant_);
+            return
         case VisibleRole:
-            return cell.visible_;
+            return
         default:
             return {};
     }
+    */
+    return {};
 }
 
-QHash<int, QByteArray> GameManager::roleNames() const
+QHash<int, QByteArray> ReplayManager::roleNames() const
 {
     QHash<int, QByteArray> roles;
-    roles[TypeRole] = "type";
-    roles[OccupantRole] = "occupant";
-    roles[VisibleRole] = "visible";
+    // roles[TypeRole] = "type";
+    // roles[OccupantRole] = "occupant";
+    // roles[VisibleRole] = "visible";
     return roles;
 }
 
-Q_INVOKABLE QVariantMap GameManager::cell_at(int x, int y) const
+// Fetch cell data for render.
+Q_INVOKABLE QVariantMap ReplayManager::cell_at(int x, int y) const
 {
     QVariantMap m;
     if (x < 0
@@ -98,7 +99,7 @@ Q_INVOKABLE QVariantMap GameManager::cell_at(int x, int y) const
     return m;
 }
 
-Q_INVOKABLE QVariantMap GameManager::get_tank_data(int occupant) const
+Q_INVOKABLE QVariantMap ReplayManager::get_tank_data(int occupant) const
 {
     QVariantMap m;
     if (occupant < 0 || occupant >= NO_OCCUPANT)
@@ -117,19 +118,32 @@ Q_INVOKABLE QVariantMap GameManager::get_tank_data(int occupant) const
     return m;
 }
 
-UserListModel* GameManager::players_model()
+UserListModel* ReplayManager::players_model()
 {
     return & players_;
 }
 
-void GameManager::update_view(PlayerView new_view)
+void ReplayManager::add_replay(MatchReplay replay)
 {
-    bool width_changed = (new_view.width() != current_view_.width());
-    bool height_changed = (new_view.height() != current_view_.height());
 
+}
+
+Q_INVOKABLE void ReplayManager::set_replay(qint64 replay_id)
+{
+    current_replay_index_ = static_cast<size_t>(replay_id);
+
+    // Look for this replay ID, otherwise abort if we do not have the replay stored.
+
+    // Load map file into game instance.
+    // current_instance_ = GameInstance();
+}
+
+// TODO: compute view, global if necessary
+void ReplayManager::update_view()
+{
+    /*
     beginResetModel();
     current_view_ = new_view;
-    players_.set_timers(current_view_.timers);
     endResetModel();
 
     if (sound_callback_)
@@ -138,9 +152,12 @@ void GameManager::update_view(PlayerView new_view)
         if (current_view_.current_player == player_id_
             && current_view_.current_fuel == TURN_PLAYER_FUEL)
         {
-            sound_callback_(SoundType::NotifyTurn);
+            sound_callback_();
         }
     }
+
+    bool width_changed = true;
+    bool height_changed = true;
 
     if (width_changed)
     {
@@ -155,80 +172,76 @@ void GameManager::update_view(PlayerView new_view)
     emit state_changed();
     emit fuel_changed();
     emit player_changed();
-    emit timers_changed();
+    */
 }
 
-void GameManager::update_match_data(StaticMatchData data, std::string username)
+void ReplayManager::update_match_data(StaticMatchData data, std::string username)
 {
-    current_data_ = data;
-    players_.set_users(data.player_list);
-
-    // Game server will dump old commands, so just reset our sequence number.
-    sequence_number_ = 0;
-
-    // find our player ID.
-    for (unsigned int i = 0; i < current_data_.player_list.users.size(); i++)
-    {
-        if (same_username(current_data_.player_list.users[i].username, username))
-        {
-            player_id_ = static_cast<uint8_t>(i);
-            break;
-        }
-    }
-
-    emit player_changed();
+    // current_data_ = data;
+    // players_.set_users(data.player_list);
+    //
+    // // Game server will dump old commands, so just reset our sequence number.
+    // sequence_number_ = 0;
+    //
+    // // find our player ID.
+    // for (unsigned int i = 0; i < current_data_.player_list.users.size(); i++)
+    // {
+    //     if (same_username(current_data_.player_list.users[i].username, username))
+    //     {
+    //         player_id_ = static_cast<uint8_t>(i);
+    //         break;
+    //     }
+    // }
+    //
+    // emit player_changed();
 }
 
-int GameManager::map_width() const
+int ReplayManager::map_width() const
 {
     return static_cast<int>(current_view_.width());
 }
 
-int GameManager::map_height() const
+int ReplayManager::map_height() const
 {
     return static_cast<int>(current_view_.height());
 }
 
-int GameManager::state() const
+int ReplayManager::state() const
 {
     return static_cast<int>(current_view_.current_state);
 }
 
-int GameManager::fuel() const
+int ReplayManager::fuel() const
 {
     return static_cast<int>(current_view_.current_fuel);
 }
 
-QString GameManager::player() const
+QString ReplayManager::player() const
 {
-    uint8_t current_player = current_view_.current_player;
-
-    if (current_player >= current_data_.player_list.users.size())
-    {
-        return QString();
-    }
-
-    const auto & user = current_data_.player_list.users[current_player];
-    std::string username = user.username;
-    return QString::fromStdString(username);
+    // uint8_t current_player = current_view_.current_player;
+    //
+    // if (current_player >= current_data_.player_list.users.size())
+    // {
+    //     return QString();
+    // }
+    //
+    // const auto & user = current_data_.player_list.users[current_player];
+    // std::string username = user.username;
+    // return QString::fromStdString(username);
+    return "test";
 }
 
-uint16_t GameManager::sequence_number()
-{
-    return sequence_number_;
-}
-
-uint8_t GameManager::tank_at(int x, int y)
+uint8_t ReplayManager::tank_at(int x, int y)
 {
     return current_view_.map_view[current_view_.indx(x, y)].occupant_;
 }
 
-Q_INVOKABLE bool GameManager::is_turn()
+Q_INVOKABLE bool ReplayManager::is_turn()
 {
     return current_view_.current_player == player_id_;
 }
 
-Q_INVOKABLE bool GameManager::is_friendly_tank(uint8_t tank_id)
+Q_INVOKABLE bool ReplayManager::is_friendly_tank(uint8_t tank_id)
 {
     for (const auto tank : current_view_.visible_tanks)
     {
@@ -242,7 +255,7 @@ Q_INVOKABLE bool GameManager::is_friendly_tank(uint8_t tank_id)
     return false;
 }
 
-Q_INVOKABLE bool GameManager::valid_placement_tile(int x, int y)
+Q_INVOKABLE bool ReplayManager::valid_placement_tile(int x, int y)
 {
     size_t index = current_view_.indx(x, y);
 
@@ -258,17 +271,4 @@ Q_INVOKABLE bool GameManager::valid_placement_tile(int x, int y)
 
     // See if this is our tile or not.
     return (player_id_ == current_data_.placement_mask[index]);
-}
-
-bool GameManager::tank_has_ammo(uint8_t tank_id)
-{
-    for (const auto tank : current_view_.visible_tanks)
-    {
-        if (tank.id_ == tank_id)
-        {
-            return tank.loaded_;
-        }
-    }
-    // If we can't find the tank return false.
-    return false;
 }

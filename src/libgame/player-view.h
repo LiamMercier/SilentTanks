@@ -40,7 +40,7 @@ struct PlayerView
     // Linear scan to find the tank for this occupant.
     inline Tank find_tank(uint8_t tank_id) const
     {
-        for (const auto tank : visible_tanks)
+        for (const auto & tank : visible_tanks)
         {
             if (tank_id == tank.id_)
             {

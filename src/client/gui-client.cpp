@@ -316,6 +316,12 @@ Q_INVOKABLE void GUIClient::download_match_by_id(qint64 match_id)
     client_.request_match_replay(static_cast<uint64_t>(match_id));
 }
 
+Q_INVOKABLE void GUIClient::start_replay(qint64 match_id)
+{
+    replay_manager_.set_replay(match_id);
+    client_.change_state(ClientState::Replaying);
+}
+
 Q_INVOKABLE void GUIClient::send_forfeit()
 {
     client_.forfeit_request();

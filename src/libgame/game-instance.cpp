@@ -443,6 +443,8 @@ bool GameInstance::fire_tank(uint8_t ID)
 //
 // Should really be re-worked one day.
 
+// TODO: make mountains visible before breaking raycast.
+
 // Compute the view for this player
 //
 // We want to iterate over every tank owned by the
@@ -722,6 +724,35 @@ PlayerView GameInstance::compute_view(uint8_t player_ID, uint8_t & num_live_tank
     return view;
 }
 
+PlayerView GameInstance::dump_global_view()
+{
+    uint8_t width = game_env_.get_width();
+    uint8_t height = game_env_.get_height();
+    uint16_t total = width * height;
+
+    PlayerView view(width, height);
+
+    // Copy the entire board.
+    view.map_view = game_env_;
+
+    // Set each cell to visible.
+    for (int i = 0; i < total; i++)
+    {
+        view.map_view[i].visible_ = true;
+    }
+
+    // Copy each living tank, they should all be visible.
+    for (const auto & tank : tanks_)
+    {
+        if (tank.health_ > 0)
+        {
+            view.visible_tanks.push_back(tank);
+        }
+    }
+
+    return view;
+}
+
 // Given <x_0, y_0> and a slope vector <x_s, y_x> we
 // compute the visibility along:
 //
@@ -868,13 +899,15 @@ bool GameInstance::read_env_by_name(const std::string& filename,
 {
     std::error_code ec;
 
-    if (!std::filesystem::is_regular_file(filename, ec))
+    std::filesystem::path map_path = std::filesystem::path("envs") / filename;
+
+    if (!std::filesystem::is_regular_file(map_path, ec))
     {
-        std::cerr << "Environment file not found or not regular\n";
+        std::cerr << "Environment file " << filename << " not found or not regular\n";
         return false;
     }
 
-    auto size = std::filesystem::file_size(filename, ec);
+    auto size = std::filesystem::file_size(map_path, ec);
 
     if (ec)
     {
@@ -889,7 +922,7 @@ bool GameInstance::read_env_by_name(const std::string& filename,
         return false;
     }
 
-    std::ifstream file(filename, std::ios::binary);
+    std::ifstream file(map_path, std::ios::binary);
 
     if (!file.is_open())
     {

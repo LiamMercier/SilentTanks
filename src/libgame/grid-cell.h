@@ -1,6 +1,7 @@
 #pragma once
 
 #include "cell-type.h"
+#include "constants.h"
 #include <iostream>
 
 struct GridCell
@@ -9,8 +10,8 @@ struct GridCell
 
     // Which tank is on this Grid.
     //
-    // NO_OCCUPANT (UINT8_MAX) if not occupied.
-    uint8_t occupant_;
+    // NO_OCCUPANT if not occupied.
+    uint8_t occupant_{NO_OCCUPANT};
 
     // used when computing views
     bool visible_;

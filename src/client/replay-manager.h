@@ -65,7 +65,7 @@ public:
 
     void add_replay(MatchReplay replay);
 
-    Q_INVOKABLE void set_replay(qint64 replay_id);
+    Q_INVOKABLE void set_replay(qint64 match_id);
 
     Q_INVOKABLE void step_forward_turn();
 
@@ -113,14 +113,18 @@ signals:
     void match_downloaded(qint64 id);
 
 private:
+    //
     // Replay management data.
+    //
     std::vector<MatchReplay> replays_;
     size_t total_replay_bytes_{0};
 
     MatchReplay current_replay_;
-    size_t current_replay_id_;
+    uint64_t current_replay_id_{UINT64_MAX};
 
+    //
     // Match specific data.
+    //
     GameInstance current_instance_;
 
     // Current selected perspective.
@@ -131,5 +135,8 @@ private:
     StaticMatchData current_data_;
     UserListModel players_;
 
+    //
+    // Callbacks
+    //
     PlaySoundCallback sound_callback_;
 };

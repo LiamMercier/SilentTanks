@@ -38,6 +38,8 @@ public:
 
     PlayerView compute_view(uint8_t player_ID, uint8_t & num_live_tanks);
 
+    PlayerView dump_global_view();
+
     void cast_ray(PlayerView & player_view,
                   vec2 start,
                   vec2 slope,

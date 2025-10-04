@@ -37,6 +37,7 @@ ApplicationWindow {
                     break;
                 case ClientState.Replaying:
                     pageLoader.source = "ReplayPage.qml"
+                    break;
                 default:
                     pageLoader.source = ""
                     break;

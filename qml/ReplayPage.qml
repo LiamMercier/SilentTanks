@@ -5,7 +5,7 @@ import QtQuick.Layouts 2.15
 import GUICommon 1.0
 
 Item {
-    id: gamePageRoot
+    id: replayPageRoot
     anchors.fill: parent
 
     RowLayout {
@@ -18,7 +18,7 @@ Item {
             Layout.preferredWidth: parent.width * 0.8
             Layout.fillHeight: true
 
-            BoardView {
+            ReplayView {
                 anchors.fill: parent
             }
         }
@@ -147,23 +147,6 @@ Item {
                             width: playerListView.width
                             height: playerListView.height / 5
                             color: "#323436"
-
-                            property double endTimeMs: Date.now() + model.timer
-
-                            property double remainingMs: {
-                                if (!model || typeof model.timer === "undefined"
-                                    || typeof ReplayManager === "undefined")
-                                {
-                                    return 0
-                                }
-
-                                if (model.username != ReplayManager.player)
-                                {
-                                    return model.timer
-                                }
-
-                                return Math.max(0, endTimeMs - gamePageRoot.nowMs)
-                            }
 
                             ColumnLayout {
                                 anchors.fill: parent

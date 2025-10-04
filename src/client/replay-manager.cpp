@@ -153,17 +153,16 @@ void ReplayManager::add_replay(MatchReplay replay)
     emit match_downloaded(id);
 }
 
-Q_INVOKABLE void ReplayManager::set_replay(qint64 replay_id)
+Q_INVOKABLE void ReplayManager::set_replay(qint64 match_id)
 {
-    // TODO: evaluate if necessary.
-    current_replay_id_ = static_cast<size_t>(replay_id);
+    current_replay_id_ = static_cast<uint64_t>(match_id);
 
     // Look for this replay ID, otherwise abort if we do not have the replay stored.
     bool found_replay = false;
 
     for (const MatchReplay & replay : replays_)
     {
-        if (replay.match_id == static_cast<uint64_t>(replay_id))
+        if (replay.match_id == static_cast<uint64_t>(match_id))
         {
             found_replay = true;
             current_replay_ = replay;
@@ -178,10 +177,20 @@ Q_INVOKABLE void ReplayManager::set_replay(qint64 replay_id)
         return;
     }
 
-    // TODO: check MapSettings is valid.
-
     // Load map file into game instance.
     current_instance_ = GameInstance(current_replay_.settings);
+
+    uint16_t total = current_replay_.settings.width
+                     * current_replay_.settings.height;
+
+    bool loaded = current_instance_.read_env_by_name(current_replay_.settings.filename,
+                                                      total);
+
+    if (!loaded)
+    {
+        // TODO: popup
+        return;
+    }
 
     // Do setup.
     current_view_.current_player = 0;
@@ -285,7 +294,7 @@ Q_INVOKABLE bool ReplayManager::valid_placement_tile(int x, int y)
 {
     size_t index = current_view_.indx(x, y);
 
-    if (index > current_data_.placement_mask.size())
+    if (index >= current_data_.placement_mask.size())
     {
         return false;
     }
@@ -306,7 +315,8 @@ void ReplayManager::update_view()
 
     if (current_perspective_ == NO_PLAYER)
     {
-        // TODO: global dump of environment
+        // Dump the entire environment with full visibility.
+        new_view = current_instance_.dump_global_view();
     }
     else
     {

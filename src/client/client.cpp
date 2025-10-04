@@ -1628,6 +1628,8 @@ try {
                         << " payload_second: " << +m.payload_second << "\n";
             }
 
+            std::cout << "\n";
+
             match_replay_callback_(std::move(replay));
 
             // TODO: implement replay system.

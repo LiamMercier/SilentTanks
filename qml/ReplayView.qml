@@ -38,14 +38,14 @@ Item {
         return { x: screenX, y: screenY }
     }
 
-    property int mapWidth: GameManager.map_width
-    property int mapHeight: GameManager.map_height
+    property int mapWidth: ReplayManager.map_width
+    property int mapHeight: ReplayManager.map_height
 
     onMapWidthChanged: viewCanvas.requestPaint()
     onMapHeightChanged: viewCanvas.requestPaint()
 
     Connections {
-        target: GameManager
+        target: ReplayManager
         function onView_changed() {
             viewCanvas.requestPaint()
         }
@@ -202,7 +202,7 @@ Item {
                     }
 
                     // Grab QVariantMap for this cell.
-                    var cell = GameManager.cell_at(x, y)
+                    var cell = ReplayManager.cell_at(x, y)
 
                     var px = x * tilePx - camXRounded
                     var py = y * tilePx - camYRounded
@@ -232,8 +232,8 @@ Item {
                     }
 
                     // Draw overlay if in setup.
-                    if (GameManager.state === 0
-                        && GameManager.valid_placement_tile(x, y))
+                    if (ReplayManager.state === 0
+                        && ReplayManager.valid_placement_tile(x, y))
                     {
                         cntx.fillStyle = "rgba(0, 200, 64, 0.04)"
                         cntx.fillRect(px, py, tilePx, tilePx)
@@ -409,7 +409,13 @@ Item {
         if (cell.occupant !== 255)
         {
             // Fetch tank data.
-            var tankData = GameManager.get_tank_data(cell.occupant)
+            var tankData = ReplayManager.get_tank_data(cell.occupant)
+
+            // If tank is dead, break.
+            // if (tankData.health_ <= 0)
+            // {
+            //     break;
+            // }
 
             var filename_prefix = "tank_" + tankData.owner + "_"
 
@@ -586,15 +592,6 @@ Item {
         closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
 
         property var svgMap: ({
-            "rotate_barrel_left" : "qrc:/svgs/buttons/barrel_left",
-            "move_forward" : "qrc:/svgs/buttons/tank_forward",
-            "rotate_barrel_right" : "qrc:/svgs/buttons/barrel_right",
-            "rotate_tank_left" : "qrc:/svgs/buttons/tank_left",
-            "rotate_tank_right" : "qrc:/svgs/buttons/tank_right",
-            "reload" : "qrc:/svgs/buttons/reload",
-            "move_reverse" : "qrc:/svgs/buttons/tank_reverse",
-            "fire" : "qrc:/svgs/buttons/fire",
-            "" : "",
             "no_op" : ""
         })
 
@@ -639,16 +636,11 @@ Item {
                             property string svgSource: {
                                 var src = ""
 
-                                var cell = GameManager.cell_at(selectedCellX, selectedCellY)
-                                var tank_data = GameManager.get_tank_data(cell.occupant)
+                                var cell = ReplayManager.cell_at(selectedCellX, selectedCellY)
+                                var tank_data = ReplayManager.get_tank_data(cell.occupant)
 
-                                // Handle reload specific icon.
-                                if (model.action == "reload" && tank_data.loaded)
-                                {
-                                    src = "qrc:/svgs/buttons/reload_loaded.svg"
-                                }
                                 // Handle middle "button" icon
-                                else if (model.action == "no_op")
+                                if (model.action == "no_op")
                                 {
                                     switch (tank_data.health)
                                     {
@@ -669,16 +661,6 @@ Item {
                                         }
                                     }
                                     actionButton.enabled = false
-                                }
-                                // Handle place directions.
-                                else if (model.action == "place")
-                                {
-                                    src = "qrc:/svgs/buttons/place_dir_" + model.dir + ".svg"
-                                }
-                                // Otherwise, give the default.
-                                else
-                                {
-                                    src = actionPopup.svgMap[model.action] ? actionPopup.svgMap[model.action] : actionPopup.svgMap["no_op"]
                                 }
 
                                 return src
@@ -703,107 +685,6 @@ Item {
                             }
 
                             onClicked: {
-                                switch (model.action)
-                                {
-                                    case "place":
-                                    {
-                                        if (selectedCellX >= 0 && selectedCellY >= 0)
-                                        {
-                                            Client.send_place_tank(selectedCellX,
-                                                                   selectedCellY,
-                                                                   model.dir)
-                                        }
-                                        break
-                                    }
-                                    case "rotate_barrel_left":
-                                    {
-                                        if (selectedCellX >= 0 && selectedCellY >= 0)
-                                        {
-                                            Client.send_rotate_barrel(selectedCellX,
-                                                                      selectedCellY,
-                                                                      1)
-                                        }
-                                        break
-                                    }
-                                    case "move_forward":
-                                    {
-                                        if (selectedCellX >= 0 && selectedCellY >= 0)
-                                        {
-                                            Client.send_move_tank(selectedCellX,
-                                                                selectedCellY,
-                                                                0)
-                                        }
-                                        break
-                                    }
-                                    case "rotate_barrel_right":
-                                    {
-                                        if (selectedCellX >= 0 && selectedCellY >= 0)
-                                        {
-                                            Client.send_rotate_barrel(selectedCellX,
-                                                                    selectedCellY,
-                                                                    0)
-                                        }
-                                        break
-                                    }
-                                    case "rotate_tank_left":
-                                    {
-                                        if (selectedCellX >= 0 && selectedCellY >= 0)
-                                        {
-                                            Client.send_rotate_tank(selectedCellX,
-                                                                    selectedCellY,
-                                                                    1)
-                                        }
-                                        break
-                                    }
-                                    case "fire":
-                                    {
-                                        if (selectedCellX >= 0 && selectedCellY >= 0)
-                                        {
-                                            Client.send_fire_tank(selectedCellX,
-                                                                selectedCellY)
-                                        }
-                                        break
-                                    }
-                                    case "rotate_tank_right":
-                                    {
-                                        if (selectedCellX >= 0 && selectedCellY >= 0)
-                                        {
-                                            Client.send_rotate_tank(selectedCellX,
-                                                                    selectedCellY,
-                                                                    0)
-                                        }
-                                        break
-                                    }
-                                    case "reload":
-                                    {
-                                        if (selectedCellX >= 0 && selectedCellY >= 0)
-                                        {
-                                            Client.send_reload_tank(selectedCellX,
-                                                                    selectedCellY)
-                                        }
-                                        break
-                                    }
-                                    case "move_reverse":
-                                    {
-                                        if (selectedCellX >= 0 && selectedCellY >= 0)
-                                        {
-                                            Client.send_move_tank(selectedCellX,
-                                                                selectedCellY,
-                                                                1)
-                                        }
-                                        break
-                                    }
-                                    case "no_op":
-                                    {
-                                        console.log("no_op found")
-                                        break
-                                    }
-                                    default:
-                                    {
-                                        break
-                                    }
-                                }
-
                                 actionPopup.close()
                             }
 
@@ -835,77 +716,26 @@ Item {
             return
         }
 
-        var cell = GameManager.cell_at(cx, cy)
-        var state = GameManager.state
+        var cell = ReplayManager.cell_at(cx, cy)
+        var state = ReplayManager.state
 
-        // If in setup.
-        if (state === 0)
+        // Show popup if tank exists at this tile.
+        if (cell.occupant !== 255)
         {
-            // Don't do anything on invalid placement tiles.
-            if (!GameManager.valid_placement_tile(cx, cy))
-            {
-                return
-            }
+            actionsModel.append({ action: "empty", actionText: "" })
+            actionsModel.append({ action: "empty", actionText: "" })
+            actionsModel.append({ action: "empty", actionText: "" })
 
-            // Allow place only if not occupied and not terrain.
-            if (cell.occupant === 255 && cell.type !== 2)
-            {
-                actionsModel.append({ action: "place", actionText: "Place Tank", dir: 7 })
-                actionsModel.append({ action: "place", actionText: "Place Tank", dir: 0 })
-                actionsModel.append({ action: "place", actionText: "Place Tank", dir: 1 })
+            actionsModel.append({ action: "empty", actionText: "" })
+            actionsModel.append({ action: "no_op", actionText: "" })
+            actionsModel.append({ action: "empty", actionText: "" })
 
-                actionsModel.append({ action: "place", actionText: "Place Tank", dir: 6 })
-                actionsModel.append({ action: "no_op", actionText: "" })
-                actionsModel.append({ action: "place", actionText: "Place Tank", dir: 2 })
-
-                actionsModel.append({ action: "place", actionText: "Place Tank", dir: 5 })
-                actionsModel.append({ action: "place", actionText: "Place Tank", dir: 4 })
-                actionsModel.append({ action: "place", actionText: "Place Tank", dir: 3 })
-            }
-        }
-        // If playing.
-        else if (state === 1)
-        {
-            // Add commands if tank exists.
-            if (cell.occupant !== 255)
-            {
-                // Unless it is not our tank.
-                if (GameManager.is_friendly_tank(cell.occupant))
-                {
-                    // First 3.
-                    actionsModel.append({ action: "rotate_barrel_left", actionText: "Rotate\nBarrel\nLeft" })
-                    actionsModel.append({ action: "move_forward", actionText: "Move\nForward" })
-                    actionsModel.append({ action: "rotate_barrel_right", actionText: "Rotate\nBarrel\nRight" })
-
-                    // Next 3.
-                    actionsModel.append({ action: "rotate_tank_left", actionText: "Rotate\nTank\nLeft" })
-                    actionsModel.append({ action: "no_op", actionText: "" })
-                    actionsModel.append({ action: "rotate_tank_right", actionText: "Rotate\nTank\nRight" })
-
-                    // Bottom 3.
-                    actionsModel.append({ action: "reload", actionText: "Reload" })
-                    actionsModel.append({ action: "move_reverse", actionText: "Move\nReverse" })
-                    actionsModel.append({ action: "fire", actionText: "Fire" })
-                }
-            }
-            // Otherwise, stop.
-            else
-            {
-                selectedCellX = -1
-                selectedCellY = -1
-                return
-            }
-        }
-        // Otherwise, game is done.
-        else
-        {
-            selectedCellX = -1
-            selectedCellY = -1
-            return
+            actionsModel.append({ action: "empty", actionText: "" })
+            actionsModel.append({ action: "empty", actionText: "" })
+            actionsModel.append({ action: "empty", actionText: "" })
         }
 
         // compute screen coordinates for popup.
-        // TODO: place this on the top right of the tile, with some padding out.
         var pos = cellToScreen(cx, cy)
         var px = pos.x + cellTileSize * scale
         var py = pos.y - popupContentItemRect.height - 12

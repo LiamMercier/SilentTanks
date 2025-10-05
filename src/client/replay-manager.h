@@ -8,10 +8,13 @@
 #include "message-structs.h"
 #include "game-instance.h"
 #include "client-state.h"
+#include "popup.h"
 #include "match-result-structs.h"
 
 class ReplayManager : public QAbstractListModel
 {
+    using PopupCallback = std::function<void(Popup p, bool urgent)>;
+
     using PlaySoundCallback = std::function<void(SoundType sound)>;
 
     Q_OBJECT
@@ -116,11 +119,11 @@ private:
     //
     // Replay management data.
     //
-    std::vector<MatchReplay> replays_;
     size_t total_replay_bytes_{0};
 
-    MatchReplay current_replay_;
-    uint64_t current_replay_id_{UINT64_MAX};
+    mutable std::mutex replay_mutex_;
+    std::vector<MatchReplay> replays_;
+    uint64_t current_replay_index_{UINT64_MAX};
 
     //
     // Match specific data.
@@ -129,6 +132,8 @@ private:
 
     // Current selected perspective.
     uint8_t current_perspective_{NO_PLAYER};
+    // Store the number of moves applied.
+    uint64_t applied_moves_{0};
     PlayerView current_view_;
 
     // TODO: fetch data for match.
@@ -138,5 +143,6 @@ private:
     //
     // Callbacks
     //
+    PopupCallback popup_callback_;
     PlaySoundCallback sound_callback_;
 };

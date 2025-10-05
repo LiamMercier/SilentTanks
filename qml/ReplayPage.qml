@@ -192,25 +192,47 @@ Item {
 
                     color: "#202122"
 
-                    SvgButton {
-                        id: forfeitButton
-                        implicitHeight: 40
-                        implicitWidth: 80
+                    RowLayout {
+                        anchors.fill: parent
 
-                        anchors.centerIn: parent
+                        Button {
+                            id: previousMoveButton
 
-                        buttonText: "Forfeit"
-                        fontChoice: "#1f1f1f"
-                        unfocusedOpacity: 1.00
+                            icon.name: "go-previous"
+                            onClicked: {
+                                ReplayManager.step_backward_turn()
+                            }
+                        }
 
-                        normalSource: "qrc:/svgs/buttons/forfeit_button.svg"
-                        hoverSource: "qrc:/svgs/buttons/forfeit_button_hovered.svg"
-                        pressedSource: "qrc:/svgs/buttons/forfeit_button_pressed.svg"
+                        SvgButton {
+                            id: forfeitButton
+                            implicitHeight: 40
+                            implicitWidth: 80
 
-                        toggled: false
+                            Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
 
-                        onClicked: {
-                            Client.send_forfeit()
+                            buttonText: "Forfeit"
+                            fontChoice: "#1f1f1f"
+                            unfocusedOpacity: 1.00
+
+                            normalSource: "qrc:/svgs/buttons/forfeit_button.svg"
+                            hoverSource: "qrc:/svgs/buttons/forfeit_button_hovered.svg"
+                            pressedSource: "qrc:/svgs/buttons/forfeit_button_pressed.svg"
+
+                            toggled: false
+
+                            onClicked: {
+                                Client.send_forfeit()
+                            }
+                        }
+
+                        Button {
+                            id: nextMoveButton
+
+                            icon.name: "go-next"
+                            onClicked: {
+                                ReplayManager.step_forward_turn()
+                            }
                         }
                     }
 

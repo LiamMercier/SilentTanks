@@ -737,6 +737,7 @@ ApplyResult MatchInstance::apply_command(const Command & cmd)
             Tank & this_tank = game_instance_.get_tank(cmd.tank_id);
 
             if (this_tank.loaded_ == true
+                || this_tank.health_ == 0
                 || this_tank.owner_ != cmd.sender)
             {
                 res.valid_move = false;

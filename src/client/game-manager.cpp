@@ -205,7 +205,9 @@ QString GameManager::player() const
 
     if (current_player >= current_data_.player_list.users.size())
     {
-        return QString();
+        // Fallback to player number.
+        std::string player_str = "Player " + std::to_string(current_player);
+        return QString::fromStdString(player_str);
     }
 
     const auto & user = current_data_.player_list.users[current_player];

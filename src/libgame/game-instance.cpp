@@ -439,12 +439,15 @@ bool GameInstance::fire_tank(uint8_t ID)
     return false;
 }
 
-bool GameInstance::reverse_fire_tank(uint8_t ID)
+MoveStatus GameInstance::replay_fire_tank(uint8_t ID)
 {
     Tank & curr_tank = tanks_[ID];
 
     vec2 shell_dir = dir_to_vec[curr_tank.barrel_direction_];
     vec2 curr_loc = curr_tank.pos_;
+
+    // Expend the shell
+    curr_tank.loaded_ = false;
 
     uint8_t shell_distance = (curr_tank.barrel_direction_ % 2) == 0
                              ? FIRING_DIST_HORIZONTAL : FIRING_DIST_DIAGONAL;
@@ -458,7 +461,7 @@ bool GameInstance::reverse_fire_tank(uint8_t ID)
         if ((curr_loc.x_ > game_env_.get_height() - 1)
             || (curr_loc.y_ > game_env_.get_width() - 1))
         {
-                return false;
+                return MoveStatus();
         }
 
         GridCell curr_cell = game_env_[idx(curr_loc)];
@@ -466,38 +469,61 @@ bool GameInstance::reverse_fire_tank(uint8_t ID)
         // test if the tile is terrain
         if (curr_cell.type_ == CellType::Terrain)
         {
-            return false;
+            return MoveStatus();
         }
 
-        // Speed up lookup if tank is alive.
+        // test if the tile has a tank
         if (curr_cell.occupant_ != NO_OCCUPANT)
         {
             Tank & hit_tank = tanks_[curr_cell.occupant_];
-            hit_tank.repair(SHELL_DAMAGE);
+            hit_tank.deal_damage(SHELL_DAMAGE);
 
-            return true;
-        }
-        // Otherwise, see if any of the dead tanks exist at this tile.
-        else
-        {
-            for (Tank & tank : tanks_)
+            // if the health of the tank is zero, remove it from play
+            if (hit_tank.health_ == 0)
             {
-                // If a tank exists at this position
-                if (tank.pos_.x_ == curr_loc.x_
-                    && tank.pos_.y_ == curr_loc.y_)
-                {
-                    // Heal the tank.
-                    tank.repair(SHELL_DAMAGE);
-
-                    // Ensure the tank is added back into play.
-                    vec2 hit_pos = tank.pos_;
-                    game_env_[idx(hit_pos)].occupant_ = tank.id_;
-                }
+                vec2 hit_pos = hit_tank.pos_;
+                game_env_[idx(hit_pos)].occupant_ = NO_OCCUPANT;
             }
+
+            MoveStatus status;
+            status.success = true;
+            status.hits.push_back(hit_tank.pos_);
+
+            return status;
         }
 
     }
-    return false;
+    return MoveStatus();
+}
+
+void GameInstance::repair_tank(vec2 pos)
+{
+    GridCell target_cell = game_env_[idx(pos)];
+
+    // Speed up lookup if tank is alive.
+    if (target_cell.occupant_ != NO_OCCUPANT)
+    {
+        Tank & tank = tanks_[target_cell.occupant_];
+        tank.repair(SHELL_DAMAGE);
+    }
+    // Otherwise, see if any of the dead tanks exist at this tile.
+    else
+    {
+        for (Tank & tank : tanks_)
+        {
+            // If a tank exists at this position
+            if (tank.pos_.x_ == pos.x_
+                && tank.pos_.y_ == pos.y_)
+            {
+                // Heal the tank.
+                tank.repair(SHELL_DAMAGE);
+
+                // Ensure the tank is added back into play.
+                vec2 this_pos = tank.pos_;
+                game_env_[idx(this_pos)].occupant_ = tank.id_;
+            }
+        }
+    }
 }
 
 // Below is probably the worst function in the entire code base.
@@ -964,10 +990,12 @@ void GameInstance::remove_tank(vec2 pos, uint8_t player_ID)
     // Remove the occupant
     this_cell.occupant_ = NO_TANK;
 
+    // Reduce the number of tanks.
+    this_player.tanks_placed_ -= 1;
+
     // Remove the tank from the list for this player.
     std::vector<int> & tank_list = this_player.get_tanks_list();
     tank_list[this_player.tanks_placed_] = NO_TANK;
-    this_player.tanks_placed_ -= 1;
 
     return;
 }

@@ -10,6 +10,7 @@
 #include "player.h"
 #include "maps.h"
 #include "player-view.h"
+#include "move-status.h"
 
 // The game instance class contains all
 // relevant state data for a given game.
@@ -36,7 +37,9 @@ public:
 
     bool fire_tank(uint8_t ID);
 
-    bool reverse_fire_tank(uint8_t ID);
+    MoveStatus replay_fire_tank(uint8_t ID);
+
+    void repair_tank(vec2 pos);
 
     PlayerView compute_view(uint8_t player_ID, uint8_t & num_live_tanks);
 

@@ -10,6 +10,7 @@
 #include "client-state.h"
 #include "popup.h"
 #include "match-result-structs.h"
+#include "move-status.h"
 
 class ReplayManager : public QAbstractListModel
 {
@@ -42,7 +43,8 @@ public:
     // Upper bound on how many bytes the client is willing to store
     // as replays. This should generally never be hit under normal operation
     // because the replay structures are often small.
-    static constexpr size_t MAX_REPLAY_BYTES = 16 * 1024 * 1024;
+    // static constexpr size_t MAX_REPLAY_BYTES = 16 * 1024 * 1024;
+    static constexpr size_t MAX_REPLAY_BYTES = 2000;
 
     enum Roles {
         TypeRole = Qt::UserRole + 1,
@@ -138,7 +140,7 @@ private:
     uint64_t applied_moves_{0};
 
     // Store when moves have no effect (moving into walls, etc).
-    std::vector<bool> move_status_;
+    std::vector<MoveStatus> move_status_;
 
     PlayerView current_view_;
 

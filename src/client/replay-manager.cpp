@@ -150,9 +150,8 @@ void ReplayManager::add_replay(MatchReplay replay)
         // TODO: consider writing replays to disk to keep allowing downloads.
         std::string oom_msg = "Replay "
                               + std::to_string(replay.match_id)
-                              + " was dropped because there is more than "
-                              + std::to_string(MAX_REPLAY_BYTES)
-                              + " bytes of replays are currently stored.";
+                              + " was dropped because the limit of"
+                              + " bytes for replays was reached.";
 
         popup_callback_(
             Popup(PopupType::Info, "Replay Dropped", oom_msg),
@@ -210,7 +209,13 @@ Q_INVOKABLE void ReplayManager::set_replay(qint64 match_id)
         // Handle when replay is not found.
         if (!found_replay)
         {
-            // TODO: popup
+            std::string not_found_msg = "Replay "
+                                        + std::to_string(match_id)
+                                        + " was unable to be found.";
+
+            popup_callback_(
+                Popup(PopupType::Info, "Replay Not Found", not_found_msg),
+                    URGENT_POPUP);
             return;
         }
 
@@ -232,7 +237,11 @@ Q_INVOKABLE void ReplayManager::set_replay(qint64 match_id)
 
     if (!environment_loaded)
     {
-        // TODO: popup
+        std::string no_env_msg = "The environment was unable to be loaded";
+
+        popup_callback_(
+            Popup(PopupType::Info, "Replay Failed", no_env_msg),
+                URGENT_POPUP);
         return;
     }
 
@@ -243,7 +252,7 @@ Q_INVOKABLE void ReplayManager::set_replay(qint64 match_id)
 
     applied_moves_ = 0;
     current_perspective_ = NO_PLAYER;
-    move_status_ = std::vector<bool>(turn_count, false);
+    move_status_ = std::vector<MoveStatus>(turn_count);
 
     // Compute the starting view.
     update_view();
@@ -399,7 +408,9 @@ Q_INVOKABLE void ReplayManager::step_forward_turn()
             }
 
             // fire
-            move_status_[applied_moves_] = current_instance_.fire_tank(cmd.tank_id);
+            MoveStatus status = current_instance_.replay_fire_tank(cmd.tank_id);
+            move_status_[applied_moves_] = std::move(status);
+
             break;
         }
         case CommandType::Load:
@@ -611,7 +622,7 @@ Q_INVOKABLE void ReplayManager::step_backward_turn()
 
             // We need to revert the movement action, but it's possible that
             // the move did nothing, so only reverse the tank if we moved.
-            if (move_status_[last_turn])
+            if (move_status_[last_turn].success)
             {
                 bool reversed_dir = (cmd.payload_first == 0);
                 current_instance_.move_tank(cmd.tank_id,
@@ -705,15 +716,18 @@ Q_INVOKABLE void ReplayManager::step_backward_turn()
             {
                 popup_message = "Replay failed because move "
                                 + std::to_string(last_turn)
-                                + " was malformed \n(tank was not loaded)";
+                                + " was malformed \n(tank was still loaded)";
                 valid_move = false;
                 break;
             }
 
             // Undo the damage if any was taken and reload the tank.
-            if (move_status_[last_turn])
+            if (move_status_[last_turn].success)
             {
-                current_instance_.reverse_fire_tank(cmd.tank_id);
+                for (const auto & hit_pos : move_status_[last_turn].hits)
+                {
+                    current_instance_.repair_tank(hit_pos);
+                }
             }
 
             current_instance_.load_tank(cmd.tank_id);
@@ -759,15 +773,6 @@ Q_INVOKABLE void ReplayManager::step_backward_turn()
                 popup_message = "Replay failed because move "
                                 + std::to_string(last_turn)
                                 + " was malformed \n(placement out of bounds)";
-                valid_move = false;
-                break;
-            }
-
-            if (placement_direction >= 8)
-            {
-                popup_message = "Replay failed because move "
-                                + std::to_string(last_turn)
-                                + " was malformed \n(placement direction invalid)";
                 valid_move = false;
                 break;
             }
@@ -980,7 +985,6 @@ Q_INVOKABLE bool ReplayManager::valid_placement_tile(int x, int y)
     return (current_perspective_ == current_data_.placement_mask[index]);
 }
 
-// TODO: compute view, global if necessary
 void ReplayManager::update_view()
 {
     PlayerView new_view;
@@ -994,7 +998,11 @@ void ReplayManager::update_view()
     {
         if (current_perspective_ >= current_instance_.num_players_)
         {
-            // TODO: popup, error occured.
+            std::string invalid_player_msg = "The perspective selected was out of bounds.";
+
+            popup_callback_(
+                Popup(PopupType::Info, "Replay Failed", invalid_player_msg),
+                    URGENT_POPUP);
             return;
         }
         uint8_t live_tanks = 0;

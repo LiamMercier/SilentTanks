@@ -36,9 +36,12 @@ constexpr bool same_username(const std::string & a, const std::string & b)
     return true;
 }
 
-ReplayManager::ReplayManager(QObject * parent, PlaySoundCallback sound_callback)
+ReplayManager::ReplayManager(QObject * parent,
+                             PlaySoundCallback sound_callback,
+                             PopupCallback popup_callback)
 :QAbstractListModel(parent),
-sound_callback_(sound_callback)
+sound_callback_(sound_callback),
+popup_callback_(popup_callback)
 {
 }
 
@@ -145,8 +148,16 @@ void ReplayManager::add_replay(MatchReplay replay)
     if (replay_bytes + total_replay_bytes_ > MAX_REPLAY_BYTES)
     {
         // TODO: consider writing replays to disk to keep allowing downloads.
+        std::string oom_msg = "Replay "
+                              + std::to_string(replay.match_id)
+                              + " was dropped because there is more than "
+                              + std::to_string(MAX_REPLAY_BYTES)
+                              + " bytes of replays are currently stored.";
 
-        // TODO: popup
+        popup_callback_(
+            Popup(PopupType::Info, "Replay Dropped", oom_msg),
+                  URGENT_POPUP);
+
         return;
     }
 
@@ -176,6 +187,7 @@ void ReplayManager::add_replay(MatchReplay replay)
 Q_INVOKABLE void ReplayManager::set_replay(qint64 match_id)
 {
     bool environment_loaded = false;
+    uint64_t turn_count = 0;
 
     {
         std::lock_guard lock(replay_mutex_);
@@ -204,6 +216,8 @@ Q_INVOKABLE void ReplayManager::set_replay(qint64 match_id)
 
         // Load map file into game instance.
         const MatchReplay & current_replay = replays_[current_replay_index_];
+        turn_count = current_replay.moves.size();
+
         current_instance_ = GameInstance(current_replay.settings);
 
         uint16_t total = current_replay.settings.width
@@ -229,6 +243,7 @@ Q_INVOKABLE void ReplayManager::set_replay(qint64 match_id)
 
     applied_moves_ = 0;
     current_perspective_ = NO_PLAYER;
+    move_status_ = std::vector<bool>(turn_count, false);
 
     // Compute the starting view.
     update_view();
@@ -285,6 +300,9 @@ Q_INVOKABLE void ReplayManager::step_forward_turn()
                 break;
             }
 
+            move_status_[applied_moves_] = current_instance_.move_tank(cmd.tank_id,
+                                                                    cmd.payload_first);
+
             break;
         }
         case CommandType::RotateTank:
@@ -310,7 +328,10 @@ Q_INVOKABLE void ReplayManager::step_forward_turn()
                 valid_move = false;
                 break;
             }
+
             current_instance_.rotate_tank(cmd.tank_id, cmd.payload_first);
+            move_status_[applied_moves_] = true;
+
             break;
         }
         case CommandType::RotateBarrel:
@@ -338,6 +359,8 @@ Q_INVOKABLE void ReplayManager::step_forward_turn()
             }
 
             current_instance_.rotate_tank_barrel(cmd.tank_id, cmd.payload_first);
+            move_status_[applied_moves_] = true;
+
             break;
         }
         case CommandType::Fire:
@@ -376,7 +399,7 @@ Q_INVOKABLE void ReplayManager::step_forward_turn()
             }
 
             // fire
-            current_instance_.fire_tank(cmd.tank_id);
+            move_status_[applied_moves_] = current_instance_.fire_tank(cmd.tank_id);
             break;
         }
         case CommandType::Load:
@@ -407,6 +430,8 @@ Q_INVOKABLE void ReplayManager::step_forward_turn()
 
             // if unloaded, load the tank
             current_instance_.load_tank(cmd.tank_id);
+            move_status_[applied_moves_] = true;
+
             break;
         }
         case CommandType::Place:
@@ -437,6 +462,8 @@ Q_INVOKABLE void ReplayManager::step_forward_turn()
             current_instance_.place_tank(pos,
                                          cmd.sender,
                                          placement_direction);
+
+            move_status_[applied_moves_] = true;
 
             break;
         }
@@ -485,7 +512,6 @@ Q_INVOKABLE void ReplayManager::step_forward_turn()
         if (next_cmd.type != CommandType::Place)
         {
             current_view_.current_state = GameState::Play;
-            current_view_.current_player = 0;
             current_view_.current_fuel = TURN_PLAYER_FUEL;
         }
 
@@ -533,7 +559,25 @@ Q_INVOKABLE void ReplayManager::step_forward_turn()
 
 Q_INVOKABLE void ReplayManager::step_backward_turn()
 {
-    std::cout << "Reverting turn " << applied_moves_ - 1 << "\n";
+    // If no moves have been applied, do nothing.
+    if (applied_moves_ == 0)
+    {
+        return;
+    }
+
+    uint64_t last_turn = applied_moves_ - 1;
+
+    CommandHead cmd;
+    {
+        std::lock_guard lock(replay_mutex_);
+        const MatchReplay & current_replay = replays_[current_replay_index_];
+
+        // Grab the next turn to apply. This is equal to the number
+        // of applied turns, since moves are stored in a vector.
+        cmd = current_replay.moves[last_turn];
+    }
+
+    std::cout << "Reverting turn " << last_turn << "\n";
 
     // Apply the command based on the type.
     bool valid_move = true;
@@ -543,12 +587,12 @@ Q_INVOKABLE void ReplayManager::step_backward_turn()
     {
         case CommandType::Move:
         {
-            // If the tank does not exist, stop early.
+            // If the tank did not exist, stop early.
             if (cmd.tank_id >= current_instance_.num_players_
                                 * current_instance_.num_tanks_)
             {
                 popup_message = "Replay failed because move "
-                                + std::to_string(applied_moves_)
+                                + std::to_string(last_turn)
                                 + " was malformed \n(tank does not exist)";
                 valid_move = false;
                 break;
@@ -559,22 +603,31 @@ Q_INVOKABLE void ReplayManager::step_backward_turn()
             if (this_tank.health_ == 0 || this_tank.owner_ != cmd.sender)
             {
                 popup_message = "Replay failed because move "
-                                + std::to_string(applied_moves_)
+                                + std::to_string(last_turn)
                                 + " was malformed \n(sender mismatch or tank is dead)";
                 valid_move = false;
                 break;
+            }
+
+            // We need to revert the movement action, but it's possible that
+            // the move did nothing, so only reverse the tank if we moved.
+            if (move_status_[last_turn])
+            {
+                bool reversed_dir = (cmd.payload_first == 0);
+                current_instance_.move_tank(cmd.tank_id,
+                                            reversed_dir);
             }
 
             break;
         }
         case CommandType::RotateTank:
         {
-            // If the tank does not exist, stop early.
+            // If the tank did not exist, stop early.
             if (cmd.tank_id >= current_instance_.num_players_
                                 * current_instance_.num_tanks_)
             {
                 popup_message = "Replay failed because move "
-                                + std::to_string(applied_moves_)
+                                + std::to_string(last_turn)
                                 + " was malformed \n(tank does not exist)";
                 valid_move = false;
                 break;
@@ -585,22 +638,23 @@ Q_INVOKABLE void ReplayManager::step_backward_turn()
             if (this_tank.health_ == 0 || this_tank.owner_ != cmd.sender)
             {
                 popup_message = "Replay failed because move "
-                                + std::to_string(applied_moves_)
+                                + std::to_string(last_turn)
                                 + " was malformed \n(sender mismatch or tank is dead)";
                 valid_move = false;
                 break;
             }
-            current_instance_.rotate_tank(cmd.tank_id, cmd.payload_first);
+            bool reversed_dir = (cmd.payload_first == 0);
+            current_instance_.rotate_tank(cmd.tank_id, reversed_dir);
             break;
         }
         case CommandType::RotateBarrel:
         {
-            // If the tank does not exist, stop early.
+            // If the tank did not exist, stop early.
             if (cmd.tank_id >= current_instance_.num_players_
                                 * current_instance_.num_tanks_)
             {
                 popup_message = "Replay failed because move "
-                                + std::to_string(applied_moves_)
+                                + std::to_string(last_turn)
                                 + " was malformed \n(tank does not exist)";
                 valid_move = false;
                 break;
@@ -611,23 +665,24 @@ Q_INVOKABLE void ReplayManager::step_backward_turn()
             if (this_tank.health_ == 0 || this_tank.owner_ != cmd.sender)
             {
                 popup_message = "Replay failed because move "
-                                + std::to_string(applied_moves_)
+                                + std::to_string(last_turn)
                                 + " was malformed \n(sender mismatch or tank is dead)";
                 valid_move = false;
                 break;
             }
 
-            current_instance_.rotate_tank_barrel(cmd.tank_id, cmd.payload_first);
+            bool reversed_dir = (cmd.payload_first == 0);
+            current_instance_.rotate_tank_barrel(cmd.tank_id, reversed_dir);
             break;
         }
         case CommandType::Fire:
         {
-            // If the tank does not exist, stop early.
+            // If the tank did not exist, stop early.
             if (cmd.tank_id >= current_instance_.num_players_
                                 * current_instance_.num_tanks_)
             {
                 popup_message = "Replay failed because move "
-                                + std::to_string(applied_moves_)
+                                + std::to_string(last_turn)
                                 + " was malformed \n(tank does not exist)";
                 valid_move = false;
                 break;
@@ -635,38 +690,43 @@ Q_INVOKABLE void ReplayManager::step_backward_turn()
 
             Tank & this_tank = current_instance_.get_tank(cmd.tank_id);
 
-            // check that the tank is alive
+            // check that the tank was alive
             if (this_tank.health_ == 0 || this_tank.owner_ != cmd.sender)
             {
                 popup_message = "Replay failed because move "
-                                + std::to_string(applied_moves_)
+                                + std::to_string(last_turn)
                                 + " was malformed \n(sender mismatch or tank is dead)";
                 valid_move = false;
                 break;
             }
 
-            // check that the tank is able to fire
-            if (this_tank.loaded_ == false)
+            // check that the tank fired
+            if (this_tank.loaded_ == true)
             {
                 popup_message = "Replay failed because move "
-                                + std::to_string(applied_moves_)
+                                + std::to_string(last_turn)
                                 + " was malformed \n(tank was not loaded)";
                 valid_move = false;
                 break;
             }
 
-            // fire
-            current_instance_.fire_tank(cmd.tank_id);
+            // Undo the damage if any was taken and reload the tank.
+            if (move_status_[last_turn])
+            {
+                current_instance_.reverse_fire_tank(cmd.tank_id);
+            }
+
+            current_instance_.load_tank(cmd.tank_id);
             break;
         }
         case CommandType::Load:
         {
-            // If the tank does not exist, stop early.
+            // If the tank did not exist, stop early.
             if (cmd.tank_id >= current_instance_.num_players_
                                 * current_instance_.num_tanks_)
             {
                 popup_message = "Replay failed because move "
-                                + std::to_string(applied_moves_)
+                                + std::to_string(last_turn)
                                 + " was malformed \n(tank does not exist)";
                 valid_move = false;
                 break;
@@ -675,18 +735,18 @@ Q_INVOKABLE void ReplayManager::step_backward_turn()
             Tank & this_tank = current_instance_.get_tank(cmd.tank_id);
 
             if (this_tank.health_ == 0
-                || this_tank.loaded_ == true
+                || this_tank.loaded_ == false
                 || this_tank.owner_ != cmd.sender)
             {
                 popup_message = "Replay failed because move "
-                                + std::to_string(applied_moves_)
+                                + std::to_string(last_turn)
                                 + " was malformed \n(sender mismatch or tank is dead)";
                 valid_move = false;
                 break;
             }
 
-            // if unloaded, load the tank
-            current_instance_.load_tank(cmd.tank_id);
+            // Unload the tank
+            current_instance_.unload_tank(cmd.tank_id);
             break;
         }
         case CommandType::Place:
@@ -697,33 +757,30 @@ Q_INVOKABLE void ReplayManager::step_backward_turn()
                 || pos.y_ > current_instance_.get_height() - 1)
             {
                 popup_message = "Replay failed because move "
-                                + std::to_string(applied_moves_)
+                                + std::to_string(last_turn)
                                 + " was malformed \n(placement out of bounds)";
                 valid_move = false;
                 break;
             }
 
-            uint8_t placement_direction = cmd.tank_id;
-
             if (placement_direction >= 8)
             {
                 popup_message = "Replay failed because move "
-                                + std::to_string(applied_moves_)
+                                + std::to_string(last_turn)
                                 + " was malformed \n(placement direction invalid)";
                 valid_move = false;
                 break;
             }
 
-            current_instance_.place_tank(pos,
-                                         cmd.sender,
-                                         placement_direction);
+            current_instance_.remove_tank(pos,
+                                          cmd.sender);
 
             break;
         }
         default:
         {
             popup_message = "Replay failed because move "
-                                + std::to_string(applied_moves_)
+                                + std::to_string(last_turn)
                                 + " was malformed \n(invalid command type)";
             valid_move = false;
             break;
@@ -735,6 +792,91 @@ Q_INVOKABLE void ReplayManager::step_backward_turn()
         popup_callback_(
             Popup(PopupType::Info, "Move Failed", popup_message),
                   URGENT_POPUP);
+        return;
+    }
+
+    // Reduce the move count.
+    applied_moves_ -= 1;
+
+    // If we're in the playing phase, check if we need to reverse.
+    if (current_view_.current_state == GameState::Play)
+    {
+        // If the previous move is a placement command, set state to setup.
+        CommandHead previous_cmd;
+        {
+            std::lock_guard lock(replay_mutex_);
+
+            const MatchReplay & current_replay = replays_[current_replay_index_];
+
+            // Handle no previous move existing. This should never occur.
+            if (applied_moves_ == 0)
+            {
+                current_view_.current_player = 0;
+                current_view_.current_state = GameState::Setup;
+                current_view_.current_fuel = TURN_PLAYER_FUEL;
+
+                update_view();
+                return;
+            }
+
+            previous_cmd = current_replay.moves[applied_moves_ - 1];
+        }
+
+        if (previous_cmd.type == CommandType::Place)
+        {
+            current_view_.current_state = GameState::Setup;
+            current_view_.current_fuel = TURN_PLAYER_FUEL;
+            // Update player to the previous person for their setup.
+            current_view_.current_player = previous_cmd.sender;
+
+            update_view();
+            return;
+        }
+
+        // Otherwise add fuel.
+        current_view_.current_fuel = current_view_.current_fuel + 1;
+
+        // If we went from 3 fuel to 4 fuel, we should actually roll back to
+        // the previous player's last turn.
+        if (current_view_.current_fuel > 3)
+        {
+            current_view_.current_player = previous_cmd.sender;
+            current_view_.current_fuel = 1;
+
+            update_view();
+            return;
+        }
+
+        update_view();
+        return;
+    }
+    // Handle setup moves, simple.
+    else
+    {
+        CommandHead previous_cmd;
+        {
+            std::lock_guard lock(replay_mutex_);
+
+            const MatchReplay & current_replay = replays_[current_replay_index_];
+
+            // Handle no previous move existing.
+            if (applied_moves_ == 0)
+            {
+                current_view_.current_player = 0;
+                current_view_.current_state = GameState::Setup;
+                current_view_.current_fuel = TURN_PLAYER_FUEL;
+
+                update_view();
+                return;
+            }
+
+            previous_cmd = current_replay.moves[applied_moves_ - 1];
+        }
+
+        // Update player to the previous person for their setup.
+        current_view_.current_player = previous_cmd.sender;
+
+        update_view();
         return;
     }
 }

@@ -3,7 +3,13 @@
 #include <string>
 
 Tank::Tank()
-:current_direction_(0), barrel_direction_(0),health_(0),aim_focused_(false), loaded_(false), owner_(NO_OWNER)
+:pos_(NO_POS_VEC),
+current_direction_(0),
+barrel_direction_(0),
+health_(0),
+aim_focused_(false),
+loaded_(false),
+owner_(NO_OWNER)
 {
 
 }
@@ -20,6 +26,17 @@ void Tank::deal_damage(uint8_t damage)
     else
     {
         health_ = health_ - damage;
+    }
+}
+
+void Tank::repair(uint8_t repair_amount)
+{
+    if (health_ + repair_amount > health_){
+        health_ = INITIAL_HEALTH;
+    }
+    else
+    {
+        health_ = health_ + repair_amount;
     }
 }
 

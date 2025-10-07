@@ -51,7 +51,8 @@ public:
     };
 
     ReplayManager(QObject * parent = nullptr,
-                  PlaySoundCallback sound_callback = nullptr);
+                  PlaySoundCallback sound_callback = nullptr,
+                  PopupCallback popup_callback = nullptr);
 
     int rowCount(const QModelIndex & parent) const override;
 
@@ -132,8 +133,13 @@ private:
 
     // Current selected perspective.
     uint8_t current_perspective_{NO_PLAYER};
+
     // Store the number of moves applied.
     uint64_t applied_moves_{0};
+
+    // Store when moves have no effect (moving into walls, etc).
+    std::vector<bool> move_status_;
+
     PlayerView current_view_;
 
     // TODO: fetch data for match.
@@ -143,6 +149,6 @@ private:
     //
     // Callbacks
     //
-    PopupCallback popup_callback_;
     PlaySoundCallback sound_callback_;
+    PopupCallback popup_callback_;
 };

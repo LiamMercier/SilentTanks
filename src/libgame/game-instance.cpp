@@ -439,6 +439,67 @@ bool GameInstance::fire_tank(uint8_t ID)
     return false;
 }
 
+bool GameInstance::reverse_fire_tank(uint8_t ID)
+{
+    Tank & curr_tank = tanks_[ID];
+
+    vec2 shell_dir = dir_to_vec[curr_tank.barrel_direction_];
+    vec2 curr_loc = curr_tank.pos_;
+
+    uint8_t shell_distance = (curr_tank.barrel_direction_ % 2) == 0
+                             ? FIRING_DIST_HORIZONTAL : FIRING_DIST_DIAGONAL;
+
+    for (int i = 1; i <= shell_distance; i++)
+    {
+        // Take a step
+        curr_loc = curr_loc + shell_dir;
+
+        // Test if this tile is out of bounds
+        if ((curr_loc.x_ > game_env_.get_height() - 1)
+            || (curr_loc.y_ > game_env_.get_width() - 1))
+        {
+                return false;
+        }
+
+        GridCell curr_cell = game_env_[idx(curr_loc)];
+
+        // test if the tile is terrain
+        if (curr_cell.type_ == CellType::Terrain)
+        {
+            return false;
+        }
+
+        // Speed up lookup if tank is alive.
+        if (curr_cell.occupant_ != NO_OCCUPANT)
+        {
+            Tank & hit_tank = tanks_[curr_cell.occupant_];
+            hit_tank.repair(SHELL_DAMAGE);
+
+            return true;
+        }
+        // Otherwise, see if any of the dead tanks exist at this tile.
+        else
+        {
+            for (Tank & tank : tanks_)
+            {
+                // If a tank exists at this position
+                if (tank.pos_.x_ == curr_loc.x_
+                    && tank.pos_.y_ == curr_loc.y_)
+                {
+                    // Heal the tank.
+                    tank.repair(SHELL_DAMAGE);
+
+                    // Ensure the tank is added back into play.
+                    vec2 hit_pos = tank.pos_;
+                    game_env_[idx(hit_pos)].occupant_ = tank.id_;
+                }
+            }
+        }
+
+    }
+    return false;
+}
+
 // Below is probably the worst function in the entire code base.
 //
 // Should really be re-worked one day.
@@ -883,9 +944,43 @@ void GameInstance::place_tank(vec2 pos,
 
 }
 
+void GameInstance::remove_tank(vec2 pos, uint8_t player_ID)
+{
+    GridCell & this_cell = game_env_[idx(pos)];
+    Player & this_player = players_[player_ID];
+
+    uint8_t tank_ID = (this_player.tanks_placed_ - 1) + (player_ID * num_tanks_);
+
+    // Set the tank to destroyed with no owner.
+    Tank & this_tank = tanks_[tank_ID];
+    this_tank.pos_ = NO_POS_VEC;
+    this_tank.owner_ = NO_OWNER;
+    this_tank.health_ = 0;
+    this_tank.loaded_ = false;
+    this_tank.id_ = tank_ID;
+    this_tank.current_direction_ = 0;
+    this_tank.barrel_direction_ = 0;
+
+    // Remove the occupant
+    this_cell.occupant_ = NO_TANK;
+
+    // Remove the tank from the list for this player.
+    std::vector<int> & tank_list = this_player.get_tanks_list();
+    tank_list[this_player.tanks_placed_] = NO_TANK;
+    this_player.tanks_placed_ -= 1;
+
+    return;
+}
+
 void GameInstance::load_tank(uint8_t ID)
 {
     tanks_[ID].loaded_ = true;
+    return;
+}
+
+void GameInstance::unload_tank(uint8_t ID)
+{
+    tanks_[ID].loaded_ = false;
     return;
 }
 

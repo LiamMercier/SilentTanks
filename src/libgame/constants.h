@@ -17,6 +17,9 @@ constexpr uint8_t NO_OCCUPANT = UINT8_MAX;
 constexpr uint8_t NO_TANK = UINT8_MAX;
 constexpr uint8_t NO_PLAYER = UINT8_MAX;
 
+constexpr uint8_t NO_POS = UINT8_MAX;
+constexpr vec2 NO_POS_VEC = vec2(UINT8_MAX, UINT8_MAX);
+
 // lookup table for converting from directions to vectors
 constexpr vec2 dir_to_vec[8]
 {

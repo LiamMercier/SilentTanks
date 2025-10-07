@@ -127,6 +127,23 @@ game_manager_(nullptr,
 replay_manager_(nullptr,
     [this](SoundType sound){
         emit play_sound(sound);
+    },
+    [this](Popup p,
+           bool urgent)
+    {
+        {
+            std::lock_guard lock(popups_mutex_);
+            if (urgent)
+            {
+                urgent_popup_queue_.push(p);
+            }
+            else
+            {
+                standard_popup_queue_.push(p);
+            }
+        }
+        // Try to send popup to Qt.
+        try_show_popup();
     }
 )
 {

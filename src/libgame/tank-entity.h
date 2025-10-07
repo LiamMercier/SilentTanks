@@ -21,6 +21,8 @@ public:
 
     void deal_damage(uint8_t damage);
 
+    void repair(uint8_t health);
+
     void print_tank_state(uint8_t ID) const;
 
     // Tank data members

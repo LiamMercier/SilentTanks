@@ -36,6 +36,8 @@ public:
 
     bool fire_tank(uint8_t ID);
 
+    bool reverse_fire_tank(uint8_t ID);
+
     PlayerView compute_view(uint8_t player_ID, uint8_t & num_live_tanks);
 
     PlayerView dump_global_view();
@@ -49,7 +51,11 @@ public:
 
     void place_tank(vec2 pos, uint8_t player_ID, uint8_t placement_direction);
 
+    void remove_tank(vec2 pos, uint8_t player_ID);
+
     void load_tank(uint8_t ID);
+
+    void unload_tank(uint8_t ID);
 
     const std::vector<uint8_t> get_mask();
 

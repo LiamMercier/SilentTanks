@@ -2,6 +2,7 @@
 
 #include <QAbstractListModel>
 #include <QObject>
+#include <unordered_set>
 
 #include "user-list-model.h"
 #include "player-view.h"
@@ -43,13 +44,10 @@ public:
     // Upper bound on how many bytes the client is willing to store
     // as replays. This should generally never be hit under normal operation
     // because the replay structures are often small.
-    // static constexpr size_t MAX_REPLAY_BYTES = 16 * 1024 * 1024;
-    static constexpr size_t MAX_REPLAY_BYTES = 2000;
+    static constexpr size_t MAX_REPLAY_BYTES = 16 * 1024 * 1024;
 
     enum Roles {
-        TypeRole = Qt::UserRole + 1,
-        OccupantRole,
-        VisibleRole
+        MatchIDRole = Qt::UserRole + 1
     };
 
     ReplayManager(QObject * parent = nullptr,
@@ -76,6 +74,8 @@ public:
     Q_INVOKABLE void step_forward_turn();
 
     Q_INVOKABLE void step_backward_turn();
+
+    Q_INVOKABLE bool match_exists(qint64 match_id);
 
     void update_match_data(StaticMatchData data, std::string username);
 
@@ -126,6 +126,7 @@ private:
 
     mutable std::mutex replay_mutex_;
     std::vector<MatchReplay> replays_;
+    std::unordered_set<uint64_t> replay_exists_;
     uint64_t current_replay_index_{UINT64_MAX};
 
     //

@@ -1289,12 +1289,8 @@ try {
         }
         case HeaderType::StaticMatchData:
         {
-            std::cout << "Users in this match: \n";
-
             bool status;
             StaticMatchData match_data = msg.to_static_match_data(status);
-
-            std::cout << match_data.placement_mask.size();
 
             if (status == false)
             {
@@ -1302,20 +1298,12 @@ try {
                 break;
             }
 
-            for (const auto & user : match_data.player_list.users)
-            {
-                std::cout << user.username << " (" << user.user_id << ")\n";
-            }
-
-            std::cout << "\n";
-
             match_data_callback_(match_data);
 
             break;
         }
         case HeaderType::PlayerView:
         {
-            std::cerr << "Player view update available.\n";
 
             bool status;
             PlayerView current_view = msg.to_player_view(status);
@@ -1379,11 +1367,6 @@ try {
         }
 
         std::cout << "\n";
-
-        std::cout << "current_player: " << +current_view.current_player << "\n";
-        std::cout << "current_fuel: " << +current_view.current_fuel << "\n";
-        std::cout << "state: "
-                  << +static_cast<uint8_t>(current_view.current_state) << "\n";
 
         for (const auto & timer : current_view.timers)
         {
@@ -1580,21 +1563,14 @@ try {
         {
             MatchResultList results = msg.to_results_list();
 
-            for (const auto & result : results.match_results)
-            {
-                std::cout << "ID: " << result.match_id
-                          << " placement: " << result.placement
-                          << " elo diff: " << result.elo_change
-                          << " result.finished_at " << result.finished_at
-                          << "\n";
-            }
-
             match_history_callback_(std::move(results));
             break;
         }
         case HeaderType::MatchReplay:
         {
-            std::cout << "Got replay (" << msg.payload.size() << " bytes).\n";
+            std::cout << "Got replay ("
+                      << msg.payload.size()
+                      << " bytes).\n";
 
             bool status;
 
@@ -1606,33 +1582,7 @@ try {
                 break;
             }
 
-            std::cout << "\n" << "Match Settings (id: " << replay.match_id << ")\n"
-                  << "filename: " << replay.settings.filename
-                  << " width: " << +replay.settings.width
-                  << " height: " << +replay.settings.height
-                  << " num_tanks: " << +replay.settings.num_tanks
-                  << " num_players: " << +replay.settings.num_players
-                  << " mode: " << +replay.settings.mode
-                  << " initial_time_ms: " << +replay.initial_time_ms
-                  << " increment_ms: " << +replay.increment_ms
-                  << "\n";
-
-            for (size_t i = 0; i < replay.moves.size(); i++)
-            {
-                const auto & m = replay.moves[i];
-                std::cout << "Move " << i
-                        << " type: " << +static_cast<uint8_t>(m.type)
-                        << " sender: " << +m.sender
-                        << " tank id: " << +m.tank_id
-                        << " payload_first: " << +m.payload_first
-                        << " payload_second: " << +m.payload_second << "\n";
-            }
-
-            std::cout << "\n";
-
             match_replay_callback_(std::move(replay));
-
-            // TODO: implement replay system.
             break;
         }
         default:

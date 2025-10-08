@@ -324,9 +324,13 @@ Item {
 
                                     Button {
                                         // TODO: icon.source: "qrc:/icons/..."
+                                        // TODO: gray out slightly on download.
                                         icon.name: "download"
                                         onClicked: {
-                                            Client.download_match_by_id(model.MatchID)
+                                            if (!matchDownloaded)
+                                            {
+                                                Client.download_match_by_id(model.MatchID)
+                                            }
                                         }
                                     }
 
@@ -347,7 +351,7 @@ Item {
 
                         // Only show button state when the C++ client downloads
                         // the desired match.
-                        property bool matchDownloaded: false
+                        property bool matchDownloaded: ReplayManager.match_exists(MatchID)
 
                         Connections {
                             target: ReplayManager

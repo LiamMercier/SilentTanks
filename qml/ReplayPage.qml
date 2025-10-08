@@ -37,12 +37,97 @@ Item {
             Layout.fillHeight: true
             border.width: 0
 
+            color: "#26282a"
+
             ColumnLayout {
                 anchors.fill: parent
                 spacing: 0
 
                 Rectangle {
-                    Layout.preferredHeight: 35
+                    id: selectorRect
+                    Layout.preferredHeight: 40
+                    Layout.fillWidth: true
+                    Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
+                    border.width: 0
+
+                    color: "#26282a"
+
+                    ComboBox {
+                        id: matchSelector
+                        anchors.centerIn: parent
+                        model: ReplayManager
+
+                        implicitHeight: 30
+                        implicitWidth: selectorRect.width * 0.8
+
+                        textRole: "MatchID"
+
+                        contentItem: Label {
+                            anchors.fill: parent
+                            verticalAlignment: Text.AlignVCenter
+                            horizontalAlignment: Text.AlignHCenter
+
+                            text: {
+                                matchSelector.currentIndex >= 0 ? "Match "
+                                    + matchSelector.currentText : "Select Match"
+                            }
+
+                            color: "#f2f2f2"
+                        }
+
+                        background: Rectangle {
+                            implicitWidth: matchSelector.implicitWidth
+                            implicitHeight: matchSelector.implicitHeight
+                            radius: 4
+                            color: "#323436"
+                            border.width: 0
+                        }
+
+                        popup: Popup {
+                            y: matchSelector.height
+                            width: matchSelector.width
+                            implicitHeight: matchComboListView.contentHeight
+                            padding: 1
+                            background: Rectangle {
+                                color: "#323436"
+                                radius: 4
+                                border.width: 0
+                            }
+
+                            contentItem: ListView {
+                                id: matchComboListView
+                                anchors.fill: parent
+                                model: matchSelector.model
+
+                                delegate: ItemDelegate {
+                                    id: dropdownDelegate
+                                    width: matchSelector.width
+
+                                    contentItem: Text {
+                                        anchors.centerIn: parent
+                                        verticalAlignment: Text.AlignVCenter
+                                        horizontalAlignment: Text.AlignHCenter
+
+                                        text: "Match " + model.MatchID
+                                        color: "#f2f2f2"
+                                    }
+
+                                    background: Rectangle {
+                                        color: "#323436"
+                                        radius: 4
+                                    }
+                                }
+                            }
+                        }
+
+                        onCurrentIndexChanged: {
+
+                        }
+                    }
+                }
+
+                Rectangle {
+                    Layout.preferredHeight: 30
                     Layout.fillWidth: true
                     Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
                     border.width: 0
@@ -63,7 +148,7 @@ Item {
                         color: "#f2f2f2"
                         anchors.centerIn: parent
 
-                        transform: Translate { y: 3 }
+                        transform: Translate { y: -3 }
 
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
@@ -94,10 +179,19 @@ Item {
                             horizontalAlignment: Text.AlignHCenter
                             verticalAlignment: Text.AlignVCenter
                             elide: Text.ElideRight
+
+                            transform: Translate { y: -6 }
                         }
 
                         Text {
-                            text: "Fuel Remaining: " + ReplayManager.fuel
+                            text: {
+                                var txt = ""
+                                if (ReplayManager.state != 0)
+                                {
+                                    txt = "Fuel Remaining: " + ReplayManager.fuel
+                                }
+                                return txt
+                            }
 
                             Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
 
@@ -211,7 +305,7 @@ Item {
 
                             Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
 
-                            buttonText: "Forfeit"
+                            buttonText: "Close"
                             fontChoice: "#1f1f1f"
                             unfocusedOpacity: 1.00
 
@@ -222,7 +316,7 @@ Item {
                             toggled: false
 
                             onClicked: {
-                                Client.send_forfeit()
+                                Client.close_replay()
                             }
                         }
 
@@ -239,12 +333,25 @@ Item {
                 }
 
                 Rectangle {
-                    id: chatBoxBackground
+                    id: perspectiveAreaBackground
                     color: "#2a2c2e"
 
                     Layout.preferredHeight: sidePanel.height * 0.4
                     Layout.maximumHeight: sidePanel.height * 0.4
                     Layout.fillWidth: true
+
+                    // TODO: we need perspective  selection too, so decide on styling.
+                    ComboBox {
+                        id: perspectiveSelector
+                        anchors.centerIn: parent
+
+                        implicitHeight: 30
+                        implicitWidth: 160
+
+
+                    }
+
+
                 }
 
             }

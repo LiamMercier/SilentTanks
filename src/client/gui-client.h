@@ -116,6 +116,8 @@ public:
 
     Q_INVOKABLE void start_replay(qint64 match_id);
 
+    Q_INVOKABLE void close_replay();
+
     Q_INVOKABLE void send_forfeit();
 
     Q_INVOKABLE void send_place_tank(int x, int y, int placement_direction);

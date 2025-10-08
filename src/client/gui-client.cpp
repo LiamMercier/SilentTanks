@@ -339,6 +339,11 @@ Q_INVOKABLE void GUIClient::start_replay(qint64 match_id)
     client_.change_state(ClientState::Replaying);
 }
 
+Q_INVOKABLE void GUIClient::close_replay()
+{
+    client_.change_state(ClientState::Lobby);
+}
+
 Q_INVOKABLE void GUIClient::send_forfeit()
 {
     client_.forfeit_request();

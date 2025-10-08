@@ -57,38 +57,47 @@ int ReplayManager::rowCount(const QModelIndex & parent = QModelIndex()) const
 
 QVariant ReplayManager::data(const QModelIndex & index, int role) const
 {
-
-    // std::lock_guard lock(replay_mutex_);
-    if (!index.isValid()
-        || index.row() >= static_cast<int>(replays_.size())
-        || index.row() < 0)
     {
-        return {};
+        std::lock_guard lock(replay_mutex_);
+
+        if (!index.isValid()
+            || index.row() >= static_cast<int>(replays_.size())
+            || index.row() < 0)
+        {
+            return {};
+        }
     }
 
-    // TODO: replay data
-    /*
     switch (role)
     {
-        case TypeRole:
-            return
-        case OccupantRole:
-            return
-        case VisibleRole:
-            return
+        case MatchIDRole:
+        {
+            uint64_t match_id = UINT64_MAX;
+
+            {
+                std::lock_guard lock(replay_mutex_);
+                match_id = replays_[index.row()].match_id;
+            }
+
+            if (match_id == UINT64_MAX)
+            {
+                return {};
+            }
+            else
+            {
+                return QVariant::fromValue(static_cast<qlonglong>(match_id));
+            }
+        }
         default:
             return {};
     }
-    */
     return {};
 }
 
 QHash<int, QByteArray> ReplayManager::roleNames() const
 {
     QHash<int, QByteArray> roles;
-    // roles[TypeRole] = "type";
-    // roles[OccupantRole] = "occupant";
-    // roles[VisibleRole] = "visible";
+    roles[MatchIDRole] = "MatchID";
     return roles;
 }
 
@@ -139,6 +148,12 @@ UserListModel* ReplayManager::players_model()
 
 void ReplayManager::add_replay(MatchReplay replay)
 {
+    // Don't duplicate match replays.
+    if (replay_exists_.contains(replay.match_id))
+    {
+        return;
+    }
+
     // Compute the size of the replay, in bytes.
     size_t replay_bytes = replay.get_size_in_bytes();
 
@@ -159,6 +174,9 @@ void ReplayManager::add_replay(MatchReplay replay)
 
         return;
     }
+
+    // Add match ID to existence lookup.
+    replay_exists_.insert(replay.match_id);
 
     qint64 id = static_cast<qint64>(replay.match_id);
 
@@ -276,8 +294,6 @@ Q_INVOKABLE void ReplayManager::step_forward_turn()
         // of applied turns, since moves are stored in a vector.
         cmd = current_replay.moves[applied_moves_];
     }
-
-    std::cout << "Applying turn " << applied_moves_ << "\n";
 
     // Apply the command based on the type.
     bool valid_move = true;
@@ -588,8 +604,6 @@ Q_INVOKABLE void ReplayManager::step_backward_turn()
         cmd = current_replay.moves[last_turn];
     }
 
-    std::cout << "Reverting turn " << last_turn << "\n";
-
     // Apply the command based on the type.
     bool valid_move = true;
     std::string popup_message;
@@ -884,6 +898,13 @@ Q_INVOKABLE void ReplayManager::step_backward_turn()
         update_view();
         return;
     }
+}
+
+Q_INVOKABLE bool ReplayManager::match_exists(qint64 match_id)
+{
+    uint64_t id = static_cast<uint64_t>(match_id);
+    bool response = replay_exists_.contains(id);
+    return response;
 }
 
 void ReplayManager::update_match_data(StaticMatchData data, std::string username)

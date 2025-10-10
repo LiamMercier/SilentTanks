@@ -203,6 +203,9 @@ void ReplayManager::add_replay(MatchReplay replay)
 
 Q_INVOKABLE void ReplayManager::set_replay(qint64 match_id)
 {
+    current_replay_id_ = match_id;
+    emit replay_id_changed();
+
     bool environment_loaded = false;
     uint64_t turn_count = 0;
 
@@ -272,7 +275,50 @@ Q_INVOKABLE void ReplayManager::set_replay(qint64 match_id)
     current_perspective_ = NO_PLAYER;
     move_status_ = std::vector<MoveStatus>(turn_count);
 
+    emit player_count_changed();
+    emit perspective_changed();
+
     // Compute the starting view.
+    update_view();
+}
+
+Q_INVOKABLE void ReplayManager::set_perspective(qint64 player_id)
+{
+    uint8_t num_players = 0;
+
+    {
+        std::lock_guard lock(replay_mutex_);
+        const MatchReplay & current_replay = replays_[current_replay_index_];
+        num_players = current_replay.settings.num_players;
+    }
+
+    if (static_cast<uint8_t>(player_id) > num_players)
+    {
+        std::string invalid_player_msg = "Player ID "
+                                          + std::to_string(player_id)
+                                          + " does not exist. "
+                                          + "Perspective set to global.";
+
+        popup_callback_(
+            Popup(PopupType::Info, "Player Not Found", invalid_player_msg),
+                URGENT_POPUP);
+
+        current_perspective_ = NO_PLAYER;
+        update_view();
+        return;
+    }
+    else if (static_cast<uint8_t>(player_id) == num_players)
+    {
+        current_perspective_ = NO_PLAYER;
+    }
+    else
+    {
+        current_perspective_ = static_cast<uint8_t>(player_id);
+    }
+
+    emit perspective_changed();
+
+    // Compute the current view.
     update_view();
 }
 
@@ -948,18 +994,41 @@ int ReplayManager::fuel() const
     return static_cast<int>(current_view_.current_fuel);
 }
 
+int ReplayManager::replay_id() const
+{
+    return static_cast<int>(current_replay_id_);
+}
+
+int ReplayManager::player_count() const
+{
+    uint8_t num_players = 0;
+
+    {
+        std::lock_guard lock(replay_mutex_);
+        const MatchReplay & current_replay = replays_[current_replay_index_];
+        num_players = current_replay.settings.num_players;
+    }
+
+    return static_cast<int>(num_players);
+}
+
+int ReplayManager::perspective () const
+{
+    return static_cast<int>(current_perspective_);
+}
+
 QString ReplayManager::player() const
 {
     uint8_t current_player = current_view_.current_player;
 
-    if (current_player >= current_data_.player_list.users.size())
+    if (current_player >= player_list_.users.size())
     {
         // Fallback to player number.
         std::string player_str = "Player " + std::to_string(current_player);
         return QString::fromStdString(player_str);
     }
 
-    const auto & user = current_data_.player_list.users[current_player];
+    const auto & user = player_list_.users[current_player];
     std::string username = user.username;
     return QString::fromStdString(username);
 }
@@ -986,24 +1055,6 @@ Q_INVOKABLE bool ReplayManager::is_friendly_tank(uint8_t tank_id)
 
     // Default to false if we can't find the tank.
     return false;
-}
-
-Q_INVOKABLE bool ReplayManager::valid_placement_tile(int x, int y)
-{
-    size_t index = current_view_.indx(x, y);
-
-    if (index >= current_data_.placement_mask.size())
-    {
-        return false;
-    }
-
-    if (current_view_.map_view[index].occupant_ != NO_OCCUPANT)
-    {
-        return false;
-    }
-
-    // See if this is our tile or not.
-    return (current_perspective_ == current_data_.placement_mask[index]);
 }
 
 void ReplayManager::update_view()

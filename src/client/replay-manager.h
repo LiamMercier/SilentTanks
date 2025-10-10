@@ -40,6 +40,18 @@ class ReplayManager : public QAbstractListModel
     Q_PROPERTY(QString player
                READ player
                NOTIFY player_changed)
+
+    Q_PROPERTY(int replay_id
+               READ replay_id
+               NOTIFY replay_id_changed)
+
+    Q_PROPERTY(int player_count
+               READ player_count
+               NOTIFY player_count_changed)
+
+    Q_PROPERTY(int perspective
+               READ perspective
+               NOTIFY perspective_changed)
 public:
     // Upper bound on how many bytes the client is willing to store
     // as replays. This should generally never be hit under normal operation
@@ -71,6 +83,8 @@ public:
 
     Q_INVOKABLE void set_replay(qint64 match_id);
 
+    Q_INVOKABLE void set_perspective(qint64 player_id);
+
     Q_INVOKABLE void step_forward_turn();
 
     Q_INVOKABLE void step_backward_turn();
@@ -87,6 +101,12 @@ public:
 
     int fuel() const;
 
+    int replay_id() const;
+
+    int player_count() const;
+
+    int perspective () const;
+
     QString player() const;
 
     uint16_t sequence_number();
@@ -96,8 +116,6 @@ public:
     Q_INVOKABLE bool is_turn();
 
     Q_INVOKABLE bool is_friendly_tank(uint8_t tank_id);
-
-    Q_INVOKABLE bool valid_placement_tile(int x, int y);
 
 private:
     // Callable from C++ code for changing the view.
@@ -116,6 +134,12 @@ signals:
 
     void player_changed();
 
+    void replay_id_changed();
+
+    void player_count_changed();
+
+    void perspective_changed();
+
     void match_downloaded(qint64 id);
 
 private:
@@ -128,6 +152,7 @@ private:
     std::vector<MatchReplay> replays_;
     std::unordered_set<uint64_t> replay_exists_;
     uint64_t current_replay_index_{UINT64_MAX};
+    uint64_t current_replay_id_{UINT64_MAX};
 
     //
     // Match specific data.
@@ -146,8 +171,8 @@ private:
     PlayerView current_view_;
 
     // TODO: fetch data for match.
-    StaticMatchData current_data_;
     UserListModel players_;
+    UserList player_list_;
 
     //
     // Callbacks

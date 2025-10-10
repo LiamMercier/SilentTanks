@@ -230,14 +230,6 @@ Item {
                         cntx.fillStyle = boardViewRoot.colorForTile(cell)
                         cntx.fillRect(px, py, tilePx, tilePx)
                     }
-
-                    // Draw overlay if in setup.
-                    if (ReplayManager.state === 0
-                        && ReplayManager.valid_placement_tile(x, y))
-                    {
-                        cntx.fillStyle = "rgba(0, 200, 64, 0.04)"
-                        cntx.fillRect(px, py, tilePx, tilePx)
-                    }
                 }
             }
 

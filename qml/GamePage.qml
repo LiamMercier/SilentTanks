@@ -96,14 +96,7 @@ Item {
                         spacing: 0
 
                         Text {
-                            text: {
-                                var txt = ""
-                                if (ReplayManager.state != 0)
-                                {
-                                    txt = "Fuel Remaining: " + ReplayManager.fuel
-                                }
-                                return txt
-                            }
+                            text: GameManager.player + "'s turn"
 
                             font.pointSize: 10
                             font.weight: Font.DemiBold

@@ -62,14 +62,22 @@ Item {
 
                         textRole: "MatchID"
 
+                        indicator: Text {
+                            text: "\u25BC"
+                            color: "#f2f2f2"
+                            anchors.right: parent.right
+                            anchors.verticalCenter: parent.verticalCenter
+                            anchors.rightMargin: 8
+                        }
+
                         contentItem: Label {
                             anchors.fill: parent
                             verticalAlignment: Text.AlignVCenter
                             horizontalAlignment: Text.AlignHCenter
 
                             text: {
-                                matchSelector.currentIndex >= 0 ? "Match "
-                                    + matchSelector.currentText : "Select Match"
+                                ReplayManager.replay_id >= 0 ? "Match "
+                                    + ReplayManager.replay_id : "Select Match"
                             }
 
                             color: "#f2f2f2"
@@ -84,6 +92,8 @@ Item {
                         }
 
                         popup: Popup {
+                            id: matchSelectorPopup
+
                             y: matchSelector.height
                             width: matchSelector.width
                             implicitHeight: matchComboListView.contentHeight
@@ -116,12 +126,13 @@ Item {
                                         color: "#323436"
                                         radius: 4
                                     }
+
+                                    onClicked: {
+                                        ReplayManager.set_replay(model.MatchID)
+                                        matchSelectorPopup.close()
+                                    }
                                 }
                             }
-                        }
-
-                        onCurrentIndexChanged: {
-
                         }
                     }
                 }
@@ -196,6 +207,8 @@ Item {
                             Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
 
                             color: "#f2f2f2"
+
+                            transform: Translate { y: -6 }
 
                             horizontalAlignment: Text.AlignHCenter
                             verticalAlignment: Text.AlignVCenter
@@ -340,15 +353,91 @@ Item {
                     Layout.maximumHeight: sidePanel.height * 0.4
                     Layout.fillWidth: true
 
-                    // TODO: we need perspective  selection too, so decide on styling.
                     ComboBox {
                         id: perspectiveSelector
-                        anchors.centerIn: parent
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        anchors.top: parent.top
+                        anchors.topMargin: 4
+
+                        model: ReplayManager.player_count + 1
 
                         implicitHeight: 30
-                        implicitWidth: 160
+                        implicitWidth: selectorRect.width * 0.8
 
+                        indicator: Text {
+                            text: "\u25BC"
+                            color: "#f2f2f2"
+                            anchors.right: parent.right
+                            anchors.verticalCenter: parent.verticalCenter
+                            anchors.rightMargin: 8
+                        }
 
+                        contentItem: Label {
+                            anchors.fill: parent
+                            verticalAlignment: Text.AlignVCenter
+                            horizontalAlignment: Text.AlignHCenter
+
+                            // UINT8_MAX === 255 and represents the global perspective.
+                            text: {
+                                ReplayManager.perspective !== 255 ? "Player "
+                                    + ReplayManager.perspective : "Global Perspective"
+                            }
+
+                            color: "#f2f2f2"
+                        }
+
+                        background: Rectangle {
+                            implicitWidth: perspectiveSelector.implicitWidth
+                            implicitHeight: perspectiveSelector.implicitHeight
+                            radius: 4
+                            color: "#323436"
+                            border.width: 0
+                        }
+
+                        popup: Popup {
+                            id: perspectiveSelectorPopup
+
+                            y: perspectiveSelector.height
+                            width: perspectiveSelector.width
+                            implicitHeight: perspectiveComboListView.contentHeight
+                            padding: 1
+                            background: Rectangle {
+                                color: "#323436"
+                                radius: 4
+                                border.width: 0
+                            }
+
+                            contentItem: ListView {
+                                id: perspectiveComboListView
+                                anchors.fill: parent
+                                model: perspectiveSelector.model
+
+                                delegate: ItemDelegate {
+                                    id: perspectiveDropdownDelegate
+                                    width: perspectiveSelector.width
+
+                                    contentItem: Text {
+                                        anchors.centerIn: parent
+                                        verticalAlignment: Text.AlignVCenter
+                                        horizontalAlignment: Text.AlignHCenter
+
+                                        text: (index !== ReplayManager.player_count) ?
+                                              "Player " + index : "Global Perspective"
+                                        color: "#f2f2f2"
+                                    }
+
+                                    background: Rectangle {
+                                        color: "#323436"
+                                        radius: 4
+                                    }
+
+                                    onClicked: {
+                                        ReplayManager.set_perspective(index)
+                                        perspectiveSelectorPopup.close()
+                                    }
+                                }
+                            }
+                        }
                     }
 
 

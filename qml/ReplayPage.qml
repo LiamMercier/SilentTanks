@@ -301,11 +301,22 @@ Item {
 
                     RowLayout {
                         anchors.fill: parent
+                        spacing: 0
 
-                        Button {
+                        SvgButton {
                             id: previousMoveButton
 
-                            icon.name: "go-previous"
+                            implicitHeight: 32
+                            implicitWidth: 32
+
+                            Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
+
+                            normalSource: "qrc:/pngs/previous_button.png"
+                            hoverSource: "qrc:/pngs/previous_button_hovered.png"
+                            pressedSource: "qrc:/pngs/previous_button_pressed.png"
+
+                            toggled: false
+
                             onClicked: {
                                 ReplayManager.step_backward_turn()
                             }
@@ -333,10 +344,20 @@ Item {
                             }
                         }
 
-                        Button {
+                        SvgButton {
                             id: nextMoveButton
 
-                            icon.name: "go-next"
+                            implicitHeight: 32
+                            implicitWidth: 32
+
+                            Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
+
+                            normalSource: "qrc:/pngs/next_button.png"
+                            hoverSource: "qrc:/pngs/next_button_hovered.png"
+                            pressedSource: "qrc:/pngs/next_button_pressed.png"
+
+                            toggled: false
+
                             onClicked: {
                                 ReplayManager.step_forward_turn()
                             }

@@ -322,10 +322,20 @@ Item {
                                     anchors.fill: parent
                                     spacing: 0
 
-                                    Button {
-                                        // TODO: icon.source: "qrc:/icons/..."
-                                        // TODO: gray out slightly on download.
-                                        icon.name: "download"
+                                    SvgButton {
+                                        id: downloadButton
+
+                                        implicitHeight: 32
+                                        implicitWidth: 32
+
+                                        Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
+
+                                        normalSource: "qrc:/pngs/download_button.png"
+                                        hoverSource: "qrc:/pngs/download_button_hovered.png"
+                                        pressedSource: "qrc:/pngs/download_button_pressed.png"
+
+                                        toggled: false
+
                                         onClicked: {
                                             if (!matchDownloaded)
                                             {
@@ -334,11 +344,21 @@ Item {
                                         }
                                     }
 
-                                    Button {
+                                    SvgButton {
                                         id: matchReplayButton
                                         visible: matchDownloaded
 
-                                        icon.name: "go-next"
+                                        implicitHeight: 32
+                                        implicitWidth: 32
+
+                                        Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
+
+                                        normalSource: "qrc:/pngs/next_button.png"
+                                        hoverSource: "qrc:/pngs/next_button_hovered.png"
+                                        pressedSource: "qrc:/pngs/next_button_pressed.png"
+
+                                        toggled: false
+
                                         onClicked: {
                                             Client.start_replay(model.MatchID)
                                         }

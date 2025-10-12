@@ -105,9 +105,18 @@
     <file>pngs/blocked_button.png</file>
     <file>pngs/blocked_button_hovered.png</file>
     <file>pngs/blocked_button_pressed.png</file>
+    <file>pngs/download_button.png</file>
+    <file>pngs/download_button_hovered.png</file>
+    <file>pngs/download_button_pressed.png</file>
     <file>pngs/friends_button.png</file>
     <file>pngs/friends_button_hovered.png</file>
     <file>pngs/friends_button_pressed.png</file>
+    <file>pngs/next_button.png</file>
+    <file>pngs/next_button_hovered.png</file>
+    <file>pngs/next_button_pressed.png</file>
+    <file>pngs/previous_button.png</file>
+    <file>pngs/previous_button_hovered.png</file>
+    <file>pngs/previous_button_pressed.png</file>
     <file>pngs/reject_button.png</file>
     <file>pngs/reject_button_hovered.png</file>
     <file>pngs/reject_button_pressed.png</file>

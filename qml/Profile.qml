@@ -287,7 +287,34 @@ Item {
                                 color: "transparent"
 
                                 Text {
-                                    text: model.placement
+                                    text: {
+                                        var str = "unknown"
+                                        switch (model.placement)
+                                        {
+                                            case (0):
+                                            {
+                                                str = "1st"
+                                                break
+                                            }
+                                            case (1):
+                                            {
+                                                str = "2nd"
+                                                break
+                                            }
+                                            case (2):
+                                            {
+                                                str = "3rd"
+                                                break
+                                            }
+                                            default:
+                                            {
+                                                str = model.placement + "th"
+                                                break
+                                            }
+                                        }
+
+                                        return str
+                                    }
                                     anchors.centerIn: parent
                                     color: "#f2f2f2"
 

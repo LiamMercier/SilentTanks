@@ -405,12 +405,16 @@ bool GameInstance::fire_tank(uint8_t ID)
         curr_loc = curr_loc + shell_dir;
 
         // Test if this tile is out of bounds
-        if ((curr_loc.x_ > game_env_.get_height() - 1)
-            || (curr_loc.y_ > game_env_.get_width() - 1))
+        if ((curr_loc.x_ > game_env_.get_width() - 1)
+            || (curr_loc.y_ > game_env_.get_height() - 1))
         {
                 return false;
         }
 
+        std::cout << game_env_.get_height() - 1
+                  << " " << game_env_.get_width() - 1 << "\n";
+
+        std::cout << idx(curr_loc) << " " << +curr_loc.x_ << " " << +curr_loc.y_ << "\n";
         GridCell curr_cell = game_env_[idx(curr_loc)];
 
         // test if the tile is terrain
@@ -423,6 +427,12 @@ bool GameInstance::fire_tank(uint8_t ID)
         if (curr_cell.occupant_ != NO_OCCUPANT)
         {
             Tank & hit_tank = tanks_[curr_cell.occupant_];
+
+            if (hit_tank.owner_ == curr_tank.owner_)
+            {
+                return false;
+            }
+
             hit_tank.deal_damage(SHELL_DAMAGE);
 
             // if the health of the tank is zero, remove it from play

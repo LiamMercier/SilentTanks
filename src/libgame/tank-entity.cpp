@@ -40,8 +40,6 @@ void Tank::repair(uint8_t repair_amount)
     }
 }
 
-// should be removed eventually, but useful for now while
-// we work in the console
 std::string direction_words[8]{"north", "north-east", "east", "south-east", "south", "south-west", "west", "north-west"};
 
 void Tank::print_tank_state(uint8_t ID) const

@@ -188,14 +188,26 @@ void UserManager::notify_elo_update(boost::uuids::uuid user_id,
          new_elo,
          mode]{
 
-        auto & user = (this->users_)[uuid];
+        auto it = (this->users_.find(uuid));
+
+        // Prevent bad updates when user isn't online.
+        if (it == users_.end() || !it->second)
+        {
+            return;
+        }
+
+        auto & user = it->second;
 
         uint8_t mode_idx = elo_ranked_index(mode);
 
         user->user_data.matching_elos[mode_idx] = new_elo;
 
-        // Now, update the session's data.
-        (user->current_session)->update_elo(new_elo, mode_idx);
+        // Now, update the session's data. If the user data doesn't exist,
+        // this will simply create a client side error until they login again.
+        if ((user->current_session) && (user->current_session->is_live()))
+        {
+            (user->current_session)->update_elo(new_elo, mode_idx);
+        }
 
     });
 }

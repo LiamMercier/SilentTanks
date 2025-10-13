@@ -1,5 +1,8 @@
 #include "message.h"
 
+// TODO: remove
+#include <boost/uuid/uuid_io.hpp>
+
 // Utility function to turn uint64_t into network order.
 int64_t htonll(int64_t host_long_long)
 {
@@ -876,7 +879,61 @@ MatchReplay Message::to_match_replay(bool & op_status)
     replay.settings.mode = payload[index + 4];
     index += 5;
 
-    // If not exactly turn_count commands of data, exit.
+    // Try to grab num_players users.
+    for (int i = 0; i < replay.settings.num_players; i++)
+    {
+        // If we don't have 17 bytes for the UUID + username length, stop.
+        if (payload.size() - index < 17)
+        {
+            op_status = false;
+            return replay;
+        }
+
+        // Grab the UUID and then the username.
+        ExternalUser user;
+
+        std::memcpy(user.user_id.data,
+                    payload.data() + index,
+                    16);
+
+        index += 16;
+
+        uint8_t username_len = payload[index++];
+
+        // If invalid username length.
+        if (username_len > MAX_USERNAME_LENGTH)
+        {
+            op_status = false;
+            return replay;
+        }
+
+        // If not enough data.
+        if (username_len + index >= payload.size())
+        {
+            op_status = false;
+            return replay;
+        }
+
+        // Copy while ensuring valid username.
+        std::string username;
+        for (int i = 0; i < username_len; i++)
+        {
+            unsigned char c = static_cast<unsigned char>(payload[index + i]);
+            if (!allowed_username_characters[c])
+            {
+                op_status = false;
+                return replay;
+            }
+            username.push_back(c);
+        }
+
+        user.username = std::move(username);
+        replay.players.users.push_back(std::move(user));
+
+        index += username_len;
+    }
+
+    // If not exactly turn_count commands of data are left, exit.
     if (payload.size() - index != (CommandHead::COMMAND_SIZE) * turn_count)
     {
         op_status = false;
@@ -1054,6 +1111,29 @@ void Message::create_serialized(const mType & req)
         payload_buffer.push_back(req.settings.num_tanks);
         payload_buffer.push_back(req.settings.num_players);
         payload_buffer.push_back(req.settings.mode);
+
+        // Loop over the users list and add it to the buffer.
+        for (const auto & user : req.players.users)
+        {
+            payload_buffer.insert(
+                payload_buffer.end(),
+                user.user_id.data,
+                user.user_id.data + user.user_id.size());
+
+            // Usernames are not allowed to surpass uint8_t in length.
+            //
+            // We need to give this to the client so they know when the
+            // username ends.
+            uint8_t username_len = static_cast<uint8_t>(user.username.size());
+            payload_buffer.push_back(username_len);
+
+            // Copy the username.
+            payload_buffer.insert(
+                payload_buffer.end(),
+                reinterpret_cast<const uint8_t*>(user.username.data()),
+                reinterpret_cast<const uint8_t*>(user.username.data())
+                                                 + username_len);
+        }
 
         // Finally, go through the command list and push moves.
         for (const auto & move : req.moves)

@@ -1988,12 +1988,17 @@ void Database::do_fetch_replay(ReplayRequest req,
                                     req.match_id
                                     });
 
+        auto players_res = txn.exec(pqxx::prepped{"fetch_match_users"},
+                                    pqxx::params{
+                                    req.match_id
+                                    });
+
         // This transaction is read only. Commit now.
         txn.commit();
 
         // Handle the match ID being bad, shouldn't happen with correct
         // clients.
-        if (replay_res.empty())
+        if (replay_res.empty() || players_res.empty())
         {
             Message empty_replay;
             empty_replay.create_serialized(HeaderType::NoReplay);
@@ -2034,6 +2039,43 @@ void Database::do_fetch_replay(ReplayRequest req,
         match_replay.initial_time_ms = result_settings.initial_time_ms;
         match_replay.increment_ms = result_settings.increment_ms;
         match_replay.match_id = req.match_id;
+
+        if (match_replay.settings.num_players <= 0
+            || match_replay.settings.num_players > 8)
+        {
+            std::string lmsg = "Settings had bad num_players. Input: " + settings_json;
+            Console::instance().log(std::move(lmsg),
+                                    LogLevel::ERROR);
+            return;
+        }
+
+        std::vector<ExternalUser> player_list;
+        player_list.resize(match_replay.settings.num_players);
+
+        boost::uuids::string_generator gen;
+
+        for (const auto & row : players_res)
+        {
+            uint8_t p_id = static_cast<uint8_t>(row["player_id"].as<int>());
+
+            if (p_id > player_list.size() || p_id < 0)
+            {
+                std::string lmsg = "Players had bad player_id: "
+                                   + std::to_string(p_id);
+                Console::instance().log(std::move(lmsg),
+                                        LogLevel::WARN);
+                continue;
+            }
+
+            ExternalUser user;
+
+            user.user_id = gen(row["user_id"].as<std::string>());
+            user.username = row["username"].as<std::string>();
+
+            player_list[p_id] = user;
+        }
+
+        match_replay.players.users = player_list;
 
         Message match_replay_message;
         match_replay_message.create_serialized(match_replay);
@@ -2263,6 +2305,13 @@ void Database::prepares()
             "SELECT move_history, settings "
             "FROM Matches "
             "WHERE match_id = $1"
+            );
+        conn_->prepare("fetch_match_users",
+            "SELECT u.user_id, u.username, mp.player_id "
+            "FROM MatchPlayers mp "
+            "JOIN Users u ON u.user_id = mp.user_id "
+            "WHERE mp.match_id = $1 "
+            "ORDER BY mp.player_id"
             );
     }
 }

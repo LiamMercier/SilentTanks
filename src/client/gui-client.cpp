@@ -229,6 +229,11 @@ UserListModel* GUIClient::players_model()
     return game_manager_.players_model();
 }
 
+UserListModel* GUIClient::replay_players()
+{
+    return replay_manager_.replay_players();
+}
+
 Q_INVOKABLE void GUIClient::notify_popup_closed()
 {
     {

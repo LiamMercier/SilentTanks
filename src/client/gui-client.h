@@ -82,6 +82,8 @@ public:
 
     UserListModel* players_model();
 
+    UserListModel* replay_players();
+
     Q_INVOKABLE void set_selected_mode(QueueType mode);
 
     Q_INVOKABLE void notify_popup_closed();

@@ -3,6 +3,7 @@
 #include "gamemodes.h"
 #include "command.h"
 #include "match-settings.h"
+#include "external-user.h"
 
 struct MatchResultRow
 {
@@ -11,11 +12,11 @@ struct MatchResultRow
     uint16_t placement;
     int32_t elo_change;
 
-    static constexpr std::size_t DATA_SIZE = sizeof(int64_t)
+    static constexpr std::size_t DATA_SIZE = sizeof(match_id)
                                              // Time size.
                                              + sizeof(int64_t)
-                                             + sizeof(uint16_t)
-                                             + sizeof(int32_t);
+                                             + sizeof(placement)
+                                             + sizeof(elo_change);
 };
 
 struct MatchResultList
@@ -36,6 +37,7 @@ struct MatchReplay
     }
 
     std::vector<CommandHead> moves;
+    UserList players;
     MapSettings settings;
     uint64_t initial_time_ms;
     uint64_t increment_ms;

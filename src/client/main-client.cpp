@@ -74,6 +74,9 @@ int main(int argc, char* argv[])
         engine.rootContext()->setContextProperty("PlayersModel",
                                                  client.players_model());
 
+        engine.rootContext()->setContextProperty("ReplayPlayers",
+                                                 client.replay_players());
+
         qmlRegisterUncreatableMetaObject(GUI::staticMetaObject,
                                          "GUICommon",
                                          1,

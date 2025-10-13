@@ -141,7 +141,7 @@ Q_INVOKABLE QVariantMap ReplayManager::get_tank_data(int occupant) const
     return m;
 }
 
-UserListModel* ReplayManager::players_model()
+UserListModel* ReplayManager::replay_players()
 {
     return & players_;
 }
@@ -275,6 +275,15 @@ Q_INVOKABLE void ReplayManager::set_replay(qint64 match_id)
     current_perspective_ = NO_PLAYER;
     move_status_ = std::vector<MoveStatus>(turn_count);
 
+    {
+        std::lock_guard lock(replay_mutex_);
+
+        const MatchReplay & current_replay = replays_[current_replay_index_];
+
+        players_.set_users(current_replay.players);
+    }
+
+    emit player_changed();
     emit player_count_changed();
     emit perspective_changed();
 
@@ -1021,14 +1030,14 @@ QString ReplayManager::player() const
 {
     uint8_t current_player = current_view_.current_player;
 
-    if (current_player >= player_list_.users.size())
+    if (current_player >= players_.get_size())
     {
         // Fallback to player number.
         std::string player_str = "Player " + std::to_string(current_player);
         return QString::fromStdString(player_str);
     }
 
-    const auto & user = player_list_.users[current_player];
+    const auto & user = players_.get_user(current_player);
     std::string username = user.username;
     return QString::fromStdString(username);
 }

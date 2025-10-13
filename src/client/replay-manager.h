@@ -77,7 +77,7 @@ public:
 
     Q_INVOKABLE QVariantMap get_tank_data(int occupant) const;
 
-    UserListModel* players_model();
+    UserListModel* replay_players();
 
     void add_replay(MatchReplay replay);
 
@@ -170,9 +170,7 @@ private:
 
     PlayerView current_view_;
 
-    // TODO: fetch data for match.
     UserListModel players_;
-    UserList player_list_;
 
     //
     // Callbacks

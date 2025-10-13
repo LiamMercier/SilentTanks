@@ -245,7 +245,7 @@ Item {
                     ListView {
                         id: playerListView
                         anchors.fill: parent
-                        model: PlayersModel
+                        model: ReplayPlayers
                         clip: true
 
                         delegate: Rectangle {

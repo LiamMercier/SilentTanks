@@ -94,3 +94,13 @@ QHash<int, QByteArray> UserListModel::roleNames() const
     roles[TimeRole] = "timer";
     return roles;
 }
+
+size_t UserListModel::get_size() const
+{
+    return users_.size();
+}
+
+ExternalUser UserListModel::get_user(size_t index) const
+{
+    return users_[index];
+}

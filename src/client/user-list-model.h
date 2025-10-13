@@ -34,6 +34,10 @@ public:
     // Map role enums to string names.
     QHash<int, QByteArray> roleNames() const override;
 
+    size_t get_size() const;
+
+    ExternalUser get_user(size_t index) const;
+
 private:
     std::vector<ExternalUser> users_;
     std::vector<std::chrono::milliseconds> timers_;

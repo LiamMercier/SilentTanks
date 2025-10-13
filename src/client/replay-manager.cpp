@@ -1030,14 +1030,20 @@ QString ReplayManager::player() const
 {
     uint8_t current_player = current_view_.current_player;
 
-    if (current_player >= players_.get_size())
+    return pid_to_player(static_cast<qint64>(current_player));
+}
+
+Q_INVOKABLE QString ReplayManager::pid_to_player(qint64 pid) const
+{
+    size_t player_id = static_cast<size_t>(pid);
+    if (player_id >= players_.get_size())
     {
         // Fallback to player number.
-        std::string player_str = "Player " + std::to_string(current_player);
+        std::string player_str = "Player " + std::to_string(player_id);
         return QString::fromStdString(player_str);
     }
 
-    const auto & user = players_.get_user(current_player);
+    const auto & user = players_.get_user(player_id);
     std::string username = user.username;
     return QString::fromStdString(username);
 }

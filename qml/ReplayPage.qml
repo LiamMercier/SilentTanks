@@ -400,8 +400,9 @@ Item {
 
                             // UINT8_MAX === 255 and represents the global perspective.
                             text: {
-                                ReplayManager.perspective !== 255 ? "Player "
-                                    + ReplayManager.perspective : "Global Perspective"
+                                ReplayManager.perspective !== 255
+                                ? ReplayManager.pid_to_player(ReplayManager.perspective)
+                                : "Global Perspective"
                             }
 
                             color: "#f2f2f2"
@@ -443,7 +444,7 @@ Item {
                                         horizontalAlignment: Text.AlignHCenter
 
                                         text: (index !== ReplayManager.player_count) ?
-                                              "Player " + index : "Global Perspective"
+                                              ReplayManager.pid_to_player(index) : "Global Perspective"
                                         color: "#f2f2f2"
                                     }
 

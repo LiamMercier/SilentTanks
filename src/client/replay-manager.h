@@ -109,6 +109,8 @@ public:
 
     QString player() const;
 
+    Q_INVOKABLE QString pid_to_player(qint64 pid) const;
+
     uint16_t sequence_number();
 
     uint8_t tank_at(int x, int y);

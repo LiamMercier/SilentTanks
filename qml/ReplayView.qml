@@ -57,6 +57,8 @@ Item {
                             "fog",
                             "grass_bottom",
                             "grass_top",
+                            "grass_bottom_tank",
+                            "grass_top_tank",
 
                             // tank cannons
                             "cannon_north",
@@ -402,8 +404,8 @@ Item {
                 result.push("fog")
             }
         }
-        // If there is grass
-        else if (cell.type === 1)
+        // If there is grass and no occupant
+        else if (cell.type === 1 && cell.occupant === 255)
         {
             // If visible
             if (cell.visible)
@@ -434,6 +436,24 @@ Item {
         // If tank exists, grab tank and barrel.
         if (cell.occupant !== 255)
         {
+            // If there is grass, add the bottom layer.
+            if (cell.type === 1)
+            {
+                // We should always have this as true because of view
+                // computations.
+                if (cell.visible)
+                {
+                    result.push("visible")
+                    result.push("grass_bottom_tank")
+                }
+                // Shouldn't be necessary, but do it anyways as a fallback.
+                else
+                {
+                    result.push("fog")
+                    result.push("grass_bottom_tank")
+                }
+            }
+
             // Fetch tank data.
             var tankData = ReplayManager.get_tank_data(cell.occupant)
 
@@ -527,6 +547,12 @@ Item {
                     result.push("cannon_north_west")
                     break
                 }
+            }
+
+            // If there is grass, add the top layer.
+            if (cell.type === 1)
+            {
+                result.push("grass_top_tank")
             }
         }
 

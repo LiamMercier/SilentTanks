@@ -1,8 +1,5 @@
 #include "message.h"
 
-// TODO: remove
-#include <boost/uuid/uuid_io.hpp>
-
 // Utility function to turn uint64_t into network order.
 int64_t htonll(int64_t host_long_long)
 {

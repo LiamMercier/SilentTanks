@@ -579,6 +579,8 @@ Item {
         modal: true
         focus: true
 
+        padding: 0
+
         background: Rectangle {
             color: "transparent"
         }
@@ -905,10 +907,13 @@ Item {
         }
 
         // compute screen coordinates for popup.
-        // TODO: place this on the top right of the tile, with some padding out.
         var pos = cellToScreen(cx, cy)
-        var px = pos.x + cellTileSize * scale
-        var py = pos.y - popupContentItemRect.height - 12
+
+        var scaledTile = cellTileSize * scale
+        var tilePx = Math.max(1, Math.round(scaledTile))
+
+        var px = pos.x + tilePx
+        var py = pos.y - popupContentItemRect.height
 
         // Clamp to window.
         px = Math.max(4, Math.min(px, boardViewRoot.width - actionPopup.implicitWidth - 4))

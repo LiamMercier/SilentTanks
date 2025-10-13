@@ -1314,65 +1314,6 @@ try {
                 break;
             }
 
-
-            // TEMPORARY PRINT FOR VIEW
-            // TODO: remove this.
-
-        const static std::string colors_array[4] = {"\033[48;5;196m", "\033[48;5;21m", "\033[48;5;46m", "\033[48;5;226m"};
-
-        for (int y = 0; y < current_view.map_view.get_height(); y++)
-        {
-            for (int x = 0; x < current_view.map_view.get_width(); x++)
-            {
-                GridCell curr = current_view.map_view[current_view.map_view.idx(x,y)];
-
-                if (curr.visible_ == true)
-                {
-                    uint8_t occ = curr.occupant_;
-
-                    if (occ == NO_OCCUPANT)
-                    {
-                        std::cout << "\033[48;5;184m" << "_" << "\033[0m ";
-                    }
-                    else
-                    {
-                        auto this_tank = std::find_if(
-                            current_view.visible_tanks.begin(), current_view.visible_tanks.end(),
-                            [&](auto const & obj){return obj.id_ == occ;});
-
-                        if (this_tank != current_view.visible_tanks.end())
-                        {
-                            std::cout << colors_array[this_tank->owner_] << +this_tank->id_ << "\033[0m ";
-                        }
-                        else
-                        {
-                            std::cout << "\033[48;5;184m" << "_" << "\033[0m ";
-                        }
-
-                    }
-                }
-                else
-                {
-                    if (curr.type_ == CellType::Terrain)
-                    {
-                        std::cout << "\033[48;5;130m" << curr << "\033[0m ";
-                    }
-                    else
-                    {
-                        std::cout << "?" << " ";
-                    }
-                }
-            }
-            std::cout << "\n";
-        }
-
-        std::cout << "\n";
-
-        for (const auto & timer : current_view.timers)
-        {
-            std::cout << timer.count() << "\n";
-        }
-
             view_callback_(current_view);
 
             // Change to playing if necessary.
@@ -1542,6 +1483,12 @@ try {
             display_message_callback_(std::move(callback_formatted_string));
             break;
         }
+        case HeaderType::FriendOffline:
+        {
+            std::string callback_formatted_string = "User is offline";
+            display_message_callback_(std::move(callback_formatted_string));
+            break;
+        }
         case HeaderType::MatchTextMessage:
         {
             // Get an internal representation of the message.
@@ -1592,9 +1539,8 @@ try {
 }
 catch (std::exception & e)
 {
-    // TODO: log this at some point.
-
     std::cerr << "Error in message handling! Closing!\n";
+    std::cerr << e.what() << "\n";
     session->close_session();
 }
 }
@@ -1619,7 +1565,19 @@ void Client::on_disconnect()
 
         {
             std::lock_guard lock(data_mutex_);
+
             client_data_.client_username.clear();
+
+            // Clear the friends, friend requests, blocked users.
+            client_data_.friends.clear();
+            client_data_.friend_requests.clear();
+            client_data_.blocked_users.clear();
+
+            // Zero out elos.
+            std::array<int, RANKED_MODES_COUNT> elos{};
+            client_data_.display_elos = elos;
+
+            last_queued_mode_ = GameMode::NO_MODE;
         }
 
         popup_callback_(Popup(
@@ -1627,8 +1585,6 @@ void Client::on_disconnect()
                             "Session Disconnected",
                             "The session was disconnected."),
                             URGENT_POPUP);
-
-        // TODO: figure out how disconnects should work later.
 
         playing_.store(false, std::memory_order_release);
         change_state(ClientState::ConnectScreen);

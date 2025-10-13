@@ -1,7 +1,7 @@
 #include "server.h"
 #include "console.h"
 
-// TODO: secure socket connection, not just TCP.
+// TODO <security>: secure socket connection, not just TCP.
 Server::Server(asio::io_context & cntx,
                tcp::endpoint endpoint)
 :calling_context_(cntx),
@@ -318,7 +318,7 @@ try {
             db_.authenticate(msg, session, client_ip);
             break;
         }
-        // TODO: consider PoW based limits for this or tokens?
+        // TODO <security>: consider PoW based limits for this or tokens?
         case HeaderType::RegistrationRequest:
         {
             // Prevent registration attempts when already logged in or
@@ -649,14 +649,17 @@ try {
             // Otherwise, fetch results and set has_new_matches to false.
             if (mode == GameMode::NO_MODE)
             {
-                // TODO: disconnect client? Decide on result.
+                Message b_req;
+                b_req.create_serialized(HeaderType::BadMessage);
+                session->deliver(b_req);
+
+                session->close_session();
                 return;
             }
 
             boost::uuids::uuid user_id = (session->get_user_data()).user_id;
             db_.fetch_new_matches(user_id, mode, session);
 
-            // TODO: set true in game finish callback.
             session->set_has_matches(false, mode);
             break;
         }

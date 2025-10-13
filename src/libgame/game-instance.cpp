@@ -540,7 +540,7 @@ void GameInstance::repair_tank(vec2 pos)
 //
 // Should really be re-worked one day.
 
-// TODO: make mountains visible before breaking raycast.
+// TODO <feature>: vision on foliage tiles
 
 // Compute the view for this player
 //
@@ -620,7 +620,7 @@ PlayerView GameInstance::compute_view(uint8_t player_ID, uint8_t & num_live_tank
 
         // We can compute horizontal/vertical options by using 7 rays.
         //
-        // TODO: Convert this mess into a compatible cast_ray version
+        // TODO <refactoring>: Convert this mess into a compatible cast_ray version
         if (curr_tank.aim_focused_ == false)
         {
             // We can compute horizontal/vertical options by using 7 rays.
@@ -714,17 +714,22 @@ PlayerView GameInstance::compute_view(uint8_t player_ID, uint8_t & num_live_tank
                             }
                             // if location is a mountain, break
                             GridCell curr_cell;
+                            size_t this_idx = 0;
+
                             if (primary_var_y == true)
                             {
-                                curr_cell = game_env_[idx(sec_int, p)];
+                                this_idx = idx(sec_int, p);
+                                curr_cell = game_env_[this_idx];
                             }
                             else
                             {
-                                curr_cell = game_env_[idx(p, sec_int)];
+                                this_idx = idx(p, sec_int);
+                                curr_cell = game_env_[this_idx];
                             }
 
                             if (curr_cell.type_ == CellType::Terrain)
                             {
+                                player_view[this_idx].visible_ = true;
                                 break;
                             }
                         }
@@ -738,16 +743,21 @@ PlayerView GameInstance::compute_view(uint8_t player_ID, uint8_t & num_live_tank
                             }
                             // if location is a mountain, break
                             GridCell curr_cell;
+                            size_t this_idx = 0;
+
                             if (primary_var_y == true)
                             {
-                                curr_cell = game_env_[idx(sec_int, p)];
+                                this_idx = idx(sec_int, p);
+                                curr_cell = game_env_[this_idx];
                             }
                             else {
-                                curr_cell = game_env_[idx(p, sec_int)];
+                                this_idx = idx(p, sec_int);
+                                curr_cell = game_env_[this_idx];
                             }
 
                             if (curr_cell.type_ == CellType::Terrain)
                             {
+                                player_view[this_idx].visible_ = true;
                                 break;
                             }
                         }
@@ -921,8 +931,11 @@ void GameInstance::cast_ray(PlayerView & player_view, vec2 start, vec2 slope, fl
         GridCell curr_cell = game_env_[idx(cx_t, cy_t)];
         if (curr_cell.type_ == CellType::Terrain)
         {
+            // Set the mountain as visible and break.
+            view[idx(cx_t, cy_t)].visible_ = true;
             break;
         }
+
         // otherwise, mark the cell as visible
         view[idx(cx_t, cy_t)].visible_ = true;
 

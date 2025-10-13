@@ -25,8 +25,6 @@ Rectangle {
         TextField {
             id: usernameField
             placeholderText: "username"
-            // TODO: scale off parent size?
-            Layout.minimumWidth: 250
             Layout.preferredWidth: 250
             Layout.maximumWidth: 250
             Layout.alignment: Qt.AlignHCenter
@@ -45,7 +43,6 @@ Rectangle {
             placeholderText: "password"
             echoMode: TextInput.Password
 
-            Layout.minimumWidth: 250
             Layout.preferredWidth: 250
             Layout.maximumWidth: 250
             Layout.alignment: Qt.AlignHCenter

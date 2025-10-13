@@ -8,7 +8,6 @@ Window
 {
     id: infoPopup
 
-    // TODO: decide on sizes
     width: 350
     height: 150
 

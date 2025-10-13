@@ -81,6 +81,7 @@ enum class HeaderType : uint8_t
     // Communication.
     DirectTextMessage,
     MatchTextMessage,
+    FriendOffline,
 
     // Match data related headers.
     FetchMatchHistory,

@@ -36,7 +36,7 @@ public:
     virtual void tick() = 0;
 };
 
-// TODO: <optimization>
+// TODO: <refactoring>
 // It would probably be better to make a CasualStrategy and give it
 // an abstract method for matching players if the number of game modes
 // were to quickly expand in the future.

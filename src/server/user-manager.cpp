@@ -458,7 +458,6 @@ void UserManager::on_friend_request(boost::uuids::uuid sender,
     });
 }
 
-// TODO: notify user not online.
 void UserManager::direct_message_user(boost::uuids::uuid sender,
                                       TextMessage dm)
 {
@@ -469,8 +468,27 @@ void UserManager::direct_message_user(boost::uuids::uuid sender,
 
         // If the user isn't online, drop the message.
         auto user_it = this->users_.find(dm.user_id);
+
         if (user_it == this->users_.end() || !user_it->second)
         {
+            // If the users are friends, tell the friend they are offline.
+            auto sender_it = (this->users_.find(sender));
+
+            // Only do this if the sender is still online, otherwise stop.
+            if (sender_it == this->users_.end() || !sender_it->second)
+            {
+                return;
+            }
+
+            // Find the relation and send if friends.
+            if (sender_it->second->friends.find(dm.user_id)
+                != sender_it->second->friends.end())
+            {
+                Message notify_msg;
+                notify_msg.create_serialized(HeaderType::FriendOffline);
+                sender_it->second->current_session->deliver(notify_msg);
+            }
+
             return;
         }
 

@@ -275,8 +275,6 @@ void MatchMaker::make_match_on_strand(std::vector<Session::ptr> players,
         }
 
         // Match cancel logic
-        //
-        // TODO: consider requeue for players who are alive.
         if (live_players.size() < players.size())
         {
             // iterate through the vector

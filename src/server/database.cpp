@@ -1999,10 +1999,6 @@ void Database::do_fetch_replay(ReplayRequest req,
         std::string moves_json = replay_res[0]["move_history"].as<std::string>();
         std::vector<CommandHead> moves{};
 
-        // TODO: implement JSON deserialization.
-
-        std::cout << "Logged json found: " << moves_json << "\n";
-
         auto ec = glz::read_json(moves, moves_json);
 
         if (ec) {
@@ -2010,17 +2006,6 @@ void Database::do_fetch_replay(ReplayRequest req,
             Console::instance().log(std::move(lmsg),
                                     LogLevel::ERROR);
             return;
-        }
-
-        for (size_t i = 0; i < moves.size(); i++)
-        {
-            const auto & m = moves[i];
-            std::cout << "Move " << i
-                      << " type: " << +static_cast<uint8_t>(m.type)
-                      << " sender: " << +m.sender
-                      << " tank id: " << +m.tank_id
-                      << " payload_first: " << +m.payload_first
-                      << " payload_second: " << +m.payload_second << "\n";
         }
 
         std::string settings_json = replay_res[0]["settings"].as<std::string>();
@@ -2034,14 +2019,6 @@ void Database::do_fetch_replay(ReplayRequest req,
                                     LogLevel::ERROR);
             return;
         }
-
-        std::cout << "Match Settings (id: " << req.match_id << ")\n"
-                  << "filename: " << result_settings.settings.filename
-                  << " width: " << +result_settings.settings.width
-                  << " height: " << +result_settings.settings.height
-                  << " num_tanks: " << +result_settings.settings.num_tanks
-                  << " num_players: " << +result_settings.settings.num_players
-                  << " mode: " << +result_settings.settings.mode << "\n";
 
         MatchReplay match_replay;
 

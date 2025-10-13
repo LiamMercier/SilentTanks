@@ -42,8 +42,9 @@ constexpr uint64_t weight_of_cmd(Header h)
         case HeaderType::BlockUser: return 20;
         case HeaderType::UnblockUser: return 20;
 
-        // Match result requests (involves database calls).
+        // Match result requests (involves heavy database calls).
         case HeaderType::FetchMatchHistory: return 20;
+        case HeaderType::MatchReplayRequest: return 20;
 
         // Message passing variable string for text.
         case HeaderType::DirectTextMessage: return 2 + (h.payload_len / 100);

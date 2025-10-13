@@ -29,7 +29,7 @@ constexpr int MAX_FRIEND_REQUESTS = 50;
 
 namespace asio = boost::asio;
 
-// TODO: pipeline everything that can be pipelined.
+// TODO <optimization>: pipeline everything that can be pipelined.
 // This is especially true for the match write function.
 class Database
 {

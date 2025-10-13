@@ -249,7 +249,7 @@ void Session::do_read_body()
             }));
 }
 
-// TODO: consider optimizing move semantics here.
+// TODO <optimization>: consider optimizing move semantics here.
 void Session::do_write()
 {
     auto self = shared_from_this();

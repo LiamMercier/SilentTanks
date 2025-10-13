@@ -162,7 +162,7 @@ void ReplayManager::add_replay(MatchReplay replay)
 
     if (replay_bytes + total_replay_bytes_ > MAX_REPLAY_BYTES)
     {
-        // TODO: consider writing replays to disk to keep allowing downloads.
+        // TODO <feature>: consider writing replays to disk to keep allowing downloads.
         std::string oom_msg = "Replay "
                               + std::to_string(replay.match_id)
                               + " was dropped because the limit of"

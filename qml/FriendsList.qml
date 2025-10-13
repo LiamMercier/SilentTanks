@@ -124,7 +124,6 @@ Item {
                 width: ListView.view.width
                 height: friendsListView.height / 10
 
-                // TODO: replace this with a graphic.
                 color: "#323436"
 
                 Text {

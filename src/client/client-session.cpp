@@ -134,7 +134,6 @@ void ClientSession::do_read_header()
                     // disconnect.
                     else
                     {
-                        // TODO: log this to user file or something.
                         std::cerr << "Invalid header from server: " << +(static_cast<uint8_t>(self->incoming_header_.type_)) << "\n";
 
                         // Close the session after sending
@@ -175,7 +174,7 @@ void ClientSession::do_read_body()
             }));
 }
 
-// TODO: consider optimizing move semantics here.
+// TODO <optimization>: consider optimizing move semantics here.
 void ClientSession::do_write()
 {
     auto self = shared_from_this();

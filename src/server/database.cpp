@@ -932,12 +932,18 @@ void Database::do_record(std::vector<boost::uuids::uuid> user_ids,
             // This is a candidate for pipelining.
             for (size_t i = 0; i < N_players; i++)
             {
+                // The elimination order is 0, 1, ... so higher is better.
+                //
+                // The placement becomes N_players - elimination.
+                //
+                // Example: N = 3, elimination_order = {0, 2, 1}, then placement is
+                // now {3, 1, 2} as expected.
                 match_txn.exec(pqxx::prepped{"insert_player"},
                                pqxx::params{
                                match_id,
                                boost::uuids::to_string(user_ids[i]),
                                static_cast<int16_t>(i),
-                               static_cast<int16_t>(elimination_order[i])});
+                               static_cast<int16_t>(N_players - elimination_order[i])});
             }
 
             match_txn.commit();

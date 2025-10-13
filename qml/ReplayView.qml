@@ -55,6 +55,10 @@ Item {
 
     property var tileKeys: ["visible",
                             "fog",
+                            "grass_bottom",
+                            "grass_top",
+
+                            // tank cannons
                             "cannon_north",
                             "cannon_north_east",
                             "cannon_east",
@@ -208,7 +212,9 @@ Item {
                     var py = y * tilePx - camYRounded
 
                     // Draw tile.
-                    if (cell.occupant !== 255 || cell.type === 0) {
+                    if (cell.occupant !== 255
+                        || cell.type === 0
+                        || cell.type === 1) {
                         var keys = sourcesForTile(cell)
 
                         for (var keyIndex = 0; keyIndex < keys.length; keyIndex++)
@@ -396,18 +402,40 @@ Item {
                 result.push("fog")
             }
         }
+        // If there is grass
+        else if (cell.type === 1)
+        {
+            // If visible
+            if (cell.visible)
+            {
+                result.push("visible")
+                result.push("grass_bottom")
+            }
+            else
+            {
+                result.push("fog")
+                result.push("grass_bottom")
+                result.push("grass_top")
+            }
+        }
+        // If there is terrain
+        else if (cell.type === 2)
+        {
+            if (cell.visible)
+            {
+                result.push("visible")
+            }
+            else
+            {
+                result.push("fog")
+            }
+        }
 
         // If tank exists, grab tank and barrel.
         if (cell.occupant !== 255)
         {
             // Fetch tank data.
             var tankData = ReplayManager.get_tank_data(cell.occupant)
-
-            // If tank is dead, break.
-            // if (tankData.health_ <= 0)
-            // {
-            //     break;
-            // }
 
             var filename_prefix = "tank_" + tankData.owner + "_"
 
@@ -577,6 +605,8 @@ Item {
         modal: true
         focus: true
 
+        padding: 0
+
         background: Rectangle {
             color: "transparent"
         }
@@ -729,8 +759,12 @@ Item {
 
         // compute screen coordinates for popup.
         var pos = cellToScreen(cx, cy)
-        var px = pos.x + cellTileSize * scale
-        var py = pos.y - popupContentItemRect.height - 12
+
+        var scaledTile = cellTileSize * scale
+        var tilePx = Math.max(1, Math.round(scaledTile))
+
+        var px = pos.x + tilePx
+        var py = pos.y - popupContentItemRect.height
 
         // Clamp to window.
         px = Math.max(4, Math.min(px, boardViewRoot.width - actionPopup.implicitWidth - 4))

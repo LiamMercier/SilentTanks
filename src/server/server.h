@@ -9,6 +9,9 @@
 
 static constexpr int SHUTDOWN_COMPONENTS_COUNT = 3;
 
+// TODO <security>: profile how many sessions can be a reasonable default.
+static constexpr int DEFAULT_MAX_SESSIONS = 1600;
+
 class Server
 {
     using tcp = asio::ip::tcp;
@@ -96,8 +99,7 @@ private:
     // Increasing counter for the next session ID.
     uint64_t next_session_id_{1};
 
-    // TODO: consider how to estimate this value.
-    std::atomic<std::size_t> max_sessions_{1600};
+    std::atomic<std::size_t> max_sessions_{DEFAULT_MAX_SESSIONS};
 
     std::atomic<bool> shutting_down_{false};
 

@@ -289,19 +289,26 @@ Item {
                                 Text {
                                     text: {
                                         var str = "unknown"
+
+                                        if (model.placement < 1 ||
+                                            !model.placement)
+                                        {
+                                            return str
+                                        }
+
                                         switch (model.placement)
                                         {
-                                            case (0):
+                                            case (1):
                                             {
                                                 str = "1st"
                                                 break
                                             }
-                                            case (1):
+                                            case (2):
                                             {
                                                 str = "2nd"
                                                 break
                                             }
-                                            case (2):
+                                            case (3):
                                             {
                                                 str = "3rd"
                                                 break

@@ -1510,6 +1510,11 @@ try {
         {
             MatchResultList results = msg.to_results_list();
 
+            for (const auto & res : results.match_results)
+            {
+                std::cout << res.match_id << " " << +res.placement << "\n";
+            }
+
             match_history_callback_(std::move(results));
             break;
         }

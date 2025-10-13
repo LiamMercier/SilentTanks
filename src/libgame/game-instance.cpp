@@ -3,6 +3,31 @@
 
 #include <filesystem>
 
+// Take the difference without overflows.
+uint8_t abs_uint8_dist(uint8_t p1, uint8_t p2)
+{
+    if (p1 > p2)
+    {
+        return (p1 - p2);
+    }
+    else
+    {
+        return (p2 - p1);
+    }
+}
+
+// Take in two positions and output if they touch on an 8-grid.
+bool tile_beside_grass(uint8_t x1, uint8_t y1, uint8_t x2, uint8_t y2)
+{
+    if (abs_uint8_dist(x1, x2) <= 1
+        && abs_uint8_dist(y1, y2) <= 1)
+    {
+        return true;
+    }
+
+    return false;
+}
+
 GameInstance::GameInstance()
 :num_players_(0),
 num_tanks_(0),
@@ -411,10 +436,6 @@ bool GameInstance::fire_tank(uint8_t ID)
                 return false;
         }
 
-        std::cout << game_env_.get_height() - 1
-                  << " " << game_env_.get_width() - 1 << "\n";
-
-        std::cout << idx(curr_loc) << " " << +curr_loc.x_ << " " << +curr_loc.y_ << "\n";
         GridCell curr_cell = game_env_[idx(curr_loc)];
 
         // test if the tile is terrain
@@ -468,8 +489,8 @@ MoveStatus GameInstance::replay_fire_tank(uint8_t ID)
         curr_loc = curr_loc + shell_dir;
 
         // Test if this tile is out of bounds
-        if ((curr_loc.x_ > game_env_.get_height() - 1)
-            || (curr_loc.y_ > game_env_.get_width() - 1))
+        if ((curr_loc.x_ > game_env_.get_width() - 1)
+            || (curr_loc.y_ > game_env_.get_height() - 1))
         {
                 return MoveStatus();
         }
@@ -539,8 +560,6 @@ void GameInstance::repair_tank(vec2 pos)
 // Below is probably the worst function in the entire code base.
 //
 // Should really be re-worked one day.
-
-// TODO <feature>: vision on foliage tiles
 
 // Compute the view for this player
 //
@@ -702,6 +721,7 @@ PlayerView GameInstance::compute_view(uint8_t player_ID, uint8_t & num_live_tank
                         // we want to be permissive with our ray casting (design choice)
                         // so we will treat 0.5 as not touching a mountain.
 
+                        // If the ray is closer to the top then
                         // check upper square for terrain, if it exists
                         if (frac_sec > 0.5f + 0.001f)
                         {
@@ -732,7 +752,56 @@ PlayerView GameInstance::compute_view(uint8_t player_ID, uint8_t & num_live_tank
                                 player_view[this_idx].visible_ = true;
                                 break;
                             }
+
+                            // If the tile is grass and the tank is beside it,
+                            // then we should set visibility to true.
+                            if (curr_cell.type_ == CellType::Foliage)
+                            {
+                                bool grass_visible = false;
+
+                                if (primary_var_y == true)
+                                {
+                                    grass_visible = tile_beside_grass
+                                                        (
+                                                            curr_tank.pos_.x_,
+                                                            curr_tank.pos_.y_,
+                                                            sec_int,
+                                                            p
+                                                        );
+                                }
+
+                                else
+                                {
+                                    grass_visible = tile_beside_grass
+                                                        (
+                                                            curr_tank.pos_.x_,
+                                                            curr_tank.pos_.y_,
+                                                            p,
+                                                            sec_int
+                                                        );
+                                }
+
+                                // Reveal tile and tank if visible.
+                                if (grass_visible)
+                                {
+                                    player_view[this_idx].visible_ = true;
+
+                                    uint8_t occ = game_env_[this_idx].occupant_;
+                                    player_view[this_idx].occupant_ = occ;
+
+                                    // Add occupant to list of tanks.
+                                    if (occ != NO_OCCUPANT)
+                                    {
+                                        const Tank & this_tank = tanks_[occ];
+                                        view.visible_tanks.push_back(this_tank);
+                                    }
+                                }
+
+                                // We cannot see past grass, finish.
+                                break;
+                            }
                         }
+                        // If the ray is closer to the bottom then
                         // check lower square for terrain
                         else if (frac_sec < 0.5f - 0.001f)
                         {
@@ -760,8 +829,56 @@ PlayerView GameInstance::compute_view(uint8_t player_ID, uint8_t & num_live_tank
                                 player_view[this_idx].visible_ = true;
                                 break;
                             }
+
+                            // If the tile is grass and the tank is beside it,
+                            // then we should set visibility to true.
+                            if (curr_cell.type_ == CellType::Foliage)
+                            {
+                                bool grass_visible = false;
+
+                                if (primary_var_y == true)
+                                {
+                                    grass_visible = tile_beside_grass
+                                                        (
+                                                            curr_tank.pos_.x_,
+                                                            curr_tank.pos_.y_,
+                                                            sec_int,
+                                                            p
+                                                        );
+                                }
+
+                                else
+                                {
+                                    grass_visible = tile_beside_grass
+                                                        (
+                                                            curr_tank.pos_.x_,
+                                                            curr_tank.pos_.y_,
+                                                            p,
+                                                            sec_int
+                                                        );
+                                }
+
+                                // Reveal tile and tank if visible.
+                                if (grass_visible)
+                                {
+                                    player_view[this_idx].visible_ = true;
+
+                                    uint8_t occ = game_env_[this_idx].occupant_;
+                                    player_view[this_idx].occupant_ = occ;
+
+                                    // Add occupant to list of tanks.
+                                    if (occ != NO_OCCUPANT)
+                                    {
+                                        const Tank & this_tank = tanks_[occ];
+                                        view.visible_tanks.push_back(this_tank);
+                                    }
+                                }
+
+                                // We cannot see past grass, finish.
+                                break;
+                            }
                         }
-                        // if the value is ~0.5 then continue, don't check either side as being a mountain.
+                        // if the value is ~0.5 then only check grass, don't check either side as being a mountain.
                         else
                         {
                             continue;
@@ -927,6 +1044,7 @@ void GameInstance::cast_ray(PlayerView & player_view, vec2 start, vec2 slope, fl
         {
             break;
         }
+
         // check if this is terrain
         GridCell curr_cell = game_env_[idx(cx_t, cy_t)];
         if (curr_cell.type_ == CellType::Terrain)
@@ -934,6 +1052,31 @@ void GameInstance::cast_ray(PlayerView & player_view, vec2 start, vec2 slope, fl
             // Set the mountain as visible and break.
             view[idx(cx_t, cy_t)].visible_ = true;
             break;
+        }
+
+        // Check if this is foliage.
+        if (curr_cell.type_ == CellType::Foliage)
+        {
+            if (tile_beside_grass(start.x_, start.y_, cx_t, cy_t))
+            {
+                view[idx(cx_t, cy_t)].visible_ = true;
+
+                uint8_t occ = game_env_[idx(cx_t, cy_t)].occupant_;
+                view[idx(cx_t, cy_t)].occupant_ = occ;
+
+                // Add occupant to list of tanks.
+                if (occ != NO_OCCUPANT)
+                {
+                    const Tank & this_tank = tanks_[occ];
+                    player_view.visible_tanks.push_back(this_tank);
+                }
+            }
+
+            // Break if not on starting tile.
+            if (start.x_ != cx_t || start.y_ != cy_t)
+            {
+                break;
+            }
         }
 
         // otherwise, mark the cell as visible

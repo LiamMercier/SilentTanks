@@ -55,6 +55,10 @@ Item {
 
     property var tileKeys: ["visible",
                             "fog",
+                            "grass_bottom",
+                            "grass_top",
+
+                            // tank cannons
                             "cannon_north",
                             "cannon_north_east",
                             "cannon_east",
@@ -208,7 +212,9 @@ Item {
                     var py = y * tilePx - camYRounded
 
                     // Draw tile.
-                    if (cell.occupant !== 255 || cell.type === 0) {
+                    if (cell.occupant !== 255
+                        || cell.type === 0
+                        || cell.type === 1) {
                         var keys = sourcesForTile(cell)
 
                         for (var keyIndex = 0; keyIndex < keys.length; keyIndex++)
@@ -404,6 +410,34 @@ Item {
                 result.push("fog")
             }
         }
+        // If there is grass
+        else if (cell.type === 1)
+        {
+            // If visible
+            if (cell.visible)
+            {
+                result.push("visible")
+                result.push("grass_bottom")
+            }
+            else
+            {
+                result.push("fog")
+                result.push("grass_bottom")
+                result.push("grass_top")
+            }
+        }
+        // If there is terrain
+        else if (cell.type === 2)
+        {
+            if (cell.visible)
+            {
+                result.push("visible")
+            }
+            else
+            {
+                result.push("fog")
+            }
+        }
 
         // If tank exists, grab tank and barrel.
         if (cell.occupant !== 255)
@@ -457,6 +491,8 @@ Item {
                     break
                 }
             }
+
+            // TODO: grass middle?
 
             // Find the barrel orientation and append correct cannon image.
             switch(tankData.barrel_direction)

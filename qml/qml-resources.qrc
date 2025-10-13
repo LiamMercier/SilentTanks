@@ -28,6 +28,8 @@
     <file>svgs/tiles/cannon_south_west.svg</file>
     <file>svgs/tiles/cannon_west.svg</file>
     <file>svgs/tiles/fog.svg</file>
+    <file>svgs/tiles/grass_bottom.svg</file>
+    <file>svgs/tiles/grass_top.svg</file>
     <file>svgs/tiles/tank_0_east.svg</file>
     <file>svgs/tiles/tank_0_north.svg</file>
     <file>svgs/tiles/tank_0_north_east.svg</file>

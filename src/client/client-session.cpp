@@ -92,7 +92,7 @@ void ClientSession::on_connect(boost::system::error_code ec,
     }
     else
     {
-        std::cerr << "On connection handler not set!\n";
+        std::cerr << "Connection handler not set in session instance!\n";
     }
 
     do_read_header();

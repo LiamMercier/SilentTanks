@@ -89,7 +89,6 @@ bool Session::spend_tokens(Header header)
     uint64_t cost = weight_of_cmd(header);
     if (tokens >= cost)
     {
-        std::cout << "Spending " << cost << " of " << tokens << " tokens.\n";
         tokens -= cost;
         return true;
     }
@@ -311,7 +310,8 @@ void Session::handle_message()
     // no callback set
     else
     {
-        std::cerr << "No message callback was set!\n";
+        Console::instance().log("No message callback was set in session!",
+                                LogLevel::ERROR);
     }
 }
 

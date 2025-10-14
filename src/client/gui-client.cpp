@@ -264,8 +264,6 @@ Q_INVOKABLE void GUIClient::toggle_queue()
 {
     std::lock_guard lock(queued_mutex_);
 
-    std::cout << "queued_mode_: " << +static_cast<uint8_t>(queued_mode_) << "\n";
-
     // If not in queue, treat as queue request.
     if (queued_mode_ == QueueType::NO_MODE)
     {

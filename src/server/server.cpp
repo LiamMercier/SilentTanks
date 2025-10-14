@@ -240,9 +240,6 @@ void Server::on_message(const ptr & session, Message msg)
 
 try {
 
-    std::cout << "[Server]: Header Type: " << +uint8_t(msg.header.type_) << "\n";
-    std::cout << "[Server]: Payload Size: " << +uint8_t(msg.header.payload_len) << "\n";
-
     // Attempt to spend tokens. If successful, returns true. Otherwise, false,
     // we reject the request.
     bool affordable_command = session->spend_tokens(msg.header);
@@ -565,7 +562,6 @@ try {
             // We already validated this above.
             GameMode queued_mode = GameMode(msg.payload[0]);
 
-            std::cout << "Trying to queue for game mode " << +uint8_t(queued_mode) << "\n";
             matcher_.enqueue(session, queued_mode);
             break;
         }
@@ -592,7 +588,6 @@ try {
             // We already validated this above.
             GameMode queued_mode = GameMode(msg.payload[0]);
 
-            std::cout << "Trying to cancel queue for game mode " << +uint8_t(queued_mode) << "\n";
             matcher_.cancel(session, queued_mode, true);
             break;
         }

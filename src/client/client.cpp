@@ -176,7 +176,7 @@ void Client::login(std::string username, std::string password)
             return;
         }
 
-        std::cout << "Sending login req\n";
+        std::cout << "Sending login request\n";
 
         // If everything went well, send this to the server.
         Message login_request;
@@ -913,7 +913,7 @@ try {
         {
             {
                 std::lock_guard lock(data_mutex_);
-                std::cerr << "Good auth. Logged in as: "
+                std::cout << "Good auth. Logged in as: "
                           << client_data_.client_username << "\n";
 
                 // Set user elo's.
@@ -1039,7 +1039,7 @@ try {
         }
         case HeaderType::FriendRequestList:
         {
-            std::cerr << "Friend requests retrieved: \n";
+            std::cout << "Friend requests retrieved: \n";
 
             // Convert the server's data into a list of users
             // for our friend requests list.
@@ -1080,7 +1080,7 @@ try {
         }
         case HeaderType::BlockList:
         {
-            std::cerr << "Blocked users retrieved: \n";
+            std::cout << "Blocked users retrieved: \n";
 
             // Convert the server's data into a list of users
             // for our block list.
@@ -1242,7 +1242,7 @@ try {
         }
         case HeaderType::MatchStarting:
         {
-            std::cerr << "Match is starting.\n";
+            std::cout << "Match is starting.\n";
 
             {
                 std::lock_guard lock(data_mutex_);
@@ -1278,7 +1278,7 @@ try {
         }
         case HeaderType::MatchInProgress:
         {
-            std::cerr << "You have a match in progress.\n";
+            std::cout << "You have a match in progress.\n";
 
             {
                 playing_.store(true, std::memory_order_release);
@@ -1340,7 +1340,7 @@ try {
         }
         case HeaderType::Eliminated:
         {
-            std::cerr << "You were eliminated from the game.\n";
+            std::cout << "You were eliminated from the game.\n";
             popup_callback_(Popup(
                             PopupType::Info,
                             "Eliminated",
@@ -1354,7 +1354,7 @@ try {
         }
         case HeaderType::TimedOut:
         {
-            std::cerr << "You were eliminated from the game via timeout.\n";
+            std::cout << "You were eliminated from the game via timeout.\n";
             popup_callback_(Popup(
                             PopupType::Info,
                             "Eliminated",
@@ -1368,7 +1368,7 @@ try {
         }
         case HeaderType::ForfeitMatch:
         {
-            std::cerr << "You were eliminated from the game via forfeit.\n";
+            std::cout << "You were eliminated from the game via forfeit.\n";
 
             playing_.store(false, std::memory_order_release);
 
@@ -1377,7 +1377,7 @@ try {
         }
         case HeaderType::Victory:
         {
-            std::cerr << "You won your match.\n";
+            std::cout << "You won your match.\n";
             popup_callback_(Popup(
                             PopupType::Info,
                             "Game Won",
@@ -1391,7 +1391,7 @@ try {
         }
         case HeaderType::GameEnded:
         {
-            std::cerr << "Game has already ended.\n";
+            std::cout << "Game has already ended.\n";
             playing_.store(false, std::memory_order_release);
             break;
         }
@@ -1408,7 +1408,7 @@ try {
         }
         case HeaderType::RateLimited:
         {
-            std::cerr << "You are being rate limited.\n";
+            std::cout << "You are being rate limited.\n";
 
             std::string body = "You are being rate limited.";
 

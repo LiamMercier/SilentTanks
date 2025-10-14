@@ -874,8 +874,6 @@ void MatchInstance::conclude_game()
         results_.user_ids[i] = players_[i].user_id;
     }
 
-    std::cout << "Winner: " << +winner << "\n";
-
     // Tell winner that they won, everyone else has already
     // been told that they lost.
     if (winner < n_players_)

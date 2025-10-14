@@ -39,16 +39,3 @@ void Tank::repair(uint8_t repair_amount)
         health_ = health_ + repair_amount;
     }
 }
-
-std::string direction_words[8]{"north", "north-east", "east", "south-east", "south", "south-west", "west", "north-west"};
-
-void Tank::print_tank_state(uint8_t ID) const
-{
-    std::cout << "================\n";
-    std::cout << "TANK ID: " << +ID << "\n";
-    std::cout << "TANK OWNER: Player " << +owner_ << "\n";
-    std::cout << "TANK DIRECTION: " << direction_words[current_direction_] << "\n";
-    std::cout << "BARREL DIRECTION: " << direction_words[barrel_direction_] << "\n";
-    std::cout << "HEALTH: " << +health_ << "\n";
-    std::cout << "================\n";
-}

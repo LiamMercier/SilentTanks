@@ -82,6 +82,7 @@
     <file>svgs/buttons/forfeit_button.svg</file>
     <file>svgs/buttons/forfeit_button_hovered.svg</file>
     <file>svgs/buttons/forfeit_button_pressed.svg</file>
+    <file>svgs/buttons/one_health.svg</file>
     <file>svgs/buttons/place_dir_0.svg</file>
     <file>svgs/buttons/place_dir_1.svg</file>
     <file>svgs/buttons/place_dir_2.svg</file>
@@ -102,7 +103,9 @@
     <file>svgs/buttons/tank_left.svg</file>
     <file>svgs/buttons/tank_reverse.svg</file>
     <file>svgs/buttons/tank_right.svg</file>
+    <file>svgs/buttons/three_health.svg</file>
     <file>svgs/buttons/turn_background.svg</file>
+    <file>svgs/buttons/two_health.svg</file>
     <file>pngs/accept_button.png</file>
     <file>pngs/accept_button_hovered.png</file>
     <file>pngs/accept_button_pressed.png</file>

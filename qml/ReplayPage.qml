@@ -306,8 +306,8 @@ Item {
                         SvgButton {
                             id: previousMoveButton
 
-                            implicitHeight: 32
-                            implicitWidth: 32
+                            implicitHeight: 28
+                            implicitWidth: 28
 
                             Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
 
@@ -347,8 +347,8 @@ Item {
                         SvgButton {
                             id: nextMoveButton
 
-                            implicitHeight: 32
-                            implicitWidth: 32
+                            implicitHeight: 28
+                            implicitWidth: 28
 
                             Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
 

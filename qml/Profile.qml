@@ -359,8 +359,8 @@ Item {
                                     SvgButton {
                                         id: downloadButton
 
-                                        implicitHeight: 32
-                                        implicitWidth: 32
+                                        implicitHeight: 28
+                                        implicitWidth: 28
 
                                         Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
 
@@ -382,8 +382,8 @@ Item {
                                         id: matchReplayButton
                                         visible: matchDownloaded
 
-                                        implicitHeight: 32
-                                        implicitWidth: 32
+                                        implicitHeight: 28
+                                        implicitWidth: 28
 
                                         Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
 

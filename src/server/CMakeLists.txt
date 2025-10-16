@@ -12,5 +12,6 @@ target_link_libraries(SilentTanks-Server PRIVATE
     ${ARGON2_LIBRARIES}
     ${libpqxx_LIBRARIES}
     ${libsodium_LIBRARIES}
+    ${OPENSSL_LIBRARIES}
     glaze::glaze
 )

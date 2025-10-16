@@ -14,6 +14,7 @@ target_link_libraries(SilentTanks-Client PRIVATE
     Boost::system
     glaze::glaze
     ${ARGON2_LIBRARIES}
+    ${OPENSSL_LIBRARIES}
     Qt6::Core
     Qt6::Gui
     Qt6::Qml

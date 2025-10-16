@@ -1,8 +1,10 @@
 #include "session.h"
 #include "console.h"
 
-Session::Session(asio::io_context & cntx, uint64_t session_id)
-:socket_(cntx),
+Session::Session(asio::io_context & cntx,
+                 uint64_t session_id,
+                 asio::ssl::context & ssl_cntx)
+:ssl_socket_(cntx, ssl_cntx),
 strand_(cntx.get_executor()),
 read_timer_(cntx),
 ping_timer_(cntx),
@@ -25,8 +27,21 @@ void Session::start()
 {
     live_.store(true, std::memory_order_release);
     awaiting_pong_ = false;
-    do_read_header();
-    start_ping();
+
+    // Do TLS handshake.
+    ssl_socket_.async_handshake(asio::ssl::stream_base::server,
+        asio::bind_executor(strand_,
+            [this, self = shared_from_this()](const boost::system::error_code & ec)
+            {
+                if (ec)
+                {
+                    this->handle_read_error(ec);
+                    return;
+                }
+
+                this->do_read_header();
+                this->start_ping();
+        }));
 }
 
 void Session::deliver(Message msg)
@@ -136,7 +151,7 @@ void Session::start_ping()
                             };
 
                             // Close the session after sending
-                            asio::async_write(self->socket_, buf,
+                            asio::async_write(self->ssl_socket_, buf,
                                 asio::bind_executor(self->strand_,
                                     [self](boost::system::error_code, size_t){
                                         self->close_session();
@@ -160,7 +175,7 @@ void Session::do_read_header()
 {
     auto self = shared_from_this();
     // read from the header using buffer of size of the header
-    asio::async_read(socket_,
+    asio::async_read(ssl_socket_,
         asio::buffer(&incoming_header_, sizeof(Header)),
         asio::bind_executor(strand_,
             [self](boost::system::error_code ec, std::size_t)
@@ -193,7 +208,7 @@ void Session::do_read_header()
                         };
 
                         // Close the session after sending
-                        asio::async_write(self->socket_, buf,
+                        asio::async_write(self->ssl_socket_, buf,
                                 asio::bind_executor(self->strand_,
                                     [self](boost::system::error_code, size_t){
                                         self->close_session();
@@ -221,12 +236,12 @@ void Session::do_read_body()
         if (!ec)
         {
             boost::system::error_code ignored;
-            self->socket_.cancel(ignored);
+            self->ssl_socket_.lowest_layer().cancel(ignored);
         }
 
     }));
 
-    asio::async_read(socket_,
+    asio::async_read(ssl_socket_,
         asio::buffer(incoming_body_),
         asio::bind_executor(strand_,
             [self](boost::system::error_code ec, std::size_t)
@@ -265,7 +280,7 @@ void Session::do_write()
         }
     };
 
-    asio::async_write(socket_,
+    asio::async_write(ssl_socket_,
                       bufs,
                       asio::bind_executor(strand_,
                         [self](boost::system::error_code ec, std::size_t)
@@ -372,8 +387,9 @@ void Session::force_close_session()
         self->ping_timer_.cancel();
         self->pong_timer_.cancel();
 
-        self->socket_.shutdown(asio::ip::tcp::socket::shutdown_both, ignored);
-        self->socket_.close(ignored);
+        self->ssl_socket_.lowest_layer().shutdown(asio::ip::tcp::socket::shutdown_both,
+                                                  ignored);
+        self->ssl_socket_.lowest_layer().close(ignored);
 
         if(self->on_disconnect_relay_)
         {

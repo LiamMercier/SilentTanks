@@ -3,9 +3,11 @@
 
 // TODO <security>: secure socket connection, not just TCP.
 Server::Server(asio::io_context & cntx,
-               tcp::endpoint endpoint)
+               tcp::endpoint endpoint,
+               asio::ssl::context & ssl_cntx)
 :calling_context_(cntx),
 server_strand_(cntx.get_executor()),
+ssl_cntx_(ssl_cntx),
 acceptor_(cntx, endpoint),
 user_manager_(std::make_shared<UserManager>(cntx)),
 matcher_(cntx,
@@ -182,7 +184,8 @@ void Server::handle_accept(const boost::system::error_code & ec,
         auto session = std::make_shared<Session>(
             static_cast<asio::io_context&>(
                 acceptor_.get_executor().context()),
-                s_id);
+                s_id,
+                ssl_cntx_);
 
         // Move socket into session.
         session->socket() = std::move(socket);

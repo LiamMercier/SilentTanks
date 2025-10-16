@@ -1,6 +1,7 @@
 #include <string>
 #include <iostream>
 #include <thread>
+#include <filesystem>
 
 #include "server.h"
 #include "console.h"
@@ -43,7 +44,53 @@ try
 
     asio::ip::tcp::endpoint endpoint(asio::ip::make_address("127.0.0.1"), 12345);
 
-    Server server(server_io_context, endpoint);
+    // Setup ssl context for the server.
+    asio::ssl::context ssl_cntx(asio::ssl::context::tls_server);
+
+    const std::string cert_file = "certs/server.crt";
+    const std::string key_file = "certs/server.key";
+
+    // Check ssl certificate file exists.
+    if (!std::filesystem::exists(cert_file))
+    {
+        std::cerr << "ERROR ON STARTUP: Missing server certificate file.\n"
+                  << "Searched: " << cert_file << "\n";
+        work_guard.reset();
+        std::exit(EXIT_FAILURE);
+    }
+
+    // Check ssl keyfile exists
+    if (!std::filesystem::exists(key_file))
+    {
+        std::cerr << "ERROR ON STARTUP: Missing server key file.\n"
+                  << "Searched: " << key_file << "\n";
+        work_guard.reset();
+        std::exit(EXIT_FAILURE);
+    }
+
+    // Try to setup ssl context.
+    try
+    {
+        ssl_cntx.use_certificate_chain_file(cert_file);
+        ssl_cntx.use_private_key_file(key_file, asio::ssl::context::pem);
+    }
+    catch (const std::exception & e)
+    {
+        std::cerr << "SSL context setup error: " << e.what() << "\n";
+        work_guard.reset();
+        std::exit(EXIT_FAILURE);
+    }
+
+    // Prevent downgraded versions.
+    ssl_cntx.set_options(
+        asio::ssl::context::default_workarounds
+        | asio::ssl::context::no_sslv2
+        | asio::ssl::context::no_sslv3
+        | asio::ssl::context::no_tlsv1
+        | asio::ssl::context::no_tlsv1_1
+    );
+
+    Server server(server_io_context, endpoint, ssl_cntx);
 
     std::string lmsg = "Server started on "
                        + endpoint.address().to_string();

@@ -20,7 +20,8 @@ class Server
 public:
     // construct the server given a context and an endpoint
     Server(asio::io_context & cntx,
-           tcp::endpoint endpoint);
+           tcp::endpoint endpoint,
+           asio::ssl::context & ssl_cntx);
 
     void CONSOLE_ban_user(std::string username,
                           std::chrono::system_clock::time_point banned_until,
@@ -62,6 +63,9 @@ private:
 
     // Strand to prevent race conditions on session removal and addition.
     asio::strand<asio::io_context::executor_type> server_strand_;
+
+    // SSL context for accepting connections and communicating.
+    asio::ssl::context & ssl_cntx_;
 
     // Acceptor bound to an endpoint.
     tcp::acceptor acceptor_;

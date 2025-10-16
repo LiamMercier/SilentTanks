@@ -7,6 +7,7 @@
 
 #include <boost/asio.hpp>
 #include <boost/asio/ip/tcp.hpp>
+#include <boost/asio/ssl.hpp>
 
 #include "message.h"
 #include "header.h"
@@ -72,7 +73,9 @@ public:
     using MessageHandler = std::function<void(const ptr& session, Message msg)>;
     using DisconnectHandler = std::function<void(const ptr& session)>;
 
-    Session(asio::io_context & cntx, uint64_t session_id);
+    Session(asio::io_context & cntx,
+            uint64_t session_id,
+            asio::ssl::context & ssl_cntx);
 
     void set_message_handler(MessageHandler handler, DisconnectHandler d_handler);
 
@@ -138,7 +141,7 @@ private:
 public:
 
 private:
-    tcp::socket socket_;
+    asio::ssl::stream<tcp::socket> ssl_socket_;
     asio::strand<asio::io_context::executor_type> strand_;
 
     // We need to ensure clients are not connecting and
@@ -204,7 +207,7 @@ private:
 
 inline asio::ip::tcp::socket& Session::socket()
 {
-    return socket_;
+    return ssl_socket_.next_layer();
 }
 
 inline uint64_t Session::id() const

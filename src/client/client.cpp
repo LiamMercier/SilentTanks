@@ -316,7 +316,9 @@ void Client::request_user_list(UserListType list_type)
         }
         default:
         {
-            std::cerr << "Invalid list type in request creation!\n";
+            std::cerr << TERM_RED
+                      << "Invalid list type in request creation!\n"
+                      << TERM_RESET;
             break;
         }
     }
@@ -690,7 +692,7 @@ void Client::interpret_message(std::string message)
                 return;
             }
 
-            boost::uuids::uuid friend_id;
+            boost::uuids::uuid friend_id{};
 
             // Find the UUID for this user in our list of friends.
             //
@@ -1009,7 +1011,9 @@ try {
             // If data was malformed.
             if (status == false)
             {
-                std::cerr << "Malformed data in friends list! Closing!\n";
+                std::cerr << TERM_RED
+                          << "Malformed data in friends list! Closing session!\n"
+                          << TERM_RESET;
                 current_session_->close_session();
                 break;
             }
@@ -1049,7 +1053,9 @@ try {
             // If data was malformed.
             if (status == false)
             {
-                std::cerr << "Malformed data in friend request list! Closing!\n";
+                std::cerr << TERM_RED
+                          << "Malformed data in friend request list! Closing session!\n"
+                          << TERM_RESET;
                 current_session_->close_session();
                 break;
             }
@@ -1090,7 +1096,9 @@ try {
             // If data was malformed.
             if (status == false)
             {
-                std::cerr << "Malformed data in friend request list! Closing!\n";
+                std::cerr << TERM_RED
+                          << "Malformed data in blocked list! Closing session!\n"
+                          << TERM_RESET;
                 current_session_->close_session();
                 break;
             }
@@ -1294,7 +1302,9 @@ try {
 
             if (status == false)
             {
-                std::cerr << "Failed to convert static data.\n";
+                std::cerr << TERM_RED
+                          << "Failed to convert static data.\n"
+                          << TERM_RESET;
                 break;
             }
 
@@ -1310,7 +1320,9 @@ try {
 
             if (status == false)
             {
-                std::cerr << "Failed to convert player view.\n";
+                std::cerr << TERM_RED
+                          << "Failed to convert player view.\n"
+                          << TERM_RESET;
                 break;
             }
 
@@ -1397,13 +1409,17 @@ try {
         }
         case HeaderType::BadMessage:
         {
-            std::cerr << "Bad message, server terminating connection.\n";
+            std::cerr << TERM_RED
+                      << "Bad message, server terminating connection.\n"
+                      << TERM_RESET;
             break;
         }
         case HeaderType::PingTimeout:
         {
-            std::cerr << "Connection dropped by server because heartbeat "
-                      << "ping was not responded to.\n";
+            std::cerr << TERM_RED
+                      << "Connection dropped by server because heartbeat "
+                      << "ping was not responded to.\n"
+                      << TERM_RESET;
             break;
         }
         case HeaderType::RateLimited:
@@ -1452,7 +1468,10 @@ try {
         }
         case HeaderType::ServerFull:
         {
-            std::cerr << "Server is full and cannot accept connections.\n";
+            std::cerr << TERM_RED
+                      << "Server is full and cannot accept connections.\n"
+                      << TERM_RESET;
+
             popup_callback_(Popup(
                             PopupType::Info,
                             "Server Full",
@@ -1525,7 +1544,9 @@ try {
 
             if (status == false)
             {
-                std::cerr << "Failed to convert match replay.\n";
+                std::cerr << TERM_RED
+                          << "Failed to convert match replay.\n"
+                          << TERM_RESET;
                 break;
             }
 
@@ -1539,8 +1560,11 @@ try {
 }
 catch (std::exception & e)
 {
-    std::cerr << "Error in message handling! Closing!\n";
-    std::cerr << e.what() << "\n";
+    std::cerr << TERM_RED
+              << "Error in message handling! Closing session!\n"
+              << e.what()
+              << "\n"
+              << TERM_RESET;
     session->close_session();
 }
 }

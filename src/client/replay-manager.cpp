@@ -249,6 +249,7 @@ Q_INVOKABLE void ReplayManager::set_replay(qint64 match_id)
         uint16_t total = current_replay.settings.width
                         * current_replay.settings.height;
 
+                        // TODO: what happens if filename doesn't exist??
         environment_loaded = current_instance_.read_env_by_name
                                 (
                                     current_replay.settings.filename,

@@ -6,11 +6,14 @@
 #include "match-maker.h"
 #include "user-manager.h"
 #include "database.h"
+#include "asset-resolver.h"
 
 static constexpr int SHUTDOWN_COMPONENTS_COUNT = 3;
 
 // TODO <security>: profile how many sessions can be a reasonable default.
 static constexpr int DEFAULT_MAX_SESSIONS = 1600;
+
+static constexpr std::string default_mapfile_name = "mapfile.txt";
 
 class Server
 {

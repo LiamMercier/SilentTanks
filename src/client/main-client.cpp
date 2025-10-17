@@ -14,11 +14,23 @@
 #include <QStringLiteral>
 
 #include "gui-client.h"
+#include "asset-resolver.h"
 
 #include <boost/uuid/string_generator.hpp>
 
 int main(int argc, char* argv[])
 {
+    // Check all assets can be reached
+    bool assets_exist = AppAssets::assert_client_assets_resolvable();
+
+    if (!assets_exist)
+    {
+        std::cerr << TERM_RED
+                  << "One or more required assets could not be found. Exiting.\n"
+                  << TERM_RESET;
+        return 1;
+    }
+
     try
     {
         QGuiApplication app(argc, argv);
@@ -154,7 +166,11 @@ int main(int argc, char* argv[])
     }
     catch (std::exception & e)
     {
-        std::cerr << "Fatal error starting client: " << e.what() << "\n";
+        std::cerr << TERM_RED
+                  << "Fatal error starting client: "
+                  << e.what()
+                  << "\n"
+                  << TERM_RESET;
         return 1;
     }
 }

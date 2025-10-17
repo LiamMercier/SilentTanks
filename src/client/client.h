@@ -9,6 +9,10 @@
 constexpr bool URGENT_POPUP = true;
 constexpr bool STANDARD_POPUP = false;
 
+constexpr std::string_view TERM_RED = "\033[31m";
+
+constexpr std::string_view TERM_RESET = "\033[0m";
+
 class Client
 {
 public:

@@ -20,7 +20,20 @@ int main()
     // basic test code
 
     if (sodium_init() == -1) {
-        std::cerr << "libsodium failed to initialize \n";
+        std::cerr << TERM_RED
+                  << "libsodium failed to initialize. Exiting\n"
+                  << TERM_RESET;
+        return 1;
+    }
+
+    // Check all assets can be reached
+    bool assets_exist = AppAssets::assert_server_assets_resolvable();
+
+    if (!assets_exist)
+    {
+        std::cerr << TERM_RED
+                  << "One or more required assets could not be found. Exiting.\n"
+                  << TERM_RESET;
         return 1;
     }
 
@@ -47,26 +60,8 @@ try
     // Setup ssl context for the server.
     asio::ssl::context ssl_cntx(asio::ssl::context::tls_server);
 
-    const std::string cert_file = "certs/server.crt";
-    const std::string key_file = "certs/server.key";
-
-    // Check ssl certificate file exists.
-    if (!std::filesystem::exists(cert_file))
-    {
-        std::cerr << "ERROR ON STARTUP: Missing server certificate file.\n"
-                  << "Searched: " << cert_file << "\n";
-        work_guard.reset();
-        std::exit(EXIT_FAILURE);
-    }
-
-    // Check ssl keyfile exists
-    if (!std::filesystem::exists(key_file))
-    {
-        std::cerr << "ERROR ON STARTUP: Missing server key file.\n"
-                  << "Searched: " << key_file << "\n";
-        work_guard.reset();
-        std::exit(EXIT_FAILURE);
-    }
+    const auto cert_file = AppAssets::resolve_asset("certs/server.crt");
+    const auto key_file = AppAssets::resolve_asset("certs/server.key");
 
     // Try to setup ssl context.
     try
@@ -76,9 +71,11 @@ try
     }
     catch (const std::exception & e)
     {
-        std::cerr << "SSL context setup error: " << e.what() << "\n";
+        std::cerr << TERM_RED
+                  << "SSL context setup error: " << e.what() << "\n"
+                  << TERM_RESET;
         work_guard.reset();
-        std::exit(EXIT_FAILURE);
+        return 1;
     }
 
     // Prevent downgraded versions.
@@ -133,7 +130,11 @@ try
 
     catch(const boost::system::system_error& e)
     {
-        std::cerr << "Client error: " << e.what() << std::endl;
+        std::cerr << TERM_RED
+                  << "Client error: "
+                  << e.what()
+                  << "\n"
+                  << TERM_RESET;
     }
 
     std::cerr << "Server stopped. Press anything to return.\n";

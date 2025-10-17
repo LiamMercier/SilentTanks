@@ -21,3 +21,7 @@ target_link_libraries(SilentTanks-Client PRIVATE
     Qt6::Quick
     Qt6::QuickControls2
 )
+
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+  target_compile_definitions(SilentTanks-Client PRIVATE DEV_BUILD=1)
+endif()

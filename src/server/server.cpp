@@ -1,7 +1,6 @@
 #include "server.h"
 #include "console.h"
 
-// TODO <security>: secure socket connection, not just TCP.
 Server::Server(asio::io_context & cntx,
                tcp::endpoint endpoint,
                asio::ssl::context & ssl_cntx)
@@ -11,7 +10,7 @@ ssl_cntx_(ssl_cntx),
 acceptor_(cntx, endpoint),
 user_manager_(std::make_shared<UserManager>(cntx)),
 matcher_(cntx,
-         std::string("mapfile.txt"),
+         default_mapfile_name,
          // Callback function to send messages to sessions
          [this](uint64_t s_id, Message msg)
             {

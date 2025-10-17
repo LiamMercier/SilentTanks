@@ -1268,7 +1268,7 @@ void Database::do_unban_user(std::string username, uint64_t ban_id)
 
                 txn.exec(pqxx::prepped{"unban_user"},
                          pqxx::params{
-                         ban_id});
+                         static_cast<int64_t>(ban_id)});
 
                 txn.commit();
 
@@ -1985,12 +1985,12 @@ void Database::do_fetch_replay(ReplayRequest req,
 
         auto replay_res = txn.exec(pqxx::prepped{"fetch_replay"},
                                     pqxx::params{
-                                    req.match_id
+                                    static_cast<int64_t>(req.match_id)
                                     });
 
         auto players_res = txn.exec(pqxx::prepped{"fetch_match_users"},
                                     pqxx::params{
-                                    req.match_id
+                                    static_cast<int64_t>(req.match_id)
                                     });
 
         // This transaction is read only. Commit now.

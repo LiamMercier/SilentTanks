@@ -6,3 +6,7 @@ target_link_libraries(protocol PRIVATE
     libgame
     glaze::glaze
 )
+
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+  target_compile_definitions(protocol PRIVATE DEV_BUILD=1)
+endif()

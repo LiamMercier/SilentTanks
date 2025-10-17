@@ -7,6 +7,7 @@
 
 #include <boost/asio.hpp>
 #include <boost/asio/ip/tcp.hpp>
+#include <boost/asio/ssl.hpp>
 
 #include "message.h"
 #include "header.h"
@@ -80,7 +81,8 @@ private:
 public:
 
 private:
-    tcp::socket socket_;
+    asio::ssl::context ssl_cntx_;
+    asio::ssl::stream<tcp::socket> ssl_socket_;
     asio::strand<asio::io_context::executor_type> strand_;
     asio::ip::tcp::resolver resolver_;
     asio::steady_timer connect_timer_;
@@ -100,7 +102,7 @@ private:
 
 inline asio::ip::tcp::socket & ClientSession::socket()
 {
-    return socket_;
+    return ssl_socket_.next_layer();
 }
 
 inline bool ClientSession::is_live() const

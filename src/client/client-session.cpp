@@ -1,12 +1,27 @@
 #include "client-session.h"
 
 ClientSession::ClientSession(asio::io_context & cntx)
-:socket_(cntx),
+:ssl_cntx_(asio::ssl::context::tls_client),
+ssl_socket_(cntx, ssl_cntx_),
 strand_(cntx.get_executor()),
 resolver_(cntx),
 connect_timer_(cntx)
 {
+    ssl_cntx_.set_options(
+        asio::ssl::context::default_workarounds
+        | asio::ssl::context::no_sslv2
+        | asio::ssl::context::no_sslv3
+        | asio::ssl::context::no_tlsv1
+        | asio::ssl::context::no_tlsv1_1
+    );
 
+    // TODO <security>: setup server certs
+    ssl_socket_.set_verify_mode(asio::ssl::verify_none);
+
+    // TODO: perhaps this? and set file path? but this must be dynamic
+    // based on the server we're connecting to
+    // ssl_cntx_.set_verify_mode(asio::ssl::verify_peer);
+    // ssl_cntx_.load_verify_file("server_cert.pem");
 }
 
 void ClientSession::set_message_handler(MessageHandler m_handler,
@@ -63,7 +78,7 @@ void ClientSession::on_resolve(boost::system::error_code ec,
         }));
 
     // Start async connection to server.
-    asio::async_connect(socket_, endpoints,
+    asio::async_connect(ssl_socket_.lowest_layer(), endpoints,
         asio::bind_executor(strand_,
             [self = shared_from_this()](boost::system::error_code ec,
                                         asio::ip::tcp::endpoint endpoints){
@@ -81,21 +96,36 @@ void ClientSession::on_connect(boost::system::error_code ec,
         return;
     }
 
-    std::cout << "Successful connection to " << ep << "\n";
+    std::cout << "Successful connection to " << ep << " starting TLS handshake \n";
 
-    live_.store(true);
+    ssl_socket_.async_handshake(asio::ssl::stream_base::client,
+        asio::bind_executor(strand_,
+            [self = shared_from_this()](boost::system::error_code ec)
+            {
+                if (ec)
+                {
+                    std::cerr << "TLS handshake failed: " << ec.message() << "\n";
+                    self->force_close_session();
+                    return;
+                }
 
-    // Tell the client that we connected.
-    if (on_connection_relay_)
-    {
-        on_connection_relay_();
-    }
-    else
-    {
-        std::cerr << "Connection handler not set in session instance!\n";
-    }
+                std::cout << "TLS handshake successful\n";
 
-    do_read_header();
+                self->live_.store(true);
+
+                // Tell the client that we connected.
+                if (self->on_connection_relay_)
+                {
+                    self->on_connection_relay_();
+                }
+                else
+                {
+                    std::cerr << "Connection handler not set in session instance!\n";
+                }
+
+                self->do_read_header();
+
+            }));
 }
 
 void ClientSession::on_connect_timeout(boost::system::error_code ec)
@@ -107,14 +137,14 @@ void ClientSession::on_connect_timeout(boost::system::error_code ec)
     }
 
     std::cerr << "Connection timed out, cancelling\n";
-    socket_.cancel();
+    ssl_socket_.lowest_layer().cancel();
 }
 
 void ClientSession::do_read_header()
 {
     auto self = shared_from_this();
     // Read from the header using buffer of size of the header.
-    asio::async_read(socket_,
+    asio::async_read(ssl_socket_,
         asio::buffer(&incoming_header_, sizeof(Header)),
         asio::bind_executor(strand_,
             [self](boost::system::error_code ec, std::size_t)
@@ -153,7 +183,7 @@ void ClientSession::do_read_body()
     // capped by valid message size
     incoming_body_.resize(self->incoming_header_.payload_len);
 
-    asio::async_read(socket_,
+    asio::async_read(ssl_socket_,
         asio::buffer(incoming_body_),
         asio::bind_executor(strand_,
             [self](boost::system::error_code ec, std::size_t)
@@ -191,7 +221,7 @@ void ClientSession::do_write()
         }
     };
 
-    asio::async_write(socket_,
+    asio::async_write(ssl_socket_,
                       bufs,
                       asio::bind_executor(strand_,
                         [self](boost::system::error_code ec, std::size_t)
@@ -310,8 +340,9 @@ void ClientSession::force_close_session()
     {
         boost::system::error_code ignored;
 
-        self->socket_.shutdown(asio::ip::tcp::socket::shutdown_both, ignored);
-        self->socket_.close(ignored);
+        self->ssl_socket_.lowest_layer().shutdown(asio::ip::tcp::socket::shutdown_both,
+                                                  ignored);
+        self->ssl_socket_.lowest_layer().close(ignored);
 
         if(self->on_disconnect_relay_)
         {

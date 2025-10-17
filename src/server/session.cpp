@@ -31,7 +31,7 @@ void Session::start()
     // Do TLS handshake.
     ssl_socket_.async_handshake(asio::ssl::stream_base::server,
         asio::bind_executor(strand_,
-            [this, self = shared_from_this()](const boost::system::error_code & ec)
+            [this, self = shared_from_this()](boost::system::error_code ec)
             {
                 if (ec)
                 {

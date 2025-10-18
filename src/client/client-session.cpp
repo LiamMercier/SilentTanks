@@ -30,8 +30,8 @@ void ClientSession::start(std::string host, std::string port)
     std::cout << "Starting client session!\n";
 
     ssl_cntx_.set_default_verify_paths();
-    ssl_cntx_.set_verify_mode(asio::ssl::verify_peer);
-    ssl_cntx_.set_verify_callback(asio::ssl::rfc2818_verification(host));
+    ssl_socket_.set_verify_mode(asio::ssl::verify_peer);
+    ssl_socket_.set_verify_callback(asio::ssl::rfc2818_verification(host));
 
     resolver_.async_resolve(
       host, port,

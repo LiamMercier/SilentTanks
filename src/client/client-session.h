@@ -64,6 +64,8 @@ private:
 
     void on_connect_timeout(boost::system::error_code ec);
 
+    bool verify_fingerprint();
+
     void do_read_header();
 
     void do_read_body();

@@ -14,14 +14,6 @@ connect_timer_(cntx)
         | asio::ssl::context::no_tlsv1
         | asio::ssl::context::no_tlsv1_1
     );
-
-    // TODO <security>: setup server certs
-    ssl_socket_.set_verify_mode(asio::ssl::verify_none);
-
-    // TODO: perhaps this? and set file path? but this must be dynamic
-    // based on the server we're connecting to
-    // ssl_cntx_.set_verify_mode(asio::ssl::verify_peer);
-    // ssl_cntx_.load_verify_file("server_cert.pem");
 }
 
 void ClientSession::set_message_handler(MessageHandler m_handler,
@@ -36,6 +28,10 @@ void ClientSession::set_message_handler(MessageHandler m_handler,
 void ClientSession::start(std::string host, std::string port)
 {
     std::cout << "Starting client session!\n";
+
+    ssl_cntx_.set_default_verify_paths();
+    ssl_cntx_.set_verify_mode(asio::ssl::verify_peer);
+    ssl_cntx_.set_verify_callback(asio::ssl::rfc2818_verification(host));
 
     resolver_.async_resolve(
       host, port,
@@ -102,28 +98,60 @@ void ClientSession::on_connect(boost::system::error_code ec,
         asio::bind_executor(strand_,
             [self = shared_from_this()](boost::system::error_code ec)
             {
-                if (ec)
+                std::cout << "Handshake callback, ec=" << ec.message()
+                      << " (" << ec.value() << ")\n";
+                if (!ec)
                 {
-                    std::cerr << "TLS handshake failed: " << ec.message() << "\n";
-                    self->force_close_session();
+                    std::cerr << "TLS handshake successful (CA verified)\n";
+
+                    self->live_.store(true);
+
+                    // Tell the client that we connected.
+                    if (self->on_connection_relay_)
+                    {
+                        self->on_connection_relay_();
+                    }
+                    else
+                    {
+                        std::cerr << "Connection handler not set in session instance!\n";
+                    }
+
+                    self->do_read_header();
                     return;
-                }
-
-                std::cout << "TLS handshake successful\n";
-
-                self->live_.store(true);
-
-                // Tell the client that we connected.
-                if (self->on_connection_relay_)
-                {
-                    self->on_connection_relay_();
                 }
                 else
                 {
-                    std::cerr << "Connection handler not set in session instance!\n";
-                }
+                    return;
+                    std::cerr << "CA based TLS handshake failed: "
+                              << ec.message()
+                              << " Falling back to fingerprint verification.\n";
 
-                self->do_read_header();
+                    if(self->verify_fingerprint())
+                    {
+                        std::cerr << "Fingerprint verified, TLS is enabled.\n";
+
+                        self->live_.store(true);
+
+                        // Tell the client that we connected.
+                        if (self->on_connection_relay_)
+                        {
+                            self->on_connection_relay_();
+                        }
+                        else
+                        {
+                            std::cerr << "Connection handler not set in session instance!\n";
+                        }
+
+                        self->do_read_header();
+                        return;
+                    }
+                    else
+                    {
+                        std::cerr << "Fingerprint failed to verify. Closing session.\n";
+                        self->force_close_session();
+                        return;
+                    }
+                }
 
             }));
 }
@@ -138,6 +166,11 @@ void ClientSession::on_connect_timeout(boost::system::error_code ec)
 
     std::cerr << "Connection timed out, cancelling\n";
     ssl_socket_.lowest_layer().cancel();
+}
+
+bool ClientSession::verify_fingerprint()
+{
+    return false;
 }
 
 void ClientSession::do_read_header()

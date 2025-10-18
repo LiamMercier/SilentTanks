@@ -64,7 +64,8 @@ void Client::connect(std::string endpoint)
     asio::post(client_strand_,
         [this, endpoint = std::move(endpoint)]{
 
-        auto host = "127.0.0.1";
+        //auto host = "127.0.0.1";
+        auto host = "localhost";
         auto port = "12345";
 
         this->current_session_ = std::make_shared<ClientSession>

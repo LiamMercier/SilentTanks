@@ -1,12 +1,11 @@
 #include <string>
 #include <iostream>
 #include <thread>
-#include <filesystem>
 
+#include "generic-constants.h"
 #include "server.h"
 #include "console.h"
 #include "console-dispatch.h"
-#include "elo-updates.h"
 
 #include <boost/asio.hpp>
 #include <boost/asio/ip/tcp.hpp>
@@ -18,7 +17,6 @@ int main()
     namespace asio = boost::asio;
 
     // basic test code
-
     if (sodium_init() == -1) {
         std::cerr << TERM_RED
                   << "libsodium failed to initialize. Exiting\n"
@@ -131,7 +129,7 @@ try
     catch(const boost::system::system_error& e)
     {
         std::cerr << TERM_RED
-                  << "Client error: "
+                  << "Server error: "
                   << e.what()
                   << "\n"
                   << TERM_RESET;

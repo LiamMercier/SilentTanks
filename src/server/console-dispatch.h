@@ -16,6 +16,19 @@ inline void console_dispatch(Server & server, std::string line)
         return;
     }
 
+    // Strip prefix "-" or "--" around a command.
+    if (cmd.size() >= 2 && cmd[0] == '-')
+    {
+        if (cmd[1] == '-')
+        {
+            cmd.erase(0, 2);
+        }
+        else
+        {
+            cmd.erase(0, 1);
+        }
+    }
+
     // To lower.
     std::transform(cmd.begin(), cmd.end(), cmd.begin(),
                    [](unsigned char c){
@@ -110,7 +123,7 @@ inline void console_dispatch(Server & server, std::string line)
     {
         Console::instance().log("Console command: "
                                 + cmd
-                                + " is unrecognized, try Help",
+                                + " is unrecognized, try help, -help, or --help",
                                 LogLevel::CONSOLE);
     }
 

@@ -83,6 +83,9 @@ void Server::CONSOLE_ban_ip(std::string ip,
 {
     db_.ban_ip(std::move(ip),
                std::move(banned_until));
+
+    // TODO <feature>: evict users who are under this IP and insert into
+    //                 the list of server IP bans.
 }
 
 // Shutdown smoothly.

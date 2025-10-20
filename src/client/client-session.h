@@ -33,7 +33,9 @@ public:
                              ConnectionHandler c_handler,
                              DisconnectHandler d_handler);
 
-    void start(std::string host, std::string port);
+    void start(std::string host,
+               std::string port,
+               std::string fingerprint);
 
     // Disable copy.
     ClientSession(const ClientSession &) = delete;
@@ -64,8 +66,6 @@ private:
 
     void on_connect_timeout(boost::system::error_code ec);
 
-    bool verify_fingerprint();
-
     void do_read_header();
 
     void do_read_body();
@@ -91,10 +91,14 @@ private:
 
     std::atomic<bool> live_;
 
+    std::string in_fingerprint_;
+
     // Data related members.
     Header incoming_header_;
     std::vector<uint8_t> incoming_body_;
     std::deque<Message> write_queue_;
+
+    std::string dropped_reason_;
 
     // Callbacks.
     MessageHandler on_message_relay_;

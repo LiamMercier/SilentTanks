@@ -1,5 +1,108 @@
 #include "client-session.h"
 
+using SHA256_ARRAY = std::array<unsigned char, SHA256_DIGEST_LENGTH>;
+
+constexpr int hex_char_to_value(char c)
+{
+    if (c >= '0' && c <= '9')
+    {
+        return static_cast<unsigned char>(c - '0');
+    }
+    else if (c >= 'a' && c <= 'f')
+    {
+        return static_cast<unsigned char>(10 + (c - 'a'));
+    }
+    else if (c >= 'A' && c <= 'F')
+    {
+        return static_cast<unsigned char>(10 + (c - 'A'));
+    }
+    else
+    {
+        return -1;
+    }
+}
+
+// Utility to convert the user's hexademical string to bytes.
+std::vector<unsigned char> hex_string_to_bytes(std::string user_hex)
+{
+    // Remove leading "0x" if present.
+    std::string temp = user_hex;
+    if (temp.size() >= 2
+        && temp[0] == '0'
+        && (temp[1] == 'x' || temp[1] == 'X'))
+    {
+        temp.erase(0, 2);
+    }
+
+    // We expect twice as many characters to represent the bytes,
+    // since "FF" fits in one byte but takes two bytes of characters.
+    if (temp.size() != SHA256_DIGEST_LENGTH * 2)
+    {
+        return {};
+    }
+
+    std::vector<unsigned char> bytes;
+    bytes.reserve(SHA256_DIGEST_LENGTH);
+
+    // Step by 2 each time.
+    for (size_t i = 0; i < temp.size(); i += 2)
+    {
+        int high = hex_char_to_value(temp[i]);
+        int low = hex_char_to_value(temp[i + 1]);
+
+        if (high < 0 || low < 0)
+        {
+            return {};
+        }
+
+        // Shifting over by 4 lets us avoid computing high and low differently.
+        bytes.push_back(static_cast<unsigned char>((high << 4) | low));
+    }
+
+    return bytes;
+}
+
+bool fingerprint_public_key(X509* cert, unsigned char out[SHA256_DIGEST_LENGTH])
+{
+    if (!cert)
+    {
+        return false;
+    }
+
+    EVP_PKEY* public_key = X509_get_pubkey(cert);
+
+    if (!public_key)
+    {
+        return false;
+    }
+
+    // Convert public key to DER (i2d_PUBKEY) into a buffer
+    int len = i2d_PUBKEY(public_key, nullptr);
+
+    if (len <= 0)
+    {
+        EVP_PKEY_free(public_key);
+        return false;
+    }
+
+    unsigned char* buf = (unsigned char*) OPENSSL_malloc(len);
+
+    if (!buf)
+    {
+        EVP_PKEY_free(public_key);
+        return false;
+    }
+
+    unsigned char* p = buf;
+    i2d_PUBKEY(public_key, &p);
+
+    SHA256(buf, len, out);
+
+    OPENSSL_free(buf);
+    EVP_PKEY_free(public_key);
+    return true;
+}
+
 ClientSession::ClientSession(asio::io_context & cntx)
 :ssl_cntx_(asio::ssl::context::tls_client),
 ssl_socket_(cntx, ssl_cntx_),
@@ -25,13 +128,73 @@ void ClientSession::set_message_handler(MessageHandler m_handler,
     on_disconnect_relay_ = std::move(d_handler);
 }
 
-void ClientSession::start(std::string host, std::string port)
+void ClientSession::start(std::string host,
+                          std::string port,
+                          std::string fingerprint)
 {
     std::cout << "Starting client session!\n";
 
+    in_fingerprint_ = std::move(fingerprint);
+
     ssl_cntx_.set_default_verify_paths();
     ssl_socket_.set_verify_mode(asio::ssl::verify_peer);
-    ssl_socket_.set_verify_callback(asio::ssl::rfc2818_verification(host));
+
+    // Custom verification callback. First check if the certificate
+    // is signed by a CA, then check against the given fingerprint.
+    ssl_socket_.set_verify_callback(
+    [this](bool preverified, asio::ssl::verify_context & cntx)
+    {
+        X509_STORE_CTX* x509_ctx = cntx.native_handle();
+        int depth = X509_STORE_CTX_get_error_depth(x509_ctx);
+
+        // We only want to use hash fallbacks on the leaf certificate.
+        if (depth != 0)
+        {
+            return preverified;
+        }
+
+        X509* cert = X509_STORE_CTX_get_current_cert(x509_ctx);
+
+        // If no cert, just return now.
+        if (!cert)
+        {
+            return preverified;
+        }
+
+        // If depth 0 and preverified, return now, we had a CA signed cert.
+        if (preverified)
+        {
+            return preverified;
+        }
+
+        // Otherwise, try to match the public key hash of this leaf to the
+        // user submitted hash.
+        unsigned char server_hash[SHA256_DIGEST_LENGTH];
+        if (!fingerprint_public_key(cert, server_hash))
+        {
+            std::cerr << "Failed to compute public key fingerprint.\n";
+            return preverified;
+        }
+
+        std::vector<unsigned char> user_hash = hex_string_to_bytes(in_fingerprint_);
+
+        if (user_hash.size() != SHA256_DIGEST_LENGTH)
+        {
+            std::cerr << "Fingerprint given by user has bad size.";
+            return preverified;
+        }
+
+        for (size_t i = 0; i < SHA256_DIGEST_LENGTH; i++)
+        {
+            if (user_hash[i] != server_hash[i])
+            {
+                return false;
+            }
+        }
+
+        // If we pass all checks, good cert.
+        return true;
+    });
 
     resolver_.async_resolve(
       host, port,
@@ -98,11 +261,9 @@ void ClientSession::on_connect(boost::system::error_code ec,
         asio::bind_executor(strand_,
             [self = shared_from_this()](boost::system::error_code ec)
             {
-                std::cout << "Handshake callback, ec=" << ec.message()
-                      << " (" << ec.value() << ")\n";
                 if (!ec)
                 {
-                    std::cerr << "TLS handshake successful (CA verified)\n";
+                    std::cerr << "TLS handshake successful\n";
 
                     self->live_.store(true);
 
@@ -121,36 +282,9 @@ void ClientSession::on_connect(boost::system::error_code ec,
                 }
                 else
                 {
+                    std::cerr << "TLS failed to verify. Closing session.\n";
+                    self->force_close_session();
                     return;
-                    std::cerr << "CA based TLS handshake failed: "
-                              << ec.message()
-                              << " Falling back to fingerprint verification.\n";
-
-                    if(self->verify_fingerprint())
-                    {
-                        std::cerr << "Fingerprint verified, TLS is enabled.\n";
-
-                        self->live_.store(true);
-
-                        // Tell the client that we connected.
-                        if (self->on_connection_relay_)
-                        {
-                            self->on_connection_relay_();
-                        }
-                        else
-                        {
-                            std::cerr << "Connection handler not set in session instance!\n";
-                        }
-
-                        self->do_read_header();
-                        return;
-                    }
-                    else
-                    {
-                        std::cerr << "Fingerprint failed to verify. Closing session.\n";
-                        self->force_close_session();
-                        return;
-                    }
                 }
 
             }));
@@ -166,11 +300,6 @@ void ClientSession::on_connect_timeout(boost::system::error_code ec)
 
     std::cerr << "Connection timed out, cancelling\n";
     ssl_socket_.lowest_layer().cancel();
-}
-
-bool ClientSession::verify_fingerprint()
-{
-    return false;
 }
 
 void ClientSession::do_read_header()

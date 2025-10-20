@@ -59,10 +59,15 @@ match_replay_callback_(std::move(match_replay_callback))
 
 }
 
-void Client::connect(std::string endpoint)
+void Client::connect(std::string endpoint,
+                     std::string fingerprint)
 {
     asio::post(client_strand_,
-        [this, endpoint = std::move(endpoint)]{
+        [this,
+        endpoint = std::move(endpoint),
+        fingerprint = std::move(fingerprint)]{
+
+        // TODO: endpoint to host/port.
 
         //auto host = "127.0.0.1";
         auto host = "localhost";
@@ -80,7 +85,9 @@ void Client::connect(std::string endpoint)
             [this](){ on_disconnect(); }
         );
 
-        this->current_session_->start(host, port);
+        this->current_session_->start(std::move(host),
+                                      std::move(port),
+                                      std::move(fingerprint));
 
     });
 }

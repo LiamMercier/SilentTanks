@@ -10,9 +10,12 @@
 #include <boost/asio.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/local/stream_protocol.hpp>
+#include <boost/program_options.hpp>
 #include <sodium.h>
 
-int main()
+namespace po = boost::program_options;
+
+int main(int argc, char** argv)
 {
     namespace asio = boost::asio;
 
@@ -35,6 +38,58 @@ int main()
         return 1;
     }
 
+    // Try to parse the command line.
+    std::string address;
+    int port = 0;
+
+    po::options_description desc("Allowed options");
+
+    desc.add_options()
+        ("help,h", "show help message")
+        ("port",
+         po::value<int>(&port)->default_value(DEFAULT_SERVER_PORT),
+         "Port to listen on (1-65535)")
+        ("address",
+         po::value<std::string>(&address)->default_value(DEFAULT_SERVER_ADDRESS),
+         "Address to listen on (example: 127.0.0.1)");
+
+    po::variables_map vars;
+    try
+    {
+        po::store(po::parse_command_line(argc, argv, desc), vars);
+        po::notify(vars);
+    }
+    catch (const po::error & e)
+    {
+        std::cerr << TERM_RED
+                  << "Command line error: "
+                  << e.what()
+                  << "\n"
+                  << desc
+                  << "\n"
+                  << TERM_RESET;
+
+        return 1;
+    }
+
+    if (vars.count("help"))
+    {
+        std::cout << desc << "\n";
+        return 0;
+    }
+
+    // Ensure the port is in a valid range.
+    if (port < 1 || port > 65535)
+    {
+        std::cerr << TERM_RED
+                  << "Invalid port: "
+                  << port
+                  << " (must be between 1 and 65535)\n"
+                  << TERM_RESET;
+    }
+
+    // TODO: address validation when ip is given
+
 try
 {
 
@@ -53,7 +108,7 @@ try
 
     Console::init(server_io_context, LogLevel::WARN);
 
-    asio::ip::tcp::endpoint endpoint(asio::ip::make_address("127.0.0.1"), 12345);
+    asio::ip::tcp::endpoint endpoint(asio::ip::make_address(address), port);
 
     // Setup ssl context for the server.
     asio::ssl::context ssl_cntx(asio::ssl::context::tls_server);
@@ -88,7 +143,9 @@ try
     Server server(server_io_context, endpoint, ssl_cntx);
 
     std::string lmsg = "Server started on "
-                       + endpoint.address().to_string();
+                       + endpoint.address().to_string()
+                       + ":"
+                       + std::to_string(endpoint.port());
 
     Console::instance().log(lmsg, LogLevel::CONSOLE);
 

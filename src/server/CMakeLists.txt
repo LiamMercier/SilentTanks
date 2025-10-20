@@ -9,6 +9,7 @@ target_link_libraries(SilentTanks-Server PRIVATE
     libgame
     protocol
     Boost::system
+    Boost::program_options
     ${ARGON2_LIBRARIES}
     ${libpqxx_LIBRARIES}
     ${libsodium_LIBRARIES}

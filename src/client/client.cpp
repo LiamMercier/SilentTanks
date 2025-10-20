@@ -1,5 +1,7 @@
 #include "client.h"
 
+#include "generic-constants.h"
+
 #include <argon2.h>
 #include <boost/uuid/uuid_io.hpp>
 #include <boost/uuid/nil_generator.hpp>
@@ -69,9 +71,8 @@ void Client::connect(std::string endpoint,
 
         // TODO: endpoint to host/port.
 
-        //auto host = "127.0.0.1";
         auto host = "localhost";
-        auto port = "12345";
+        auto port = std::to_string(DEFAULT_SERVER_PORT);
 
         this->current_session_ = std::make_shared<ClientSession>
                                     (

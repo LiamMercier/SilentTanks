@@ -132,7 +132,7 @@ void ClientSession::start(std::string host,
                           std::string port,
                           std::string fingerprint)
 {
-    std::cout << "Starting client session!\n";
+    std::cout << "Starting client session!\n\n";
 
     in_fingerprint_ = std::move(fingerprint);
 
@@ -224,8 +224,22 @@ void ClientSession::on_resolve(boost::system::error_code ec,
 {
     if (ec)
     {
-        std::cerr << "Resolve failed " << ec.message() << "\n";
+        std::cerr << "Resolve failed " << ec.message() << "\n\n";
         return;
+    }
+    else
+    {
+        std::cerr << "Resolved endpoints:\n";
+
+        for (const auto & endpoint : endpoints)
+        {
+            std::cerr << endpoint.endpoint().address().to_string()
+                      << ":"
+                      << endpoint.endpoint().port()
+                      << "\n";
+        }
+
+        std::cerr << "\n";
     }
 
     // Start connect timer so we don't get stuck waiting forever.
@@ -252,10 +266,16 @@ void ClientSession::on_connect(boost::system::error_code ec,
 
     if (ec)
     {
+        if (ec.value() == asio::error::connection_refused)
+        {
+            std::cerr << "Connection was refused. Bad endpoint?\n\n";
+        }
         return;
     }
 
-    std::cout << "Successful connection to " << ep << " starting TLS handshake \n";
+    std::cout << "Successful connection to "
+              << ep
+              << " starting TLS handshake\n\n";
 
     ssl_socket_.async_handshake(asio::ssl::stream_base::client,
         asio::bind_executor(strand_,
@@ -263,7 +283,7 @@ void ClientSession::on_connect(boost::system::error_code ec,
             {
                 if (!ec)
                 {
-                    std::cerr << "TLS handshake successful\n";
+                    std::cerr << "TLS handshake successful\n\n";
 
                     self->live_.store(true);
 
@@ -274,7 +294,7 @@ void ClientSession::on_connect(boost::system::error_code ec,
                     }
                     else
                     {
-                        std::cerr << "Connection handler not set in session instance!\n";
+                        std::cerr << "Connection handler not set in session instance!\n\n";
                     }
 
                     self->do_read_header();
@@ -282,7 +302,7 @@ void ClientSession::on_connect(boost::system::error_code ec,
                 }
                 else
                 {
-                    std::cerr << "TLS failed to verify. Closing session.\n";
+                    std::cerr << "TLS failed to verify. Closing session.\n\n";
                     self->force_close_session();
                     return;
                 }
@@ -298,7 +318,7 @@ void ClientSession::on_connect_timeout(boost::system::error_code ec)
         return;
     }
 
-    std::cerr << "Connection timed out, cancelling\n";
+    std::cerr << "Connection timed out, cancelling\n\n";
     ssl_socket_.lowest_layer().cancel();
 }
 
@@ -326,7 +346,7 @@ void ClientSession::do_read_header()
                     // disconnect.
                     else
                     {
-                        std::cerr << "Invalid header from server: " << +(static_cast<uint8_t>(self->incoming_header_.type_)) << "\n";
+                        std::cerr << "Invalid header from server: " << +(static_cast<uint8_t>(self->incoming_header_.type_)) << "\n\n";
 
                         // Close the session after sending
                         self->force_close_session();

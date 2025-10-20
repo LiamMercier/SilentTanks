@@ -126,14 +126,6 @@ int main(int argc, char* argv[])
         // Load our main QML file.
         engine.load(QUrl(QStringLiteral("qrc:/Main.qml")));
 
-        qDebug() << "Enum keys:" << GUI::staticMetaObject.enumeratorCount();
-
-        for (int i = 0; i < GUI::staticMetaObject.enumeratorCount(); ++i)
-        {
-            auto e = GUI::staticMetaObject.enumerator(i);
-            qDebug() << "Enum: " << e.name();
-        }
-
         // Ensure we can actually proceed with rendering.
         if (engine.rootObjects().isEmpty())
         {

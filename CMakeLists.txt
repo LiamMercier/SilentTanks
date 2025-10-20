@@ -72,7 +72,10 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(glaze)
 
-find_package(Boost REQUIRED COMPONENTS system)
+find_package(Boost REQUIRED COMPONENTS
+  system
+  program_options
+)
 
 find_package(Argon2 REQUIRED)
 

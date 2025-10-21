@@ -11,6 +11,7 @@
 
 #include "message.h"
 #include "header.h"
+#include "server-identity.h"
 
 constexpr int CONNECTION_WAIT_TIME = 5;
 

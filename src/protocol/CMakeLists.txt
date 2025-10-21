@@ -1,4 +1,4 @@
-add_library(protocol STATIC header.cpp message.cpp)
+add_library(protocol STATIC header.cpp message.cpp server-identity.cpp)
 
 target_include_directories(protocol PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 

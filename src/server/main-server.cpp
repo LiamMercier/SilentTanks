@@ -3,6 +3,7 @@
 #include <thread>
 
 #include "generic-constants.h"
+#include "server-identity.h"
 #include "server.h"
 #include "console.h"
 #include "console-dispatch.h"
@@ -51,7 +52,7 @@ int main(int argc, char** argv)
          "Port to listen on (1-65535)")
         ("address",
          po::value<std::string>(&address)->default_value(DEFAULT_SERVER_ADDRESS),
-         "Address to listen on (example: 127.0.0.1)");
+         "IP Address to listen on (example: 127.0.0.1)");
 
     po::variables_map vars;
     try
@@ -59,6 +60,7 @@ int main(int argc, char** argv)
         po::store(po::parse_command_line(argc, argv, desc), vars);
         po::notify(vars);
     }
+
     catch (const po::error & e)
     {
         std::cerr << TERM_RED
@@ -88,7 +90,21 @@ int main(int argc, char** argv)
                   << TERM_RESET;
     }
 
-    // TODO: address validation when ip is given
+    boost::system::error_code addr_ec;
+    asio::ip::make_address(address, addr_ec);
+
+    bool address_is_ip = (!addr_ec);
+
+    if (!address_is_ip)
+    {
+        std::cout << TERM_RED
+                  << "IP address provided was invalid or could not be made.\n"
+                  << TERM_RESET;
+        return 1;
+    }
+
+    bool console_started = false;
+    ServerIdentity server_identity;
 
 try
 {
@@ -140,14 +156,29 @@ try
         | asio::ssl::context::no_tlsv1_1
     );
 
+    // Try to fill the server identity with the current server public key.
+    bool valid_fingerprint = fill_server_fingerprint(ssl_cntx,
+                                                     server_identity.display_hash);
+
+    if (!valid_fingerprint)
+    {
+        std::cerr << TERM_RED
+                  << "Failed to get server identity during setup. Is a valid"
+                  << "certificate file being used?\n"
+                  << TERM_RESET;
+    }
+
+    server_identity.port = port;
+    server_identity.address = address;
+
     Server server(server_io_context, endpoint, ssl_cntx);
 
-    std::string lmsg = "Server started on "
-                       + endpoint.address().to_string()
-                       + ":"
-                       + std::to_string(endpoint.port());
+    std::string lmsg = "Server started. "
+                       + std::string("Server identity string:\n")
+                       + std::string("           ")
+                       + server_identity.get_identity_string();
 
-    Console::instance().log(lmsg, LogLevel::CONSOLE);
+    Console::instance().log(std::move(lmsg), LogLevel::CONSOLE);
 
     // Bind the line parsing handle for the console to use.
     auto cmd_handler = std::bind(&console_dispatch,
@@ -156,6 +187,8 @@ try
 
     Console::instance().set_command_handler(cmd_handler);
     Console::instance().start_command_loop();
+
+    console_started = true;
 
     asio::signal_set signals(server_io_context, SIGINT, SIGTERM);
         signals.async_wait(
@@ -192,10 +225,16 @@ try
                   << TERM_RESET;
     }
 
+    // TODO: Fix the command loop to not need the user to press anything.
+    //
+    //       There is no keypress required if command loop never started.
     std::cerr << "Server stopped. Press anything to return.\n";
 
-    Console::instance().stop_command_loop();
-    restore_terminal();
+    if (console_started)
+    {
+        Console::instance().stop_command_loop();
+        restore_terminal();
+    }
 
     return 0;
 

@@ -119,6 +119,7 @@ inline void console_dispatch(Server & server, std::string line)
             );
         server.shutdown();
     }
+    // TODO: print identity string option
     else
     {
         Console::instance().log("Console command: "

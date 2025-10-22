@@ -62,6 +62,7 @@ public:
 
     explicit GUIClient(asio::io_context& ctx,
                        std::vector<ServerIdentity> server_list,
+                       std::string server_list_filename,
                        QObject* parent = nullptr);
 
     ClientState state() const;

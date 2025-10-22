@@ -4,6 +4,7 @@
 
 GUIClient::GUIClient(asio::io_context & cntx,
                      std::vector<ServerIdentity> server_list,
+                     std::string server_list_filename,
                      QObject* parent)
 :QObject(parent),
 client_
@@ -118,6 +119,7 @@ client_
         Qt::QueuedConnection);
     }
 ),
+server_list_(server_list_filename),
 friends_(this),
 friend_requests_(this),
 blocked_(this),
@@ -264,6 +266,7 @@ Q_INVOKABLE void GUIClient::save_server_domain(const QString & endpoint)
     }
 
     // Otherwise, try to save the server details.
+    server_list_.add_server_identity(identity);
 }
 
 // For saving server information given the server identity string
@@ -279,9 +282,8 @@ Q_INVOKABLE void GUIClient::save_server_identity(const QString & identity_string
         return;
     }
 
-
     // Otherwise, try to save the server details.
-
+    server_list_.add_server_identity(identity);
 }
 
 static constexpr int MAX_PORT_VALUE = 65535;

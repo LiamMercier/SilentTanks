@@ -32,11 +32,23 @@ struct ServerIdentity
                + display_hash;
     }
 
+    // Append the name to the connection related data.
+    std::string get_file_line_string() const
+    {
+        return "{"
+               + name
+               + "}:"
+               + get_identity_string();
+    }
+
     bool try_parse_identity_string(std::string input);
 
     bool try_parse_endpoint(std::string input);
 
     bool try_parse_list_line(std::string input);
+
+    static constexpr size_t EXPECTED_HASH_LENGTH = static_cast<size_t>(
+                                                        SHA256_DIGEST_LENGTH * 2);
 };
 
 constexpr int hex_char_to_value(char c);

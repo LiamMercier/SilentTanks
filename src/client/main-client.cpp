@@ -32,15 +32,17 @@ int main(int argc, char* argv[])
         return 1;
     }
 
+    std::string server_list_filename = DEFAULT_SERVER_LIST_FILENAME;
     std::vector<ServerIdentity> server_list;
-    bool list_read_success = read_server_list(DEFAULT_SERVER_LIST_FILENAME,
+    bool list_read_success = read_server_list(server_list_filename,
                                               server_list);
 
     // If the server list could not be read, report to user.
     if (!list_read_success)
     {
         std::cerr << TERM_YELLOW
-                  << "Server list is malformed. Some servers could not be read.\n"
+                  << "Server list is malformed. Some servers could not be read "
+                  << "and will be removed if broken.\n"
                   << TERM_RESET;
     }
 
@@ -80,7 +82,9 @@ int main(int argc, char* argv[])
             QMetaObject::invokeMethod(qApp, "quit", Qt::QueuedConnection);
         });
 
-        GUIClient client(io_context, server_list);
+        GUIClient client(io_context,
+                         server_list,
+                         std::move(server_list_filename));
 
         // Setup engine and point at our GUI client wrapper.
         QQmlApplicationEngine engine;

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <iostream>
 #include <filesystem>
 #include <string>
 #include <cstdlib>
@@ -189,8 +190,8 @@ namespace AppAssets {
         bool resolvable = true;
 
         std::vector<std::string> asset_names = {
-            "certs",
-            "envs"
+            "mapfile.txt",
+            "server-list.txt"
         };
 
         for (const auto & filename : asset_names)

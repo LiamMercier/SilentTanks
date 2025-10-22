@@ -13,6 +13,7 @@
 #include <QUrl>
 #include <QStringLiteral>
 
+#include "generic-constants.h"
 #include "gui-client.h"
 #include "asset-resolver.h"
 
@@ -29,6 +30,30 @@ int main(int argc, char* argv[])
                   << "One or more required assets could not be found. Exiting.\n"
                   << TERM_RESET;
         return 1;
+    }
+
+    std::vector<ServerIdentity> server_list;
+    bool list_read_success = read_server_list(DEFAULT_SERVER_LIST_FILENAME,
+                                              server_list);
+
+    // If the server list could not be read, report to user.
+    if (!list_read_success)
+    {
+        std::cerr << TERM_YELLOW
+                  << "Server list is malformed. Some servers could not be read.\n"
+                  << TERM_RESET;
+    }
+
+    for (const auto & server : server_list)
+    {
+        std::cout << server.name
+                  << " "
+                  << server.address
+                  << " "
+                  << server.port
+                  << " "
+                  << server.display_hash
+                  << "\n";
     }
 
     try
@@ -55,11 +80,15 @@ int main(int argc, char* argv[])
             QMetaObject::invokeMethod(qApp, "quit", Qt::QueuedConnection);
         });
 
-        GUIClient client(io_context);
+        GUIClient client(io_context, server_list);
 
         // Setup engine and point at our GUI client wrapper.
         QQmlApplicationEngine engine;
         engine.rootContext()->setContextProperty("Client", &client);
+
+        // Server list model for connection screen.
+        engine.rootContext()->setContextProperty("ServerListModel",
+                                                 client.server_list_model());
 
         // Setup user lists.
         engine.rootContext()->setContextProperty("FriendsModel",
@@ -71,6 +100,8 @@ int main(int argc, char* argv[])
         engine.rootContext()->setContextProperty("BlockedModel",
                                                  client.blocked_model());
 
+        // Message history, match history, game manager, replay manager, players for
+        // the game, players for replay.
         engine.rootContext()->setContextProperty("MessagesModel",
                                                  client.messages_model());
 

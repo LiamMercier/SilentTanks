@@ -1,6 +1,7 @@
 #pragma once
 
 #include "client.h"
+#include "server-list.h"
 #include "user-list-model.h"
 #include "message-model.h"
 #include "match-history-model.h"
@@ -41,6 +42,9 @@ public:
                READ selected_mode
                NOTIFY selected_mode_changed)
 
+    Q_PROPERTY(ServerList* serverList
+               READ server_list_model CONSTANT)
+
     Q_PROPERTY(UserListModel* friendsModel
                READ friends_model CONSTANT)
 
@@ -56,7 +60,9 @@ public:
     Q_PROPERTY(GameManager* gameManager
                READ game_manager CONSTANT)
 
-    explicit GUIClient(asio::io_context& ctx, QObject* parent = nullptr);
+    explicit GUIClient(asio::io_context& ctx,
+                       std::vector<ServerIdentity> server_list,
+                       QObject* parent = nullptr);
 
     ClientState state() const;
 
@@ -65,6 +71,8 @@ public:
     QueueType queued_mode() const;
 
     QueueType selected_mode() const;
+
+    ServerList* server_list_model();
 
     UserListModel* friends_model();
 
@@ -164,6 +172,8 @@ private:
     std::queue<Popup> urgent_popup_queue_;
     std::queue<Popup> standard_popup_queue_;
     bool showing_popup_{false};
+
+    ServerList server_list_;
 
     UserListModel friends_;
     UserListModel friend_requests_;

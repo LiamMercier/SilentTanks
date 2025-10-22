@@ -5,11 +5,15 @@
 
 struct ServerIdentity
 {
+    std::string name;
     std::string address;
     uint16_t port;
+
+    // SHA256 hash bytes in human readable format (lowercase). All zero
+    // in the server list file if none was given (i.e for CA signed certificates).
     std::string display_hash;
 
-    std::string get_identity_string()
+    std::string get_identity_string() const
     {
         return "["
                + address
@@ -19,9 +23,20 @@ struct ServerIdentity
                + display_hash;
     }
 
+    std::string get_hashmap_string() const
+    {
+        return address
+               + ":"
+               + std::to_string(port)
+               + ":"
+               + display_hash;
+    }
+
     bool try_parse_identity_string(std::string input);
 
     bool try_parse_endpoint(std::string input);
+
+    bool try_parse_list_line(std::string input);
 };
 
 constexpr int hex_char_to_value(char c);

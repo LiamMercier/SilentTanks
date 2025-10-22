@@ -1,8 +1,6 @@
 #include "replay-manager.h"
 #include "client-state.h"
-
-constexpr bool URGENT_POPUP = true;
-constexpr bool STANDARD_POPUP = false;
+#include "client-constants.h"
 
 // Helper to compare usernames.
 constexpr bool same_username(const std::string & a, const std::string & b)

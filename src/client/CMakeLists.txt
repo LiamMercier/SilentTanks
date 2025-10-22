@@ -3,7 +3,7 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
-add_executable(SilentTanks-Client main-client.cpp client-session.cpp client.cpp client-data.cpp game-manager.cpp gui-client.cpp client-state.h user-list-model.cpp message-model.cpp match-history-model.cpp replay-manager.cpp ${QML_RCC})
+add_executable(SilentTanks-Client main-client.cpp client-session.cpp client.cpp client-data.cpp game-manager.cpp gui-client.cpp client-state.h user-list-model.cpp message-model.cpp match-history-model.cpp replay-manager.cpp server-list.cpp ${QML_RCC})
 
 target_include_directories(SilentTanks-Client PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 target_include_directories(SilentTanks-Client PRIVATE ${Boost_INCLUDE_DIRS})

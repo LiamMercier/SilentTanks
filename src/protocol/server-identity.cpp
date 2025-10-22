@@ -149,6 +149,40 @@ bool ServerIdentity::try_parse_endpoint(std::string input)
     return true;
 }
 
+// Utility to parse strings formatted as {Name}:[Address]:Port:Fingerprint
+// Return false on failure, true on success.
+bool ServerIdentity::try_parse_list_line(std::string input)
+{
+    if (input.empty())
+    {
+        return false;
+    }
+
+    if (input.front() != '{')
+    {
+        return false;
+    }
+
+    size_t name_end = input.find("}");
+
+    if (name_end == std::string::npos)
+    {
+        return false;
+    }
+
+    name = input.substr(1, name_end - 1);
+
+    // If nothing else exists, stop.
+    if (name_end + 2 >= input.size() || input[name_end + 2] != '[')
+    {
+        return false;
+    }
+
+    // Otherwise try to parse the rest of the identity.
+    std::string remaining = input.substr(name_end + 2);
+    return try_parse_identity_string(remaining);
+}
+
 constexpr int hex_char_to_value(char c)
 {
     if (c >= '0' && c <= '9')

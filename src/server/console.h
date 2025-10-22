@@ -1,5 +1,7 @@
 #pragma once
 
+#include "generic-constants.h"
+
 #include <utility>
 #include <array>
 #include <boost/asio.hpp>
@@ -13,12 +15,6 @@ enum class LogLevel : uint8_t
 };
 
 constexpr size_t NUMBER_OF_LOG_LEVELS = static_cast<size_t>(LogLevel::CONSOLE) + 1;
-
-constexpr std::string TERM_YELLOW = "\033[33m";
-
-constexpr std::string TERM_RED = "\033[31m";
-
-constexpr std::string_view TERM_RESET = "\033[0m";
 
 constexpr std::array<std::string_view, NUMBER_OF_LOG_LEVELS> log_prefix = []
 {

@@ -2,7 +2,9 @@
 
 #include <boost/uuid/uuid_generators.hpp>
 
-GUIClient::GUIClient(asio::io_context & cntx, QObject* parent)
+GUIClient::GUIClient(asio::io_context & cntx,
+                     std::vector<ServerIdentity> server_list,
+                     QObject* parent)
 :QObject(parent),
 client_
 (
@@ -147,7 +149,7 @@ replay_manager_(nullptr,
     }
 )
 {
-
+    server_list_.initialize_server_list(server_list);
 }
 
 ClientState GUIClient::state() const
@@ -187,6 +189,11 @@ Q_INVOKABLE void GUIClient::set_selected_mode(QueueType mode)
             emit selected_mode_changed(this->selected_mode_);
         },
         Qt::QueuedConnection);
+}
+
+ServerList* GUIClient::server_list_model()
+{
+    return & server_list_;
 }
 
 UserListModel* GUIClient::friends_model()

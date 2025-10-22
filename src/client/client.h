@@ -1,17 +1,11 @@
 #pragma once
 
+#include "client-constants.h"
 #include "client-session.h"
 #include "client-state.h"
 #include "client-data.h"
 #include "player-view.h"
 #include "popup.h"
-
-constexpr bool URGENT_POPUP = true;
-constexpr bool STANDARD_POPUP = false;
-
-constexpr std::string_view TERM_RED = "\033[31m";
-
-constexpr std::string_view TERM_RESET = "\033[0m";
 
 class Client
 {

@@ -100,7 +100,9 @@ public:
 
     Q_INVOKABLE void save_server_identity(const QString & identity);
 
-    Q_INVOKABLE void connect_to_server(const QString & endpoint);
+    Q_INVOKABLE void connect_to_server(const QString & address,
+                                       qint64 port,
+                                       const QString & fingerprint);
 
     Q_INVOKABLE void login(const QString & username,
                            const QString & password);

@@ -75,6 +75,10 @@ QVariant ServerList::data(const QModelIndex & index, int role) const
 
     switch (role)
     {
+        case NameRole:
+        {
+            return QString::fromStdString(identity.name);
+        }
         case AddressRole:
         {
             return QString::fromStdString(identity.address);
@@ -83,9 +87,9 @@ QVariant ServerList::data(const QModelIndex & index, int role) const
         {
             return identity.port;
         }
-        case NameRole:
+        case FingerprintRole:
         {
-            return QString::fromStdString(identity.name);
+            return QString::fromStdString(identity.display_hash);
         }
         default:
             return {};
@@ -95,9 +99,10 @@ QVariant ServerList::data(const QModelIndex & index, int role) const
 QHash<int, QByteArray> ServerList::roleNames() const
 {
     QHash<int, QByteArray> roles;
+    roles[NameRole] = "name";
     roles[AddressRole] = "address";
     roles[PortRole] = "port";
-    roles[NameRole] = "name";
+    roles[FingerprintRole] = "fingerprint";
     return roles;
 }
 

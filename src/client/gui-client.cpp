@@ -284,12 +284,24 @@ Q_INVOKABLE void GUIClient::save_server_identity(const QString & identity_string
 
 }
 
-Q_INVOKABLE void GUIClient::connect_to_server(const QString & endpoint)
+static constexpr int MAX_PORT_VALUE = 65535;
+
+Q_INVOKABLE void GUIClient::connect_to_server(const QString & address,
+                                              qint64 port,
+                                              const QString & fingerprint)
 {
-    // TODO: fingerprint.
-    // client_.connect(endpoint.toStdString(),
-    //                 //"9cc00a49db1a041e21eb5000ad763437ac371e3decae626d805411f49555ce63");
-    //                 "9cc00a49db1a041eb1ea50005d763437ac371e3decae626d805411f49555ce63");
+    if (port < 0 || port > MAX_PORT_VALUE)
+    {
+        return;
+    }
+
+    ServerIdentity this_server;
+
+    this_server.address = address.toStdString();
+    this_server.port = port;
+    this_server.display_hash = fingerprint.toStdString();
+
+    client_.connect(this_server);
 }
 
 Q_INVOKABLE void GUIClient::login(const QString & username,

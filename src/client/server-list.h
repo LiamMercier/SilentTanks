@@ -17,9 +17,10 @@ class ServerList : public QAbstractListModel
 public:
 
     enum Roles {
-        AddressRole = Qt::UserRole + 1,
+        NameRole = Qt::UserRole + 1,
+        AddressRole,
         PortRole,
-        NameRole
+        FingerprintRole
     };
 
     Q_ENUM(Roles)

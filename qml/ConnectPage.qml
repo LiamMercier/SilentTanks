@@ -14,15 +14,15 @@ Rectangle {
         property bool addButtonVisible: false
 
         anchors.centerIn: parent
-        width: parent.width * 0.8
+        width: parent.width * 0.65
         height: parent.height
         spacing: 8
 
         Item {
             id: connectTopSpacer
 
-            Layout.preferredHeight: connectColumn.height * 0.05
-            Layout.maximumHeight: connectColumn.height * 0.05
+            Layout.preferredHeight: connectColumn.height * 0.02
+            Layout.maximumHeight: connectColumn.height * 0.02
         }
 
         Text {
@@ -33,12 +33,97 @@ Rectangle {
             color: "#f2f2f2"
         }
 
-        Item {
+        Rectangle {
+            Layout.preferredWidth: connectColumn.width * 0.65
             Layout.fillHeight: true
-            Layout.fillWidth: true
-        }
+            Layout.alignment: Qt.AlignHCenter
 
-        // TODO: list view of server's we have saved from disk.
+            color: "#202122"
+
+            ListView {
+                anchors.fill: parent
+
+                id: serverListView
+                model: ServerListModel
+                clip: true
+
+                delegate: Rectangle {
+                    width: ListView.view.width
+                    height: 55
+
+                    color: "#2a2c2e"
+
+                    RowLayout {
+                        anchors.fill: parent
+                        anchors.margins: 6
+
+                        Item {
+                            id: serverLeftPadding
+                            Layout.preferredWidth: 4
+                            Layout.maximumWidth: 4
+                        }
+
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true
+
+                            Text {
+                                id: serverName
+                                text: model.name
+                                font.pointSize: 12
+
+                                color: "#f2f2f2"
+                                elide: Text.ElideRight
+
+                                verticalAlignment: Text.AlignVCenter
+                                horizontalAlignment: Text.AlignHCenter
+
+                                width: parent.width - 12
+                            }
+
+                            Text {
+                                id: serverAddress
+                                text: model.address
+                                font.pointSize: 10
+
+                                color: "#f2f2f2"
+                                elide: Text.ElideRight
+
+                                verticalAlignment: Text.AlignVCenter
+                                horizontalAlignment: Text.AlignHCenter
+
+                                width: parent.width - 12
+                            }
+                        }
+
+                        Item {
+                            id: serverButtonSpacer
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true
+                        }
+
+                        Button {
+                            Layout.preferredWidth: 40
+                            Layout.maximumWidth: 40
+
+                            text: ">"
+
+                            onClicked: {
+                                Client.connect_to_server(model.address,
+                                                         model.port,
+                                                         model.fingerprint)
+                            }
+                        }
+
+                        Item {
+                            id: serverRightPadding
+                            Layout.preferredWidth: 4
+                            Layout.maximumWidth: 4
+                        }
+                    }
+                }
+            }
+        }
 
         Button {
             id: addButton

@@ -34,9 +34,7 @@ public:
                              ConnectionHandler c_handler,
                              DisconnectHandler d_handler);
 
-    void start(std::string host,
-               std::string port,
-               std::string fingerprint);
+    void start(ServerIdentity identity);
 
     // Disable copy.
     ClientSession(const ClientSession &) = delete;

@@ -57,8 +57,7 @@ public:
 
     inline int get_elo(GameMode mode);
 
-    void connect(std::string endpoint,
-                 std::string fingerprint);
+    void connect(ServerIdentity identity);
 
     void login(std::string username, std::string password);
 

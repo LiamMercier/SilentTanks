@@ -61,18 +61,11 @@ match_replay_callback_(std::move(match_replay_callback))
 
 }
 
-void Client::connect(std::string endpoint,
-                     std::string fingerprint)
+void Client::connect(ServerIdentity identity)
 {
     asio::post(client_strand_,
         [this,
-        endpoint = std::move(endpoint),
-        fingerprint = std::move(fingerprint)]{
-
-        // TODO: endpoint to host/port.
-
-        auto host = "localhost";
-        auto port = std::to_string(DEFAULT_SERVER_PORT);
+        identity = std::move(identity)]{
 
         this->current_session_ = std::make_shared<ClientSession>
                                     (
@@ -86,9 +79,7 @@ void Client::connect(std::string endpoint,
             [this](){ on_disconnect(); }
         );
 
-        this->current_session_->start(std::move(host),
-                                      std::move(port),
-                                      std::move(fingerprint));
+        this->current_session_->start(std::move(identity));
 
     });
 }

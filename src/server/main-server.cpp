@@ -88,6 +88,8 @@ int main(int argc, char** argv)
                   << port
                   << " (must be between 1 and 65535)\n"
                   << TERM_RESET;
+
+        return 1;
     }
 
     boost::system::error_code addr_ec;

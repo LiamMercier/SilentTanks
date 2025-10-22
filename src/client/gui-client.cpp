@@ -243,12 +243,46 @@ Q_INVOKABLE void GUIClient::notify_popup_closed()
     try_show_popup();
 }
 
+// For saving server information given the domain and port.
+Q_INVOKABLE void GUIClient::save_server_domain(const QString & endpoint)
+{
+    // Try to parse the endpoint as domain : port
+    ServerIdentity identity;
+    bool success = identity.try_parse_endpoint(endpoint.toStdString());
+
+    // If parsing failed, stop now.
+    if (!success)
+    {
+        return;
+    }
+
+    // Otherwise, try to save the server details.
+}
+
+// For saving server information given the server identity string
+Q_INVOKABLE void GUIClient::save_server_identity(const QString & identity_string)
+{
+    // Try to parse the identity string.
+    ServerIdentity identity;
+    bool success = identity.try_parse_identity_string(identity_string.toStdString());
+
+    // If parsing failed, stop now.
+    if (!success)
+    {
+        return;
+    }
+
+
+    // Otherwise, try to save the server details.
+
+}
+
 Q_INVOKABLE void GUIClient::connect_to_server(const QString & endpoint)
 {
     // TODO: fingerprint.
-    client_.connect(endpoint.toStdString(),
-                    //"9cc00a49db1a041e21eb5000ad763437ac371e3decae626d805411f49555ce63");
-                    "9cc00a49db1a041eb1ea50005d763437ac371e3decae626d805411f49555ce63");
+    // client_.connect(endpoint.toStdString(),
+    //                 //"9cc00a49db1a041e21eb5000ad763437ac371e3decae626d805411f49555ce63");
+    //                 "9cc00a49db1a041eb1ea50005d763437ac371e3decae626d805411f49555ce63");
 }
 
 Q_INVOKABLE void GUIClient::login(const QString & username,

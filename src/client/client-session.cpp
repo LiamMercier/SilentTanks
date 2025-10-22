@@ -25,13 +25,11 @@ void ClientSession::set_message_handler(MessageHandler m_handler,
     on_disconnect_relay_ = std::move(d_handler);
 }
 
-void ClientSession::start(std::string host,
-                          std::string port,
-                          std::string fingerprint)
+void ClientSession::start(ServerIdentity identity)
 {
     std::cout << "Starting client session!\n\n";
 
-    in_fingerprint_ = std::move(fingerprint);
+    in_fingerprint_ = std::move(identity.display_hash);
 
     ssl_cntx_.set_default_verify_paths();
     ssl_socket_.set_verify_mode(asio::ssl::verify_peer);
@@ -94,7 +92,7 @@ void ClientSession::start(std::string host,
     });
 
     resolver_.async_resolve(
-      host, port,
+      identity.address, std::to_string(identity.port),
       asio::bind_executor(strand_,
         [self = shared_from_this()](auto ec, auto endpoints){
 

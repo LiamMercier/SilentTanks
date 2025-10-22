@@ -88,6 +88,10 @@ public:
 
     Q_INVOKABLE void notify_popup_closed();
 
+    Q_INVOKABLE void save_server_domain(const QString & endpoint);
+
+    Q_INVOKABLE void save_server_identity(const QString & identity);
+
     Q_INVOKABLE void connect_to_server(const QString & endpoint);
 
     Q_INVOKABLE void login(const QString & username,

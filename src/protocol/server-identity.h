@@ -6,7 +6,7 @@
 struct ServerIdentity
 {
     std::string address;
-    int port;
+    uint16_t port;
     std::string display_hash;
 
     std::string get_identity_string()
@@ -18,6 +18,10 @@ struct ServerIdentity
                + ":"
                + display_hash;
     }
+
+    bool try_parse_identity_string(std::string input);
+
+    bool try_parse_endpoint(std::string input);
 };
 
 constexpr int hex_char_to_value(char c);

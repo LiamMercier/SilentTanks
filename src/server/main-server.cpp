@@ -51,7 +51,8 @@ int main(int argc, char** argv)
          po::value<int>(&port)->default_value(DEFAULT_SERVER_PORT),
          "Port to listen on (1-65535)")
         ("address",
-         po::value<std::string>(&address)->default_value(DEFAULT_SERVER_ADDRESS),
+         po::value<std::string>(&address)
+         ->default_value(std::string(DEFAULT_SERVER_ADDRESS)),
          "IP Address to listen on (example: 127.0.0.1)");
 
     po::variables_map vars;

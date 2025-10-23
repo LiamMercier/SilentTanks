@@ -32,7 +32,7 @@ int main(int argc, char* argv[])
         return 1;
     }
 
-    std::string server_list_filename = DEFAULT_SERVER_LIST_FILENAME;
+    std::string server_list_filename = std::string(DEFAULT_SERVER_LIST_FILENAME);
     std::vector<ServerIdentity> server_list;
     bool list_read_success = read_server_list(server_list_filename,
                                               server_list);

@@ -8,6 +8,11 @@ Rectangle {
 
     color: "#1b1c1d"
 
+    ServerDetailsPopup {
+        id: detailsPopup
+        anchors.centerIn: parent
+    }
+
     ColumnLayout {
         id: connectColumn
 
@@ -103,8 +108,8 @@ Rectangle {
                         }
 
                         Button {
-                            Layout.preferredWidth: 40
-                            Layout.maximumWidth: 40
+                            Layout.preferredWidth: 32
+                            Layout.maximumWidth: 32
 
                             text: ">"
 
@@ -112,6 +117,22 @@ Rectangle {
                                 Client.connect_to_server(model.address,
                                                          model.port,
                                                          model.fingerprint)
+                            }
+                        }
+
+                        Button {
+                            id: serverDetailsButton
+                            Layout.preferredWidth: 20
+                            Layout.maximumWidth: 20
+
+                            text: "\u22EE"
+
+                            onClicked: {
+                                detailsPopup.serverName = model.name
+                                detailsPopup.serverAddress = model.address
+                                detailsPopup.serverPort = model.port
+                                detailsPopup.serverFingerprint = model.fingerprint
+                                detailsPopup.open()
                             }
                         }
 
@@ -150,6 +171,29 @@ Rectangle {
             onClicked: {
                 connectColumn.addButtonVisible = true
                 return
+            }
+        }
+
+        TextField {
+            id: nameField
+
+            Layout.alignment: Qt.AlignHCenter
+
+            visible: connectColumn.addButtonVisible
+
+            placeholderText: "Server Name"
+            color: "#f2f2f2"
+            // Above two buttons plus spacing
+            Layout.preferredWidth: 362
+            Layout.maximumWidth: 362
+
+            background: Rectangle {
+                color: "#2a2c2e"
+                radius: 2
+            }
+
+            onAccepted: {
+
             }
         }
 
@@ -272,12 +316,14 @@ Rectangle {
                         if (identityField.text == "")
                         {
                             var res = addressField.text + ":" + portField.text
-                            Client.save_server_domain(res)
+                            Client.save_server_domain(res,
+                                                      nameField.text)
                         }
                         // Otherwise try to save using the identity string.
                         else
                         {
-                            Client.save_server_identity(identityField.text)
+                            Client.save_server_identity(identityField.text,
+                                                        nameField.text)
                         }
 
                         // Clean up for next time.

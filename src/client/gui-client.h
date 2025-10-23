@@ -97,9 +97,11 @@ public:
 
     Q_INVOKABLE void notify_popup_closed();
 
-    Q_INVOKABLE void save_server_domain(const QString & endpoint);
+    Q_INVOKABLE void save_server_domain(const QString & endpoint,
+                                        const QString & name);
 
-    Q_INVOKABLE void save_server_identity(const QString & identity);
+    Q_INVOKABLE void save_server_identity(const QString & identity,
+                                          const QString & name);
 
     Q_INVOKABLE void connect_to_server(const QString & address,
                                        qint64 port,

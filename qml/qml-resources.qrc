@@ -16,6 +16,7 @@
     <file>QueueMenus.qml</file>
     <file>ReplayPage.qml</file>
     <file>ReplayView.qml</file>
+    <file>ServerDetailsPopup.qml</file>
     <file>SoundManager.qml</file>
     <file>SvgButton.qml</file>
     <file>UserListPopup.qml</file>

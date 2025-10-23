@@ -1,5 +1,7 @@
 #include "gui-client.h"
 
+#include "generic-constants.h"
+
 #include <boost/uuid/uuid_generators.hpp>
 
 GUIClient::GUIClient(asio::io_context & cntx,
@@ -253,7 +255,8 @@ Q_INVOKABLE void GUIClient::notify_popup_closed()
 }
 
 // For saving server information given the domain and port.
-Q_INVOKABLE void GUIClient::save_server_domain(const QString & endpoint)
+Q_INVOKABLE void GUIClient::save_server_domain(const QString & endpoint,
+                                               const QString & name)
 {
     // Try to parse the endpoint as domain : port
     ServerIdentity identity;
@@ -265,12 +268,17 @@ Q_INVOKABLE void GUIClient::save_server_domain(const QString & endpoint)
         return;
     }
 
+    // Set the name.
+    std::string server_name = name.toStdString();
+    identity.name = std::move(server_name);
+
     // Otherwise, try to save the server details.
     server_list_.add_server_identity(identity);
 }
 
 // For saving server information given the server identity string
-Q_INVOKABLE void GUIClient::save_server_identity(const QString & identity_string)
+Q_INVOKABLE void GUIClient::save_server_identity(const QString & identity_string,
+                                                 const QString & name)
 {
     // Try to parse the identity string.
     ServerIdentity identity;
@@ -281,6 +289,15 @@ Q_INVOKABLE void GUIClient::save_server_identity(const QString & identity_string
     {
         return;
     }
+
+    std::string server_name = name.toStdString();
+
+    if (server_name.empty())
+    {
+        server_name = DEFAULT_SERVER_NAME;
+    }
+
+    identity.name = std::move(server_name);
 
     // Otherwise, try to save the server details.
     server_list_.add_server_identity(identity);

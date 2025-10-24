@@ -113,6 +113,9 @@
     <file>pngs/blocked_button.png</file>
     <file>pngs/blocked_button_hovered.png</file>
     <file>pngs/blocked_button_pressed.png</file>
+    <file>pngs/close_button.png</file>
+    <file>pngs/close_button_hovered.png</file>
+    <file>pngs/close_button_pressed.png</file>
     <file>pngs/download_button.png</file>
     <file>pngs/download_button_hovered.png</file>
     <file>pngs/download_button_pressed.png</file>

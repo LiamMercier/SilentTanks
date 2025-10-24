@@ -5,7 +5,7 @@
 
 #include "server.h"
 #include "console.h"
-
+// TODO: formatting
 inline void console_dispatch(Server & server, std::string line)
 {
     std::istringstream iss(line);
@@ -105,9 +105,10 @@ inline void console_dispatch(Server & server, std::string line)
     {
         Console::instance().log(
                 "Available commands: \n"
-                "BanUser <username> <duration (minutes)> <reason>\n"
-                "BanIP <ipv4_address> <duration (minutes)>\n"
-                "Shutdown",
+                "           ShowIdentity\n"
+                "           BanUser <username> <duration (minutes)> <reason>\n"
+                "           BanIP <ipv4_address> <duration (minutes)>\n"
+                "           Shutdown",
                 LogLevel::CONSOLE
             );
     }
@@ -119,7 +120,14 @@ inline void console_dispatch(Server & server, std::string line)
             );
         server.shutdown();
     }
-    // TODO: print identity string option
+    else if (cmd == "showidentity")
+    {
+        std::string identity_line = server.get_identity_string();
+        Console::instance().log(
+                identity_line,
+                LogLevel::CONSOLE
+            );
+    }
     else
     {
         Console::instance().log("Console command: "

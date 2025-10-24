@@ -3,10 +3,12 @@
 
 Server::Server(asio::io_context & cntx,
                tcp::endpoint endpoint,
-               asio::ssl::context & ssl_cntx)
+               asio::ssl::context & ssl_cntx,
+               ServerIdentity server_identity)
 :calling_context_(cntx),
 server_strand_(cntx.get_executor()),
 ssl_cntx_(ssl_cntx),
+server_identity_(server_identity),
 acceptor_(cntx, endpoint),
 user_manager_(std::make_shared<UserManager>(cntx)),
 matcher_(cntx,

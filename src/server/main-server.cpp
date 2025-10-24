@@ -174,7 +174,10 @@ try
     server_identity.port = port;
     server_identity.address = address;
 
-    Server server(server_io_context, endpoint, ssl_cntx);
+    Server server(server_io_context,
+                  endpoint,
+                  ssl_cntx,
+                  server_identity);
 
     std::string lmsg = "Server started. "
                        + std::string("Server identity string:\n")

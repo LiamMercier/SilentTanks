@@ -7,6 +7,7 @@
 #include "user-manager.h"
 #include "database.h"
 #include "asset-resolver.h"
+#include "server-identity.h"
 
 static constexpr int SHUTDOWN_COMPONENTS_COUNT = 3;
 
@@ -24,7 +25,8 @@ public:
     // construct the server given a context and an endpoint
     Server(asio::io_context & cntx,
            tcp::endpoint endpoint,
-           asio::ssl::context & ssl_cntx);
+           asio::ssl::context & ssl_cntx,
+           ServerIdentity server_identity);
 
     void CONSOLE_ban_user(std::string username,
                           std::chrono::system_clock::time_point banned_until,
@@ -36,6 +38,9 @@ public:
     void shutdown();
 
     void do_accept();
+
+    inline std::string get_identity_string() const;
+
 private:
     void handle_accept(const boost::system::error_code & ec,
                        tcp::socket socket);
@@ -69,6 +74,9 @@ private:
 
     // SSL context for accepting connections and communicating.
     asio::ssl::context & ssl_cntx_;
+
+    mutable std::mutex identity_mutex_;
+    ServerIdentity server_identity_;
 
     // Acceptor bound to an endpoint.
     tcp::acceptor acceptor_;
@@ -115,3 +123,9 @@ private:
     size_t remaining_shutdown_tasks_ = 0;
 
 };
+
+inline std::string Server::get_identity_string() const
+{
+    std::lock_guard lock(identity_mutex_);
+    return server_identity_.get_identity_string();
+}

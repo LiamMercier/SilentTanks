@@ -273,7 +273,7 @@ Q_INVOKABLE void GUIClient::save_server_domain(const QString & endpoint,
     identity.name = std::move(server_name);
 
     // Otherwise, try to save the server details.
-    server_list_.add_server_identity(identity);
+    server_list_.add_server_identity(std::move(identity));
 }
 
 // For saving server information given the server identity string
@@ -300,10 +300,28 @@ Q_INVOKABLE void GUIClient::save_server_identity(const QString & identity_string
     identity.name = std::move(server_name);
 
     // Otherwise, try to save the server details.
-    server_list_.add_server_identity(identity);
+    server_list_.add_server_identity(std::move(identity));
 }
 
 static constexpr int MAX_PORT_VALUE = 65535;
+
+Q_INVOKABLE void GUIClient::remove_server_identity(const QString & address,
+                                                   qint64 port,
+                                                   const QString & fingerprint)
+{
+    if (port < 0 || port > MAX_PORT_VALUE)
+    {
+        return;
+    }
+
+    ServerIdentity this_server;
+
+    this_server.address = address.toStdString();
+    this_server.port = port;
+    this_server.display_hash = fingerprint.toStdString();
+
+    server_list_.remove_server_identity(this_server);
+}
 
 Q_INVOKABLE void GUIClient::connect_to_server(const QString & address,
                                               qint64 port,
@@ -320,7 +338,7 @@ Q_INVOKABLE void GUIClient::connect_to_server(const QString & address,
     this_server.port = port;
     this_server.display_hash = fingerprint.toStdString();
 
-    client_.connect(this_server);
+    client_.connect(std::move(this_server));
 }
 
 Q_INVOKABLE void GUIClient::login(const QString & username,

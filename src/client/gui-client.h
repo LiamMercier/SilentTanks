@@ -103,6 +103,10 @@ public:
     Q_INVOKABLE void save_server_identity(const QString & identity,
                                           const QString & name);
 
+    Q_INVOKABLE void remove_server_identity(const QString & address,
+                                            qint64 port,
+                                            const QString & fingerprint);
+
     Q_INVOKABLE void connect_to_server(const QString & address,
                                        qint64 port,
                                        const QString & fingerprint);

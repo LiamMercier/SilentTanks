@@ -42,12 +42,19 @@ public:
 
     void add_server_identity(ServerIdentity identity);
 
+    void remove_server_identity(const ServerIdentity & identity);
+
 signals:
 
 private:;
     std::string server_list_filename_;
 
     mutable std::mutex servers_mutex_;
+
+    // TODO <optimization>: store ServerIdentity* instead of size_t so we
+    // do not need to do an O(n) pass over the map on identity removal.
+    //
+    // Not a big improvement since we likely wont have thousands of servers.
     std::unordered_map<std::string, size_t> identity_to_index_;
     std::vector<ServerIdentity> server_identities_;
 };

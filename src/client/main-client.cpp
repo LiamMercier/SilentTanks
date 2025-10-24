@@ -46,18 +46,6 @@ int main(int argc, char* argv[])
                   << TERM_RESET;
     }
 
-    for (const auto & server : server_list)
-    {
-        std::cout << server.name
-                  << " "
-                  << server.address
-                  << " "
-                  << server.port
-                  << " "
-                  << server.display_hash
-                  << "\n";
-    }
-
     try
     {
         QGuiApplication app(argc, argv);

@@ -196,7 +196,9 @@ Popup {
             toggled: false
 
             onClicked: {
-                console.log("TODO: delete server information")
+                Client.remove_server_identity(serverAddress,
+                                              serverPort,
+                                              serverFingerprint)
                 detailsPopup.close()
             }
         }

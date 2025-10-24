@@ -407,9 +407,13 @@ void ServerList::add_server_identity(ServerIdentity identity)
                                         );
     }
 
+    beginResetModel();
+
     size_t curr_index = server_identities_.size();
     server_identities_.push_back(std::move(identity));
     identity_to_index_[key] = curr_index;
+
+    endResetModel();
 
     // Now, save the server list to disk.
     std::string err_report;
@@ -425,4 +429,46 @@ void ServerList::add_server_identity(ServerIdentity identity)
         server_identities_.pop_back();
     }
 
+}
+
+void ServerList::remove_server_identity(const ServerIdentity & identity)
+{
+    std::lock_guard lock(servers_mutex_);
+
+    // Find the identity if it exists.
+    std::string key = identity.get_hashmap_string();
+
+    auto iter = identity_to_index_.find(key);
+    if (iter == identity_to_index_.end())
+    {
+        return;
+    }
+
+    size_t removed_index = iter->second;
+
+    beginRemoveRows(QModelIndex(), removed_index, removed_index);
+    server_identities_.erase(server_identities_.begin() + removed_index);
+    endRemoveRows();
+
+    identity_to_index_.erase(iter);
+
+    // Update indexes
+    for (auto & [k, index] : identity_to_index_)
+    {
+        if (index > removed_index)
+        {
+            index -= 1;
+        }
+    }
+
+    // Save the server list to disk.
+    std::string err_report;
+    save_server_list_to_disk(err_report);
+
+    if (!err_report.empty())
+    {
+        std::cerr << "ERROR WRITING FILE: "
+                  << err_report
+                  << "\n";
+    }
 }

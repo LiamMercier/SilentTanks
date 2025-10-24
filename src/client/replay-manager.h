@@ -155,6 +155,7 @@ private:
     std::unordered_set<uint64_t> replay_exists_;
     uint64_t current_replay_index_{UINT64_MAX};
     uint64_t current_replay_id_{UINT64_MAX};
+    bool valid_instance_{false};
 
     //
     // Match specific data.

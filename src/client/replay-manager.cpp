@@ -247,7 +247,6 @@ Q_INVOKABLE void ReplayManager::set_replay(qint64 match_id)
         uint16_t total = current_replay.settings.width
                         * current_replay.settings.height;
 
-                        // TODO: what happens if filename doesn't exist??
         environment_loaded = current_instance_.read_env_by_name
                                 (
                                     current_replay.settings.filename,
@@ -257,12 +256,22 @@ Q_INVOKABLE void ReplayManager::set_replay(qint64 match_id)
 
     if (!environment_loaded)
     {
+        {
+            std::lock_guard lock(replay_mutex_);
+            valid_instance_ = false;
+        }
+
         std::string no_env_msg = "The environment was unable to be loaded";
 
         popup_callback_(
             Popup(PopupType::Info, "Replay Failed", no_env_msg),
                 URGENT_POPUP);
         return;
+    }
+
+    {
+        std::lock_guard lock(replay_mutex_);
+        valid_instance_ = true;
     }
 
     // Do setup.
@@ -296,6 +305,18 @@ Q_INVOKABLE void ReplayManager::set_perspective(qint64 player_id)
 
     {
         std::lock_guard lock(replay_mutex_);
+
+        if (!valid_instance_)
+        {
+            std::string no_env_msg = "The environment was unable to be loaded";
+
+            popup_callback_(
+                Popup(PopupType::Info, "Replay Failed", no_env_msg),
+                    URGENT_POPUP);
+
+            return;
+        }
+
         const MatchReplay & current_replay = replays_[current_replay_index_];
         num_players = current_replay.settings.num_players;
     }
@@ -336,6 +357,18 @@ Q_INVOKABLE void ReplayManager::step_forward_turn()
 
     {
         std::lock_guard lock(replay_mutex_);
+
+        if (!valid_instance_)
+        {
+            std::string no_env_msg = "The environment was unable to be loaded";
+
+            popup_callback_(
+                Popup(PopupType::Info, "Replay Failed", no_env_msg),
+                    URGENT_POPUP);
+
+            return;
+        }
+
         const MatchReplay & current_replay = replays_[current_replay_index_];
 
         // Handle no next move existing.
@@ -640,17 +673,29 @@ Q_INVOKABLE void ReplayManager::step_forward_turn()
 
 Q_INVOKABLE void ReplayManager::step_backward_turn()
 {
-    // If no moves have been applied, do nothing.
-    if (applied_moves_ == 0)
-    {
-        return;
-    }
-
     uint64_t last_turn = applied_moves_ - 1;
 
     CommandHead cmd;
     {
         std::lock_guard lock(replay_mutex_);
+
+        if (!valid_instance_)
+        {
+            std::string no_env_msg = "The environment was unable to be loaded";
+
+            popup_callback_(
+                Popup(PopupType::Info, "Replay Failed", no_env_msg),
+                    URGENT_POPUP);
+
+            return;
+        }
+
+        // If no moves have been applied, do nothing.
+        if (applied_moves_ == 0)
+        {
+            return;
+        }
+
         const MatchReplay & current_replay = replays_[current_replay_index_];
 
         // Grab the next turn to apply. This is equal to the number

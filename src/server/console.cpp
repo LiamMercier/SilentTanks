@@ -214,5 +214,5 @@ void Console::do_log(std::string msg, LogLevel level)
     std::clog << log_prefix[static_cast<size_t>(level)] << msg << "\n";
 
     // Redraw the buffer.
-    std::clog << snapshot << std::flush;
+    std::clog << "\033[1;34m[USER]:\033[0m    " << snapshot << std::flush;
 }

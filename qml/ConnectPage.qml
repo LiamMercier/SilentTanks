@@ -322,8 +322,19 @@ Rectangle {
                         // Otherwise try to save using the identity string.
                         else
                         {
-                            Client.save_server_identity(identityField.text,
-                                                        nameField.text)
+                            if (nameField.text == "")
+                            {
+                                Client.save_server_identity(identityField.text)
+                            }
+                            else
+                            {
+                                var res = "{"
+                                          + nameField.text
+                                          + "}:"
+                                          + identityField.text
+
+                                Client.save_server_identity(res)
+                            }
                         }
 
                         // Clean up for next time.

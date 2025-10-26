@@ -100,8 +100,7 @@ public:
     Q_INVOKABLE void save_server_domain(const QString & endpoint,
                                         const QString & name);
 
-    Q_INVOKABLE void save_server_identity(const QString & identity,
-                                          const QString & name);
+    Q_INVOKABLE void save_server_identity(const QString & identity);
 
     Q_INVOKABLE void remove_server_identity(const QString & address,
                                             qint64 port,

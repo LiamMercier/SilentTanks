@@ -231,10 +231,7 @@ try
                   << TERM_RESET;
     }
 
-    // TODO: Fix the command loop to not need the user to press anything.
-    //
-    //       There is no keypress required if command loop never started.
-    std::cerr << "Server stopped. Press anything to return.\n";
+    std::cerr << "\nServer stopped. Press anything to return.\n";
 
     if (console_started)
     {

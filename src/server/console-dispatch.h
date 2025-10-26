@@ -5,7 +5,7 @@
 
 #include "server.h"
 #include "console.h"
-// TODO: formatting
+
 inline void console_dispatch(Server & server, std::string line)
 {
     std::istringstream iss(line);

@@ -20,9 +20,9 @@ constexpr std::array<std::string_view, NUMBER_OF_LOG_LEVELS> log_prefix = []
 {
     std::array<std::string_view, NUMBER_OF_LOG_LEVELS> a{};
 
-    a[static_cast<size_t>(LogLevel::INFO)] = "\033[32m[INFO]:\033[0m ";
-    a[static_cast<size_t>(LogLevel::WARN)] = "\033[33m[WARN]:\033[0m ";
-    a[static_cast<size_t>(LogLevel::ERROR)] = "\033[31m[ERROR]:\033[0m ";
+    a[static_cast<size_t>(LogLevel::INFO)] = "\033[32m[INFO]:\033[0m    ";
+    a[static_cast<size_t>(LogLevel::WARN)] = "\033[33m[WARN]:\033[0m    ";
+    a[static_cast<size_t>(LogLevel::ERROR)] = "\033[31m[ERROR]:\033[0m   ";
     a[static_cast<size_t>(LogLevel::CONSOLE)] = "\033[36m[CONSOLE]:\033[0m ";
 
     return a;

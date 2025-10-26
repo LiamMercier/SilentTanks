@@ -277,27 +277,28 @@ Q_INVOKABLE void GUIClient::save_server_domain(const QString & endpoint,
 }
 
 // For saving server information given the server identity string
-Q_INVOKABLE void GUIClient::save_server_identity(const QString & identity_string,
-                                                 const QString & name)
+Q_INVOKABLE void GUIClient::save_server_identity(const QString & identity_string)
 {
     // Try to parse the identity string.
     ServerIdentity identity;
-    bool success = identity.try_parse_identity_string(identity_string.toStdString());
+    bool success = identity.try_parse_list_line(identity_string.toStdString());
 
-    // If parsing failed, stop now.
+    // If parsing failed, try to parse without name.
     if (!success)
     {
-        return;
+        success = identity.try_parse_identity_string(identity_string.toStdString());
+
+        // If both failed, return.
+        if (!success)
+        {
+            return;
+        }
     }
 
-    std::string server_name = name.toStdString();
-
-    if (server_name.empty())
+    if (identity.name.empty())
     {
-        server_name = DEFAULT_SERVER_NAME;
+        identity.name = std::move(DEFAULT_SERVER_NAME);
     }
-
-    identity.name = std::move(server_name);
 
     // Otherwise, try to save the server details.
     server_list_.add_server_identity(std::move(identity));

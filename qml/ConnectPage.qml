@@ -107,11 +107,23 @@ Rectangle {
                             Layout.fillHeight: true
                         }
 
-                        Button {
+                        SvgButton {
                             Layout.preferredWidth: 32
                             Layout.maximumWidth: 32
 
-                            text: ">"
+                            Layout.preferredHeight: 32
+                            Layout.maximumHeight: 32
+
+                            Layout.alignment: Qt.AlignHCenter
+
+                            fontChoice: "#1f1f1f"
+                            unfocusedOpacity: 1.00
+
+                            normalSource: "qrc:/pngs/connect_button.png"
+                            hoverSource: "qrc:/pngs/connect_button_hovered.png"
+                            pressedSource: "qrc:/pngs/connect_button_pressed.png"
+
+                            toggled: false
 
                             onClicked: {
                                 Client.connect_to_server(model.address,
@@ -120,12 +132,25 @@ Rectangle {
                             }
                         }
 
-                        Button {
+                        SvgButton {
                             id: serverDetailsButton
+
                             Layout.preferredWidth: 20
                             Layout.maximumWidth: 20
 
-                            text: "\u22EE"
+                            Layout.preferredHeight: 35
+                            Layout.maximumHeight: 35
+
+                            Layout.alignment: Qt.AlignHCenter
+
+                            fontChoice: "#1f1f1f"
+                            unfocusedOpacity: 1.00
+
+                            normalSource: "qrc:/pngs/vertical_dots.png"
+                            hoverSource: "qrc:/pngs/vertical_dots_hovered.png"
+                            pressedSource: "qrc:/pngs/vertical_dots_pressed.png"
+
+                            toggled: false
 
                             onClicked: {
                                 detailsPopup.serverName = model.name

@@ -116,6 +116,9 @@
     <file>pngs/close_button.png</file>
     <file>pngs/close_button_hovered.png</file>
     <file>pngs/close_button_pressed.png</file>
+    <file>pngs/connect_button.png</file>
+    <file>pngs/connect_button_hovered.png</file>
+    <file>pngs/connect_button_pressed.png</file>
     <file>pngs/download_button.png</file>
     <file>pngs/download_button_hovered.png</file>
     <file>pngs/download_button_pressed.png</file>
@@ -131,6 +134,9 @@
     <file>pngs/reject_button.png</file>
     <file>pngs/reject_button_hovered.png</file>
     <file>pngs/reject_button_pressed.png</file>
+    <file>pngs/vertical_dots.png</file>
+    <file>pngs/vertical_dots_hovered.png</file>
+    <file>pngs/vertical_dots_pressed.png</file>
     <file>sounds/CannonFiring.wav</file>
     <file>sounds/Move.wav</file>
     <file>sounds/NotifyTurn.wav</file>

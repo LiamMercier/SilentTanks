@@ -121,3 +121,46 @@ add_subdirectory(src/libgame)
 add_subdirectory(src/protocol)
 add_subdirectory(src/server)
 add_subdirectory(src/client)
+
+# packaging
+include(InstallRequiredSystemLibraries)
+
+# Generic metadata
+set(CPACK_GENERATOR "DEB")
+set(CPACK_PACKAGE_VERSION "1.0.0")
+set(CPACK_PACKAGE_CONTACT "LiamMercier@proton.me")
+set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Liam Mercier <LiamMercier@proton.me>")
+set(CPACK_DEBIAN_PACKAGE_DEPENDS "libc6, libpqxx-dev, libboost-system, libboost-program-options, libssl1")
+
+# Components
+set(CPACK_COMPONENTS_ALL server client common)
+set(CPACK_DEB_COMPONENT_INSTALL ON)
+
+# Common data
+set(CPACK_DEBIAN_COMMON_PACKAGE_NAME "silent-tanks-common")
+set(CPACK_DEBIAN_COMMON_PACKAGE_MAINTAINER "Liam Mercier <LiamMercier@proton.me>")
+
+# Server package
+set(CPACK_DEBIAN_SERVER_PACKAGE_NAME "silent-tanks-server")
+set(CPACK_DEBIAN_SERVER_PACKAGE_MAINTAINER "Liam Mercier <LiamMercier@proton.me>")
+set(CPACK_DEBIAN_SERVER_PACKAGE_CONTROL_EXTRA
+    "${CMAKE_SOURCE_DIR}/server-postinst.sh")
+set(CMAKE_DEBIAN_SERVER_PACKAGE_DEPENDS "silent-tanks-common (>= ${CPACK_PACKAGE_VERSION}), ${CPACK_DEBIAN_PACKAGE_DEPENDS}")
+
+# Client package
+set(CPACK_DEBIAN_CLIENT_PACKAGE_NAME "silent-tanks-client")
+set(CPACK_DEBIAN_CLIENT_PACKAGE_MAINTAINER "Liam Mercier <LiamMercier@proton.me>")
+set(CPACK_DEBIAN_CLIENT_PACKAGE_CONTROL_EXTRA
+    "${CMAKE_SOURCE_DIR}/client-postinst.sh")
+set(CMAKE_DEBIAN_CLIENT_PACKAGE_DEPENDS "silent-tanks-common (>= ${CPACK_PACKAGE_VERSION}), ${CPACK_DEBIAN_PACKAGE_DEPENDS}")
+
+# Bring over environment files
+install(DIRECTORY "${CMAKE_SOURCE_DIR}/envs"
+        DESTINATION "share/silent-tanks"
+        COMPONENT common)
+
+install(FILES "${CMAKE_SOURCE_DIR}/mapfile.txt"
+        DESTINATION "share/silent-tanks"
+        COMPONENT common)
+
+include(CPack)

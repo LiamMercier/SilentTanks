@@ -9,14 +9,17 @@ TARGET_USER="${TARGET_USER:-${SUDO_USER:-$(whoami)}}"
 USER_HOME="$(getent passwd "$TARGET_USER" | cut -d: -f6 || true)"
 
 if [ -n "$USER_HOME" ]; then
-    ROOT_DIR="$USER_HOME/.local/share/SilentTanks"
+    ROOT_DIR="$USER_HOME/.local/share/silent-tanks"
 else
     echo "Warning: could not determine user home"
-    ROOT_DIR="/var/lib/SilentTanks"
+    ROOT_DIR="/var/lib/silent-tanks"
 fi
 
 CERT_DIR="$ROOT_DIR/certs"
 CRED_FILE="$ROOT_DIR/.pgpass"
+
+PKG_SHARE="/usr/share/silent-tanks"
+SQL_FILE="$PKG_SHARE/setup/create_tables.sql"
 
 DB_USER="silenttanksoperator"
 DB_NAME="silenttanksdb"
@@ -43,10 +46,38 @@ if ! id -u "$APP_USER" >/dev/null 2>&1; then
 fi
 
 mkdir -p "$ROOT_DIR"
-chown -R "${APP_USER}:${APP_GROUP}" "$ROOT_DIR"
-chmod 700 "$ROOT_DIR"
+mkdir -p "$CERT_DIR"
 
-# TODO: move files into root directory for use.
+chown -R "${APP_USER}:${APP_GROUP}" "$ROOT_DIR"
+chown -R "${APP_USER}:${APP_GROUP}" "$CERT_DIR"
+
+chmod 700 "$ROOT_DIR"
+chmod 700 "$CERT_DIR"
+
+# Move over the environment files, map file
+if [ -d "$PKG_SHARE/envs" ]; then
+    DEST_ENVS="$ROOT_DIR/envs"
+    if [ ! -d "$DEST_ENVS" ]; then
+        cp -r "$PKG_SHARE/envs" "$DEST_ENVS"
+        chown -R "${APP_USER}:${APP_GROUP}" "$DEST_ENVS"
+        chmod -R u+rwX,go-rwx "$DEST_ENVS"
+        echo "Copied environments folder to $DEST_ENVS"
+    else
+        echo "Environment folder already exists"
+    fi
+fi
+
+if [ -f "$PKG_SHARE/mapfile.txt" ]; then
+    DEST_MAPFILE="$ROOT_DIR/mapfile.txt"
+    if [ ! -f "$ROOT_DIR/mapfile.txt" ]; then
+        cp "$PKG_SHARE/mapfile.txt" "$DEST_MAPFILE"
+        chown "${APP_USER}:${APP_GROUP}" "$DEST_MAPFILE"
+        chmod u+rwX,go-rwx "$DEST_MAPFILE"
+        echo "Copied mapfile.txt to $DEST_MAPFILE"
+    else
+        echo "Mapfile already exists"
+    fi
+fi
 
 if command -v psql >/dev/null 2>&1; then
     if [ ! -f "$CRED_FILE" ]; then
@@ -97,10 +128,9 @@ fi
 
 # Generate key and certificate.
 if [ ! -f "${CERT_DIR}/server.key" ] || [ ! -f "${CERT_DIR}/server.crt" ]; then
-    echo "Generating self-signed certificate ${CERT_DIR}..."
-    # TODO: call shell script and move outputs
+    echo "Server certificate or key missing. Generate a self signed certificate using create_self_signed_cert.sh"
 else
-    echo "Certificate and key already exists, skipping generation."
+    echo "Certificate and key already exist."
 fi
 
 echo "Finished setup."

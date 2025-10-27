@@ -20,3 +20,19 @@ target_link_libraries(SilentTanks-Server PRIVATE
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   target_compile_definitions(SilentTanks-Server PRIVATE DEV_BUILD=1)
 endif()
+
+# Bring over the application binary
+install(TARGETS SilentTanks-Server
+        RUNTIME DESTINATION bin
+        COMPONENT server)
+
+# Bring over the script to make certs
+install(PROGRAMS "${CMAKE_SOURCE_DIR}/setup/create_self_signed_cert.sh"
+        DESTINATION "share/silent-tanks/setup"
+        COMPONENT server)
+
+# Bring over the SQL table setup
+install(FILES "${CMAKE_SOURCE_DIR}/setup/create_tables.sql"
+        DESTINATION "share/silent-tanks/setup"
+        COMPONENT server)
+

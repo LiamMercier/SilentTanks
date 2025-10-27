@@ -25,3 +25,7 @@ target_link_libraries(SilentTanks-Client PRIVATE
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   target_compile_definitions(SilentTanks-Client PRIVATE DEV_BUILD=1)
 endif()
+
+install(TARGETS SilentTanks-Client
+        RUNTIME DESTINATION bin
+        COMPONENT client)

@@ -14,6 +14,9 @@
 #include <boost/program_options.hpp>
 #include <sodium.h>
 
+// TODO <feature>: setup server to move data from install location to
+//                 the user's home on first run instead of on package install.
+
 namespace po = boost::program_options;
 
 int main(int argc, char** argv)

@@ -8,7 +8,7 @@
 
 namespace AppAssets {
 
-    constexpr const char * application_name = "SilentTanks";
+    constexpr const char * application_name = "silent-tanks";
 
     inline std::filesystem::path join(const std::filesystem::path & base,
                                       const std::string & appended)

@@ -162,7 +162,10 @@ namespace AppAssets {
             "certs/server.key",
 
             // List of maps
-            "mapfile.txt"
+            "mapfile.txt",
+
+            // Maps directory
+            "envs/"
         };
 
         for (const auto & filename : asset_names)
@@ -191,7 +194,8 @@ namespace AppAssets {
 
         std::vector<std::string> asset_names = {
             "mapfile.txt",
-            "server-list.txt"
+            "server-list.txt",
+            "envs/"
         };
 
         for (const auto & filename : asset_names)

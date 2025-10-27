@@ -10,6 +10,7 @@ ApplicationWindow {
     visible: true
     width: Screen.width * 0.8
     height: Screen.height * 0.75
+    title: "Silent Tanks"
 
     // Load our client interface based on the client state.
     Loader {

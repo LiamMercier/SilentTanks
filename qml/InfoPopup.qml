@@ -4,6 +4,7 @@ import QtQuick.Layouts
 import QtQuick.Window
 import GUICommon 1.0
 
+// TODO: styling
 Window
 {
     id: infoPopup

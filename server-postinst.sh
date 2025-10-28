@@ -1,23 +1,18 @@
 #!/bin/bash
 set -euo pipefail
 
+# Our main goal post install is to move necessary files from the install directory
+# /usr/share/silent-tanks to /var/lib/silent-tanks for use in the server
+# and ensure a server user/group exists.
+
 APP_USER="silent-tanks"
 APP_GROUP="silent-tanks"
 
-# find installing user's directory
-TARGET_USER="${TARGET_USER:-${SUDO_USER:-$(whoami)}}"
-USER_HOME="$(getent passwd "$TARGET_USER" | cut -d: -f6 || true)"
-
-if [ -n "$USER_HOME" ]; then
-    ROOT_DIR="$USER_HOME/.local/share/silent-tanks"
-else
-    echo "Warning: could not determine user home"
-    ROOT_DIR="/var/lib/silent-tanks"
-fi
-
+# Store server variable data in /var/lib/silent-tanks
+ROOT_DIR="/var/lib/silent-tanks"
 CERT_DIR="$ROOT_DIR/certs"
-CRED_FILE="$ROOT_DIR/.pgpass"
 
+# Package specific scripts and files.
 PKG_SHARE="/usr/share/silent-tanks"
 SQL_FILE="$PKG_SHARE/setup/create_tables.sql"
 
@@ -28,9 +23,10 @@ if ! getent group "$APP_GROUP" >/dev/null; then
     if command -v addgroup >/dev/null 2>&1; then
         addgroup --system "$APP_GROUP" || true
     elif command -v groupadd >/dev/null 2>&1; then
-        groupadd -system "$APP_GROUP" || true
+        groupadd --system "$APP_GROUP" || true
     else
         echo "no groupadd or addgroup available."
+        exit 1
     fi
 fi
 
@@ -41,7 +37,7 @@ if ! id -u "$APP_USER" >/dev/null 2>&1; then
         useradd --system --no-create-home --shell /usr/sbin/nologin --gid "$APP_GROUP" "$APP_USER" || true
     else
         echo "No useradd/adduser available."
-        return 1
+        exit 1
     fi
 fi
 
@@ -65,6 +61,8 @@ if [ -d "$PKG_SHARE/envs" ]; then
     else
         echo "Environment folder already exists"
     fi
+else
+    echo "Environment folder not found in ${PKG_SHARE}/envs"
 fi
 
 if [ -f "$PKG_SHARE/mapfile.txt" ]; then
@@ -77,61 +75,16 @@ if [ -f "$PKG_SHARE/mapfile.txt" ]; then
     else
         echo "Mapfile already exists"
     fi
-fi
-
-if command -v psql >/dev/null 2>&1; then
-    if [ ! -f "$CRED_FILE" ]; then
-        # Create postgreSQL database, starting with random password.
-        if command -v openssl >/dev/null 2>&1; then
-            DB_PASS="$(openssl rand -base64 32 | tr -dc 'A-Za-z0-9' | head -c 24)"
-        else
-            DB_PASS="$(tr -dc A-Za-z0-9 </dev/urandom | head -c 24 || true)"
-        fi
-
-        # Create user
-        if ! sudo -u postgres psql -tA -c "SELECT 1 FROM pg_roles WHERE rolname = '${DB_USER}'" | grep -q 1; then
-            sudo -u postgres psql -c "CREATE USER ${DB_USER} WITH PASSWORD '${DB_PASS}';"
-            echo "Created postgres role ${DB_USER}"
-        else
-            echo "User role ${DB_USER} already exists."
-        fi
-
-        # Create database
-        if ! sudo -u postgres psql -lqt | cut -d \| -f 1 | awk '{$1=$1};1' | grep -qw "${DB_NAME}"; then
-            sudo -u postgres psql -c "CREATE DATABASE ${DB_NAME} OWNER ${DB_USER};"
-            echo "Created database ${DB_NAME}"
-        else
-            echo "Database ${DB_NAME} already exists."
-        fi
-
-        # Create tables from sql file
-        if [ -f "$SQL_FILE" ]; then
-            sudo -u postgres psql -d "${DB_NAME}" -v ON_ERROR_STOP=1 -f "$SQL_FILE"
-        else
-            echo "Sql file at ${SQL_FILE} not found."
-        fi
-
-        cat > "$CRED_FILE" << EOF
-DB_USER=${DB_USER}
-DB_NAME=${DB_NAME}
-DB_PASS=${DB_PASS}
-EOF
-        chmod 600 "$CRED_FILE"
-        chown "${APP_USER}:${APP_GROUP}" "$CRED_FILE"
-        echo "Wrote DB credentials to ${CRED_FILE}"
-    else
-        echo "Credentials already exist at $CRED_FILE; skipping creation"
-    fi
 else
-    echo "psql not found, manual setup will be required."
+    echo "mapfile.txt not found at ${PKG_SHARE}/mapfile.txt"
 fi
 
-# Generate key and certificate.
+# Tell server admin to generate key and certificate.
 if [ ! -f "${CERT_DIR}/server.key" ] || [ ! -f "${CERT_DIR}/server.crt" ]; then
-    echo "Server certificate or key missing. Generate a self signed certificate using create_self_signed_cert.sh"
+    echo "server.crt or server.key are missing from ${CERT_DIR}. Generate a self signed certificate using create_self_signed_cert.sh or supply your own."
 else
-    echo "Certificate and key already exist."
+    echo "Certificate and key already exist at ${CERT_DIR}."
 fi
 
-echo "Finished setup."
+echo "Finished setup. Server administrator should call setup-database.sh"
 exit 0

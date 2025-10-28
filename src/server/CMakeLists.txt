@@ -27,12 +27,17 @@ install(TARGETS SilentTanks-Server
         COMPONENT server)
 
 # Bring over the script to make certs
-install(PROGRAMS "${CMAKE_SOURCE_DIR}/setup/create_self_signed_cert.sh"
+install(PROGRAMS "${CMAKE_SOURCE_DIR}/setup/create-self-signed-cert.sh"
+        DESTINATION "share/silent-tanks/setup"
+        COMPONENT server)
+
+# Bring over postgres setup script.
+install(FILES "${CMAKE_SOURCE_DIR}/setup/create-tables.sql"
         DESTINATION "share/silent-tanks/setup"
         COMPONENT server)
 
 # Bring over the SQL table setup
-install(FILES "${CMAKE_SOURCE_DIR}/setup/create_tables.sql"
+install(FILES "${CMAKE_SOURCE_DIR}/setup/setup-database.sql"
         DESTINATION "share/silent-tanks/setup"
         COMPONENT server)
 

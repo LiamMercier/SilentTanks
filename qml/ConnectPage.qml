@@ -340,6 +340,7 @@ Rectangle {
                         // was given.
                         if (identityField.text == "")
                         {
+                            // TODO: default port
                             var res = addressField.text + ":" + portField.text
                             Client.save_server_domain(res,
                                                       nameField.text)

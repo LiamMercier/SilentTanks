@@ -148,6 +148,100 @@ namespace AppAssets {
 
     }
 
+    // Try to copy missing files when an asset does not exist at startup.
+    inline bool try_copy_missing_file(const std::filesystem::path & src,
+                                      const std::filesystem::path & destination)
+    {
+        namespace fs = std::filesystem;
+        std::error_code ec;
+
+        if (!fs::exists(src, ec))
+        {
+            std::cerr << "Failed to find "
+                          << src
+                          << " (does not exist)\n";
+            return false;
+        }
+
+        if (fs::is_directory(src, ec))
+        {
+            if (ec)
+            {
+                std::cerr << "Error checking source directory "
+                          << ec.message()
+                          << "\n";
+                return false;
+            }
+
+            fs::copy(src,
+                     destination,
+                     fs::copy_options::recursive
+                     | fs::copy_options::copy_symlinks
+                     | fs::copy_options::skip_existing,
+                     ec);
+
+            if (ec)
+            {
+                std::cerr << "Failed to copy directory "
+                          << src
+                          << " to "
+                          << destination
+                          << " error:"
+                          << ec.message()
+                          << "\n";
+
+                return false;
+            }
+        }
+        // Handle source files or symlinks.
+        else
+        {
+            auto parent = destination.parent_path();
+            if (!parent.empty() && !fs::exists(parent, ec))
+            {
+                fs::create_directories(destination.parent_path(), ec);
+
+                if (ec)
+                {
+                    std::cerr << "Failed to create destination parent "
+                              << parent
+                              << " error: "
+                              << ec.message()
+                              << "\n";
+
+                    return false;
+                }
+            }
+
+            fs::copy_file(src, destination, fs::copy_options::skip_existing, ec);
+            if (ec)
+            {
+                std::cerr << "Failed to copy file "
+                          << src
+                          << " to "
+                          << destination
+                          << " error: "
+                          << ec.message()
+                          << "\n";
+
+                return false;
+            }
+        }
+
+        // Try to set owner perms for files.
+        std::error_code perm_ec;
+        fs::permissions(destination, fs::perms::owner_all,
+                        fs::perm_options::add,
+                        perm_ec);
+
+        if (ec)
+        {
+            return false;
+        }
+
+        return true;
+    }
+
     // Go through each expected location and check the asset can be resolved.
     // Otherwise, fail fast and report back to the user.
     //
@@ -195,8 +289,33 @@ namespace AppAssets {
         std::vector<std::string> asset_names = {
             "mapfile.txt",
             "server-list.txt",
-            "envs/"
+            "envs"
         };
+
+// TODO: windows specific copy path.
+#ifdef _WIN32
+        std::filesystem::path package_share = "";
+
+// Linux copy path, uses /usr/share/silent-tanks
+#else
+        std::filesystem::path package_share = "/usr/share";
+        package_share = package_share / application_name;
+
+        if (package_share.empty())
+        {
+            std::cerr << "Warning: usr/share/"
+                      << application_name
+                      << " not found.\n";
+        }
+
+        std::filesystem::path user_dir = get_assets_dir();
+
+        if (user_dir.empty())
+        {
+            std::cerr << "User asset directory not found.\n";
+            return false;
+        }
+#endif
 
         for (const auto & filename : asset_names)
         {
@@ -210,7 +329,32 @@ namespace AppAssets {
                           << path
                           << ")\n";
 
-                resolvable = false;
+                // Try to copy the file if possible.
+                std::filesystem::path copy_path = join(package_share, filename);
+
+                if (copy_path.empty())
+                {
+                    std::cerr << "Copy path not available for "
+                              << filename
+                              << '\n';
+
+                    resolvable = false;
+                    continue;
+                }
+
+                std::filesystem::path dest = user_dir / filename;
+                bool copied = try_copy_missing_file(copy_path, dest);
+
+                if (!copied)
+                {
+                    std::cerr << "Failed to copy "
+                              << copy_path
+                              << " to "
+                              << path
+                              << "\n";
+                }
+
+                resolvable = copied;
             }
         }
 

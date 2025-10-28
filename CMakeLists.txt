@@ -130,7 +130,8 @@ set(CPACK_GENERATOR "DEB")
 set(CPACK_PACKAGE_VERSION "1.0.0")
 set(CPACK_PACKAGE_CONTACT "LiamMercier@proton.me")
 set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Liam Mercier <LiamMercier@proton.me>")
-set(CPACK_DEBIAN_PACKAGE_DEPENDS "libc6, libpqxx-dev, libboost-system, libboost-program-options, libssl1")
+# TODO: figure out actual dependencies that aren't dev libraries
+# set(CPACK_DEBIAN_PACKAGE_DEPENDS "libc6, libpqxx-dev, libboost-system, libboost-program-options, libssl1")
 
 # Components
 set(CPACK_COMPONENTS_ALL server client common)
@@ -145,14 +146,12 @@ set(CPACK_DEBIAN_SERVER_PACKAGE_NAME "silent-tanks-server")
 set(CPACK_DEBIAN_SERVER_PACKAGE_MAINTAINER "Liam Mercier <LiamMercier@proton.me>")
 set(CPACK_DEBIAN_SERVER_PACKAGE_CONTROL_EXTRA
     "${CMAKE_SOURCE_DIR}/server-postinst.sh")
-set(CMAKE_DEBIAN_SERVER_PACKAGE_DEPENDS "silent-tanks-common (>= ${CPACK_PACKAGE_VERSION}), ${CPACK_DEBIAN_PACKAGE_DEPENDS}")
+set(CPACK_DEBIAN_SERVER_PACKAGE_DEPENDS "silent-tanks-common (>= ${CPACK_PACKAGE_VERSION}), ${CPACK_DEBIAN_PACKAGE_DEPENDS}")
 
 # Client package
 set(CPACK_DEBIAN_CLIENT_PACKAGE_NAME "silent-tanks-client")
 set(CPACK_DEBIAN_CLIENT_PACKAGE_MAINTAINER "Liam Mercier <LiamMercier@proton.me>")
-set(CPACK_DEBIAN_CLIENT_PACKAGE_CONTROL_EXTRA
-    "${CMAKE_SOURCE_DIR}/client-postinst.sh")
-set(CMAKE_DEBIAN_CLIENT_PACKAGE_DEPENDS "silent-tanks-common (>= ${CPACK_PACKAGE_VERSION}), ${CPACK_DEBIAN_PACKAGE_DEPENDS}")
+set(CPACK_DEBIAN_CLIENT_PACKAGE_DEPENDS "silent-tanks-common (>= ${CPACK_PACKAGE_VERSION}), ${CPACK_DEBIAN_PACKAGE_DEPENDS}")
 
 # Bring over environment files
 install(DIRECTORY "${CMAKE_SOURCE_DIR}/envs"

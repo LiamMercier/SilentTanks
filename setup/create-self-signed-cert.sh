@@ -6,7 +6,7 @@ set -euo pipefail
 #
 
 # directories
-CERT_DIR="../certs"
+CERT_DIR="."
 CERT_FILE="$CERT_DIR/server.crt"
 KEY_FILE="$CERT_DIR/server.key"
 
@@ -27,8 +27,6 @@ FORCE=false
 if [[ "${1-}" == "-force" || "${1-}" == "--force" ]]; then
     FORCE=true
 fi
-
-mkdir -p "$CERT_DIR"
 
 if [[ ( -f "$CERT_FILE" || -f "$KEY_FILE" ) && "$FORCE" != "true" ]]; then
   echo "Certificate or key already exist. Use '-force' or '--force' to overwrite."
@@ -78,6 +76,14 @@ openssl req -new -x509 -days "$DAYS_VALID" \
     -extensions v3_req
 
 chmod 644 "$CERT_FILE"
+
+APP_USER="silent-tanks"
+APP_GROUP="silent-tanks"
+
+if getent group "$APP_GROUP" >/dev/null && id -u "$APP_USER" >/dev/null 2>&1; then
+    chown "${APP_USER}:${APP_GROUP}" "$CERT_FILE"
+    chown "${APP_USER}:${APP_GROUP}" "$KEY_FILE"
+fi
 
 echo "Created: "
 echo " - $KEY_FILE (perm 600)"

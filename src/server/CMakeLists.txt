@@ -37,7 +37,7 @@ install(FILES "${CMAKE_SOURCE_DIR}/setup/create-tables.sql"
         COMPONENT server)
 
 # Bring over the SQL table setup
-install(FILES "${CMAKE_SOURCE_DIR}/setup/setup-database.sql"
+install(FILES "${CMAKE_SOURCE_DIR}/setup/setup-database.sh"
         DESTINATION "share/silent-tanks/setup"
         COMPONENT server)
 

@@ -14,10 +14,6 @@ CERT_DIR="$ROOT_DIR/certs"
 
 # Package specific scripts and files.
 PKG_SHARE="/usr/share/silent-tanks"
-SQL_FILE="$PKG_SHARE/setup/create_tables.sql"
-
-DB_USER="silenttanksoperator"
-DB_NAME="silenttanksdb"
 
 if ! getent group "$APP_GROUP" >/dev/null; then
     if command -v addgroup >/dev/null 2>&1; then

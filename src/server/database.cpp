@@ -420,8 +420,8 @@ Database::load_bans()
     std::unique_ptr<pqxx::connection> temp_conn_ = std::make_unique<pqxx::connection>(
             "host=127.0.0.1 "
             "port=5432 "
-            "dbname=SilentTanksDB "
-            "user=SilentTanksOperator");
+            "dbname=silenttanksdb "
+            "user=silenttanksoperator");
 
     pqxx::work txn{*temp_conn_};
     // Get the time in terms of the unix epoch
@@ -2100,8 +2100,8 @@ void Database::prepares()
         conn_ = std::make_unique<pqxx::connection>(
             "host=127.0.0.1 "
             "port=5432 "
-            "dbname=SilentTanksDB "
-            "user=SilentTanksOperator"
+            "dbname=silenttanksdb "
+            "user=silenttanksoperator"
             );
         conn_->prepare("auth",
             "SELECT user_id, hash, salt "

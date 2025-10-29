@@ -6,7 +6,7 @@ ChatMessageModel::ChatMessageModel(QObject* parent)
 
 }
 
-// TODO: create message limit.
+// TODO <optimization>: create message limit.
 void ChatMessageModel::add_message(std::string message)
 {
     QString msg = QString::fromStdString(message);

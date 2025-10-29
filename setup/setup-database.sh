@@ -48,18 +48,18 @@ if command -v psql >/dev/null 2>&1; then
         fi
 
         # Create user
-        if ! runuser -u postgres psql -tA -c "SELECT 1 FROM pg_roles WHERE rolname = '${DB_USER}'" | grep -q 1; then
-            runuser -u postgres psql -c "CREATE USER ${DB_USER} WITH PASSWORD '${DB_PASS}';"
+        if ! runuser -u postgres -- psql -tA -c "SELECT 1 FROM pg_roles WHERE rolname = '${DB_USER}'" | grep -q 1; then
+            runuser -u postgres -- psql -c "CREATE USER ${DB_USER} WITH PASSWORD '${DB_PASS}';"
             echo "Created postgres role ${DB_USER}"
         else
             echo "User role ${DB_USER} already exists."
         fi
 
         # Create database
-        DB_EXISTS=$(runuser -u postgres psql -tA -c "SELECT 1 FROM pg_database WHERE datname='${DB_NAME}'")
+        DB_EXISTS=$(runuser -u postgres -- psql -tA -c "SELECT 1 FROM pg_database WHERE datname='${DB_NAME}'")
 
         if [ -z "$DB_EXISTS" ]; then
-            runuser -u postgres psql -c "CREATE DATABASE ${DB_NAME} OWNER ${DB_USER};"
+            runuser -u postgres -- psql -c "CREATE DATABASE ${DB_NAME} OWNER ${DB_USER};"
             echo "Created database ${DB_NAME}"
         else
             echo "Database ${DB_NAME} already exists."
@@ -67,13 +67,13 @@ if command -v psql >/dev/null 2>&1; then
 
         # Create tables from sql file
         if [ -f "$SQL_FILE" ]; then
-            runuser -u postgres psql -d "${DB_NAME}" -v ON_ERROR_STOP=1 -f "$SQL_FILE"
+            runuser -u postgres -- psql -d "${DB_NAME}" -v ON_ERROR_STOP=1 -f "$SQL_FILE"
         else
             echo "Sql file at ${SQL_FILE} not found."
         fi
 
         cat > "$CRED_FILE" << EOF
-localhost:5432:${DB_NAME}:${DB_USER}:${DB_PASS}
+127.0.0.1:5432:${DB_NAME}:${DB_USER}:${DB_PASS}
 EOF
 
         chmod 600 "$CRED_FILE"

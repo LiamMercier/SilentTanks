@@ -1,6 +1,10 @@
 #!/bin/bash
 set -euo pipefail
 
+if [ "${1:-}" != "configure" ]; then
+    exit 0
+fi
+
 # Our main goal post install is to move necessary files from the install directory
 # /usr/share/silent-tanks to /var/lib/silent-tanks for use in the server
 # and ensure a server user/group exists.
@@ -35,6 +39,15 @@ if ! id -u "$APP_USER" >/dev/null 2>&1; then
         echo "No useradd/adduser available."
         exit 1
     fi
+fi
+
+EXECUTABLE_PATH="/usr/lib/silent-tanks/SilentTanks-Server"
+
+if [ -f "$EXECUTABLE_PATH" ]; then
+    chown root:"${APP_GROUP}" "$EXECUTABLE_PATH"
+    chmod 750 "$EXECUTABLE_PATH"
+else
+    echo "Exectuable for server not found in ${EXECUTABLE_PATH}"
 fi
 
 mkdir -p "$ROOT_DIR"

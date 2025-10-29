@@ -16,8 +16,6 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     "${CMAKE_CXX_FLAGS_DEBUG} -fsanitize=address -fno-omit-frame-pointer")
 endif()
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Werror")
-
 # find libargon2
 set(CMAKE_PREFIX_PATH "/usr/local;/usr")
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
@@ -130,45 +128,29 @@ set(CPACK_GENERATOR "DEB")
 set(CPACK_PACKAGE_VERSION "1.0.0")
 set(CPACK_PACKAGE_CONTACT "LiamMercier@proton.me")
 set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Liam Mercier <LiamMercier@proton.me>")
+set(CPACK_PACKAGE_NAME "silent-tanks")
+
+# Enable dependency discovery
+set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
 
 # Components
 set(CPACK_COMPONENTS_ALL server client common)
 set(CPACK_DEB_COMPONENT_INSTALL ON)
 
 # Common data
-set(CPACK_DEBIAN_COMMON_PACKAGE_NAME "silent-tanks-common")
 set(CPACK_DEBIAN_COMMON_PACKAGE_MAINTAINER "Liam Mercier <LiamMercier@proton.me>")
 
 # Server package
-set(CPACK_DEBIAN_SERVER_PACKAGE_NAME "silent-tanks-server")
 set(CPACK_DEBIAN_SERVER_PACKAGE_MAINTAINER "Liam Mercier <LiamMercier@proton.me>")
 set(CPACK_DEBIAN_SERVER_PACKAGE_CONTROL_EXTRA
-    "${CMAKE_SOURCE_DIR}/server-postinst.sh")
+    "${CMAKE_SOURCE_DIR}/packaging/server/postinst")
 
-set(CPACK_DEBIAN_SERVER_PACKAGE_DEPENDS "silent-tanks-common (>= ${CPACK_PACKAGE_VERSION}), \
-libc6 (>= 2.35), \
-libargon2-1, \
-libboost-system, \
-libboost-program-options, \
-libsodium, \
-libssl3 (>= 3.0), \
-libpqxx (>= 7.10)")
+set(CPACK_DEBIAN_SERVER_PACKAGE_DEPENDS "silent-tanks-common (>= ${CPACK_PACKAGE_VERSION})")
 
 # Client package
-set(CPACK_DEBIAN_CLIENT_PACKAGE_NAME "silent-tanks-client")
 set(CPACK_DEBIAN_CLIENT_PACKAGE_MAINTAINER "Liam Mercier <LiamMercier@proton.me>")
 
-set(CPACK_DEBIAN_CLIENT_PACKAGE_DEPENDS "silent-tanks-common (>= ${CPACK_PACKAGE_VERSION}), \
-libc6 (>= 2.35), \
-libargon2-1, \
-libboost-system, \
-libsodium, \
-libssl3 (>= 3.0), \
-libqt6core6, \
-libqt6gui6, \
-libqt6qml6, \
-libqt6quick6, \
-libqt6quickcontrols2-6")
+set(CPACK_DEBIAN_CLIENT_PACKAGE_DEPENDS "silent-tanks-common (>= ${CPACK_PACKAGE_VERSION})")
 
 # Bring over environment files
 install(DIRECTORY "${CMAKE_SOURCE_DIR}/envs"
@@ -176,6 +158,10 @@ install(DIRECTORY "${CMAKE_SOURCE_DIR}/envs"
         COMPONENT common)
 
 install(FILES "${CMAKE_SOURCE_DIR}/mapfile.txt"
+        DESTINATION "share/silent-tanks"
+        COMPONENT common)
+
+install(FILES "${CMAKE_SOURCE_DIR}/README.md"
         DESTINATION "share/silent-tanks"
         COMPONENT common)
 

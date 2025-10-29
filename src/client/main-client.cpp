@@ -19,9 +19,6 @@
 
 #include <boost/uuid/string_generator.hpp>
 
-// TODO <feature>: setup client to move data from install location to
-//                 the user's home on first run instead of on package install.
-
 int main(int argc, char* argv[])
 {
     // Check all assets can be reached

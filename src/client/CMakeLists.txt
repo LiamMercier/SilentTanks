@@ -29,3 +29,7 @@ endif()
 install(TARGETS SilentTanks-Client
         RUNTIME DESTINATION bin
         COMPONENT client)
+
+install(FILES "${CMAKE_SOURCE_DIR}/server-list.txt"
+        DESTINATION "share/silent-tanks"
+        COMPONENT client)

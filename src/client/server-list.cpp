@@ -387,17 +387,6 @@ void ServerList::add_server_identity(ServerIdentity identity)
 {
     std::lock_guard lock(servers_mutex_);
 
-    std::string key = identity.get_hashmap_string();
-    std::string file_line = identity.get_file_line_string();
-
-    // Prevent adding duplicate servers.
-    if (identity_to_index_.contains(key))
-    {
-        return;
-    }
-
-    // Otherwise, add to the map.
-
     // Make sure the hash has expected length.
     if (identity.display_hash.size() != ServerIdentity::EXPECTED_HASH_LENGTH)
     {
@@ -406,6 +395,16 @@ void ServerList::add_server_identity(ServerIdentity identity)
                                             ServerIdentity::EXPECTED_HASH_LENGTH
                                         );
     }
+
+    std::string key = identity.get_hashmap_string();
+
+    // Prevent adding duplicate servers.
+    if (identity_to_index_.contains(key))
+    {
+        return;
+    }
+
+    // Otherwise, add to the map.
 
     beginResetModel();
 

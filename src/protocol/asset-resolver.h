@@ -274,6 +274,10 @@ namespace AppAssets {
                           << path
                           << ")\n";
 
+                std::cerr << "Env filepath: "
+                          << get_env_path("SILENTTANKS_ASSET_DIR")
+                          << "\n";
+
                 resolvable = false;
             }
         }

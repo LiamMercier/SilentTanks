@@ -8,7 +8,7 @@ constexpr std::string_view TERM_RED = "\033[31m";
 
 constexpr std::string_view TERM_RESET = "\033[0m";
 
-constexpr int DEFAULT_SERVER_PORT = 12345;
+constexpr int DEFAULT_SERVER_PORT = 49656;
 
 // Default to localhost.
 constexpr std::string_view DEFAULT_SERVER_ADDRESS = "127.0.0.1";

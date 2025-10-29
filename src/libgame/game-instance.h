@@ -5,6 +5,7 @@
 #include <string>
 #include <cmath>
 #include <vector>
+#include <filesystem>
 
 #include "flat-array.h"
 #include "player.h"
@@ -79,7 +80,9 @@ public:
     // Read env file
     //
     // Called when we create an instance from a file name
-    bool read_env_by_name(const std::string& filename, uint16_t total);
+    bool read_env_by_name(const std::string & filename, uint16_t total);
+
+    bool read_env_by_path(const std::filesystem::path & map_path, uint16_t total);
 
 private:
 

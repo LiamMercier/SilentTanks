@@ -46,5 +46,5 @@ signals:
 
 private:
     std::vector<std::vector<MatchResultRow>> history_rows_;
-    int current_history_mode_;
+    int current_history_mode_{0};
 };

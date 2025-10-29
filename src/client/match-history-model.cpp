@@ -8,6 +8,12 @@ history_rows_(NUMBER_OF_MODES)
 
 int MatchHistoryModel::rowCount(const QModelIndex & parent = QModelIndex()) const
 {
+    if (current_history_mode_ < 0
+        || current_history_mode_ >= static_cast<int>(history_rows_.size()))
+    {
+        return 0;
+    }
+
     return static_cast<int>(history_rows_[current_history_mode_].size());
 }
 

@@ -23,21 +23,35 @@ endif()
 
 # Bring over the application binary
 install(TARGETS SilentTanks-Server
-        RUNTIME DESTINATION bin
-        COMPONENT server)
+        RUNTIME DESTINATION lib/silent-tanks
+        COMPONENT server
+        PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
+                    GROUP_READ GROUP_EXECUTE)
 
 # Bring over the script to make certs
 install(PROGRAMS "${CMAKE_SOURCE_DIR}/setup/create-self-signed-cert.sh"
         DESTINATION "share/silent-tanks/setup"
-        COMPONENT server)
+        COMPONENT server
+        PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
+                    GROUP_READ GROUP_EXECUTE)
 
 # Bring over postgres setup script.
 install(FILES "${CMAKE_SOURCE_DIR}/setup/create-tables.sql"
         DESTINATION "share/silent-tanks/setup"
-        COMPONENT server)
+        COMPONENT server
+        PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
+                    GROUP_READ GROUP_EXECUTE
+                    WORLD_READ)
 
 # Bring over the SQL table setup
 install(FILES "${CMAKE_SOURCE_DIR}/setup/setup-database.sh"
         DESTINATION "share/silent-tanks/setup"
+        COMPONENT server
+        PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
+                    GROUP_READ GROUP_EXECUTE)
+
+# Create user shell wrapper, this is what the end user calls.
+install(PROGRAMS "${CMAKE_SOURCE_DIR}/packaging/server/silent-tanks-server"
+        DESTINATION bin
         COMPONENT server)
 

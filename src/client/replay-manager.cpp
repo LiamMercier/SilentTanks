@@ -1,6 +1,7 @@
 #include "replay-manager.h"
 #include "client-state.h"
 #include "client-constants.h"
+#include "asset-resolver.h"
 
 // Helper to compare usernames.
 constexpr bool same_username(const std::string & a, const std::string & b)
@@ -242,14 +243,20 @@ Q_INVOKABLE void ReplayManager::set_replay(qint64 match_id)
         const MatchReplay & current_replay = replays_[current_replay_index_];
         turn_count = current_replay.moves.size();
 
+        std::filesystem::path map_path = AppAssets::resolve_asset
+                                            (
+                                                "envs/" +
+                                                current_replay.settings.filename
+                                            );
+
         current_instance_ = GameInstance(current_replay.settings);
 
         uint16_t total = current_replay.settings.width
                         * current_replay.settings.height;
 
-        environment_loaded = current_instance_.read_env_by_name
+        environment_loaded = current_instance_.read_env_by_path
                                 (
-                                    current_replay.settings.filename,
+                                    map_path,
                                     total
                                 );
     }

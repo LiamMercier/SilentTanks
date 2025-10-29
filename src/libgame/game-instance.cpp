@@ -1,8 +1,6 @@
 #include "game-instance.h"
 #include "constants.h"
 
-#include <filesystem>
-
 // Take the difference without overflows.
 uint8_t abs_uint8_dist(uint8_t p1, uint8_t p2)
 {
@@ -1193,6 +1191,102 @@ bool GameInstance::read_env_by_name(const std::string& filename,
     if (!std::filesystem::is_regular_file(map_path, ec))
     {
         std::cerr << "Environment file " << filename << " not found or not regular\n";
+        return false;
+    }
+
+    auto size = std::filesystem::file_size(map_path, ec);
+
+    if (ec)
+    {
+        std::cerr << "Unable to query file size \n";
+        return false;
+    }
+
+    if (size != static_cast<std::size_t>(total) * 2)
+    {
+        std::cerr << "File size mismatch in environment setup.\n";
+        std::cerr << size << "\n";
+        return false;
+    }
+
+    std::ifstream file(map_path, std::ios::binary);
+
+    if (!file.is_open())
+    {
+        std::cerr << "ERROR IN FILE OPENING\n";
+        return false;
+    }
+
+    // read the file all at once into the buffer
+    std::vector<char> env_buffer(total);
+    file.read(env_buffer.data(), total);
+
+    if (file.gcount() != total)
+    {
+        std::cerr << "Too few bytes for environment\n";
+        return false;
+    }
+
+    if (!file)
+    {
+        std::cerr << "IO error reading environment\n";
+        return false;
+    }
+
+    // Read bitmask for tank placements.
+    std::vector<char> mask_buffer(total);
+    file.read(mask_buffer.data(), total);
+
+    if (file.gcount() != total)
+    {
+        std::cerr << "Too few bytes for mask\n";
+        return false;
+    }
+
+    if (!file)
+    {
+        std::cerr << "IO error reading mask\n";
+        return false;
+    }
+
+    // turn the ASCII data (48, 49, 50..) into the correct integers (0,1,2)
+    // and assign the GridCell elements the correct type accordingly.
+    for (uint16_t i = 0; i < total; i++)
+    {
+        char c = env_buffer[i];
+        if (c < '0' || c > '2')
+        {
+            std::cerr << "Invalid environment character \n";
+            return false;
+        }
+        uint8_t value = static_cast<uint8_t>(c - '0');
+
+        // CellType is an enum derived from uint8_t, hence the two casts.
+        //
+        // Normally you shouldn't do this, but we're reading a chunk of data.
+        game_env_[i].type_ = static_cast<CellType>(value);
+        game_env_[i].occupant_ = NO_OCCUPANT;
+        game_env_[i].visible_ = true;
+
+        // Convert the bitmask for each player.
+        //
+        // Places where a player may place their tank are identified
+        // by their player ID.
+        placement_mask_[i] = static_cast<uint8_t>(mask_buffer[i] - '0');
+    }
+
+    return true;
+
+}
+
+bool GameInstance::read_env_by_path(const std::filesystem::path & map_path,
+                                    uint16_t total)
+{
+    std::error_code ec;
+
+    if (!std::filesystem::is_regular_file(map_path, ec))
+    {
+        std::cerr << "Environment file " << map_path << " not found or not regular\n";
         return false;
     }
 

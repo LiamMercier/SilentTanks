@@ -1,0 +1,15 @@
+#!/bin/bash
+set -euo pipefail
+
+ASSET_PATH="/var/lib/silent-tanks"
+export SILENTTANKS_ASSET_DIR="$ASSET_PATH"
+
+PGPASS_FILE="/var/lib/silent-tanks/.pgpass"
+export PGPASSFILE="$PGPASS_FILE"
+
+REAL="/usr/lib/silent-tanks/SilentTanks-Server"
+
+exec sudo -u silent-tanks env \
+    SILENTTANKS_ASSET_DIR="$SILENTTANKS_ASSET_DIR" \
+    PGPASSFILE="$PGPASSFILE" \
+    "$REAL" "$@"

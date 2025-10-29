@@ -6,13 +6,19 @@ set -euo pipefail
 #
 
 # directories
-CERT_DIR="."
+CERT_DIR="/var/lib/silent-tanks/certs"
 CERT_FILE="$CERT_DIR/server.crt"
 KEY_FILE="$CERT_DIR/server.key"
 
+# If the directory does not exist, stop.
+if [ ! -d "$CERT_DIR" ]; then
+    echo "Certificate directory (${CERT_DIR}) does not exist."
+    exit 1
+fi
+
 # ip, defaults to local
-SERVER_IP="${2:-127.0.0.1}"
-SERVER_DNS="${3:-localhost}"
+SERVER_IP="${1:-127.0.0.1}"
+SERVER_DNS="${2:-localhost}"
 
 # cert stays valid for 10 years by default
 DAYS_VALID=3650
@@ -26,6 +32,8 @@ command -v openssl >/dev/null || { echo "openssl is required"; exit 1; }
 FORCE=false
 if [[ "${1-}" == "-force" || "${1-}" == "--force" ]]; then
     FORCE=true
+    SERVER_IP="${2:-127.0.0.1}"
+    SERVER_DNS="${3:-localhost}"
 fi
 
 if [[ ( -f "$CERT_FILE" || -f "$KEY_FILE" ) && "$FORCE" != "true" ]]; then

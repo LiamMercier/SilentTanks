@@ -16,6 +16,8 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     "${CMAKE_CXX_FLAGS_DEBUG} -fsanitize=address -fno-omit-frame-pointer")
 endif()
 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Werror")
+
 # find libargon2
 set(CMAKE_PREFIX_PATH "/usr/local;/usr")
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})

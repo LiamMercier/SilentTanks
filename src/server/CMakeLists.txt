@@ -21,37 +21,41 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   target_compile_definitions(SilentTanks-Server PRIVATE DEV_BUILD=1)
 endif()
 
-# Bring over the application binary
-install(TARGETS SilentTanks-Server
-        RUNTIME DESTINATION lib/silent-tanks
-        COMPONENT server
-        PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
-                    GROUP_READ GROUP_EXECUTE)
+if(TARGET_PLATFORM STREQUAL "debian")
 
-# Bring over the script to make certs
-install(PROGRAMS "${CMAKE_SOURCE_DIR}/setup/create-self-signed-cert.sh"
-        DESTINATION "share/silent-tanks/setup"
-        COMPONENT server
-        PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
-                    GROUP_READ GROUP_EXECUTE)
+  # Bring over the application binary
+  install(TARGETS SilentTanks-Server
+          RUNTIME DESTINATION lib/silent-tanks
+          COMPONENT server
+          PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
+                      GROUP_READ GROUP_EXECUTE)
 
-# Bring over postgres setup script.
-install(FILES "${CMAKE_SOURCE_DIR}/setup/create-tables.sql"
-        DESTINATION "share/silent-tanks/setup"
-        COMPONENT server
-        PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
-                    GROUP_READ GROUP_EXECUTE
-                    WORLD_READ)
+  # Bring over the script to make certs
+  install(PROGRAMS "${CMAKE_SOURCE_DIR}/setup/create-self-signed-cert.sh"
+          DESTINATION "share/silent-tanks/setup"
+          COMPONENT server
+          PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
+                      GROUP_READ GROUP_EXECUTE)
 
-# Bring over the SQL table setup
-install(FILES "${CMAKE_SOURCE_DIR}/setup/setup-database.sh"
-        DESTINATION "share/silent-tanks/setup"
-        COMPONENT server
-        PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
-                    GROUP_READ GROUP_EXECUTE)
+  # Bring over postgres setup script.
+  install(FILES "${CMAKE_SOURCE_DIR}/setup/create-tables.sql"
+          DESTINATION "share/silent-tanks/setup"
+          COMPONENT server
+          PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
+                      GROUP_READ GROUP_EXECUTE
+                      WORLD_READ)
 
-# Create user shell wrapper, this is what the end user calls.
-install(PROGRAMS "${CMAKE_SOURCE_DIR}/packaging/server/silent-tanks-server"
-        DESTINATION bin
-        COMPONENT server)
+  # Bring over the SQL table setup
+  install(FILES "${CMAKE_SOURCE_DIR}/setup/setup-database.sh"
+          DESTINATION "share/silent-tanks/setup"
+          COMPONENT server
+          PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
+                      GROUP_READ GROUP_EXECUTE)
 
+  # Create user shell wrapper, this is what the end user calls.
+  install(PROGRAMS "${CMAKE_SOURCE_DIR}/packaging/server/silent-tanks-server"
+          DESTINATION bin
+          COMPONENT server)
+endif()
+
+# No default server packaging outside of debian.

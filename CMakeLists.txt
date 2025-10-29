@@ -18,6 +18,25 @@ endif()
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Werror")
 
+if(WIN32)
+  set(TARGET_PLATFORM "windows" CACHE STRING "Target platform")
+endif()
+
+if(NOT TARGET_PLATFORM)
+  set(TARGET_PLATFORM "debian" CACHE STRING "Target platform")
+endif()
+
+set_property(CACHE TARGET_PLATFORM PROPERTY STRINGS debian windows linux)
+
+set(valid_platforms debian windows linux)
+list(FIND valid_platforms "${TARGET_PLATFORM}" _platform_index)
+if(_platform_index EQUAL -1)
+  message(FATAL_ERROR "Invalid TARGET_PLATFORM: ${TARGET_PLATFORM}. Options: debian, windows, linux")
+endif()
+
+# Tell user what platform is being targetted.
+message(STATUS "Target platform: ${TARGET_PLATFORM}")
+
 # find libargon2
 set(CMAKE_PREFIX_PATH "/usr/local;/usr")
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
@@ -126,45 +145,74 @@ add_subdirectory(src/client)
 include(InstallRequiredSystemLibraries)
 
 # Generic metadata
-set(CPACK_GENERATOR "DEB")
 set(CPACK_PACKAGE_VERSION "1.0.0")
 set(CPACK_PACKAGE_CONTACT "LiamMercier@proton.me")
-set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Liam Mercier <LiamMercier@proton.me>")
 set(CPACK_PACKAGE_NAME "silent-tanks")
 
-# Enable dependency discovery
-set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
+# Decide on package generation method.
+if(TARGET_PLATFORM STREQUAL "debian")
+  set(CPACK_GENERATOR "DEB")
+  set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Liam Mercier <LiamMercier@proton.me>")
 
-# Components
-set(CPACK_COMPONENTS_ALL server client common)
-set(CPACK_DEB_COMPONENT_INSTALL ON)
+  # Enable dependency discovery
+  set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
 
-# Common data
-set(CPACK_DEBIAN_COMMON_PACKAGE_MAINTAINER "Liam Mercier <LiamMercier@proton.me>")
+  # Components
+  set(CPACK_COMPONENTS_ALL server client common)
+  set(CPACK_DEB_COMPONENT_INSTALL ON)
 
-# Server package
-set(CPACK_DEBIAN_SERVER_PACKAGE_MAINTAINER "Liam Mercier <LiamMercier@proton.me>")
-set(CPACK_DEBIAN_SERVER_PACKAGE_CONTROL_EXTRA
-    "${CMAKE_SOURCE_DIR}/packaging/server/postinst")
+  # Common data
+  set(CPACK_DEBIAN_COMMON_PACKAGE_MAINTAINER "Liam Mercier <LiamMercier@proton.me>")
 
-set(CPACK_DEBIAN_SERVER_PACKAGE_DEPENDS "silent-tanks-common (>= ${CPACK_PACKAGE_VERSION})")
+  # Server package
+  set(CPACK_DEBIAN_SERVER_PACKAGE_MAINTAINER "Liam Mercier <LiamMercier@proton.me>")
+  set(CPACK_DEBIAN_SERVER_PACKAGE_CONTROL_EXTRA
+      "${CMAKE_SOURCE_DIR}/packaging/server/postinst")
 
-# Client package
-set(CPACK_DEBIAN_CLIENT_PACKAGE_MAINTAINER "Liam Mercier <LiamMercier@proton.me>")
+  set(CPACK_DEBIAN_SERVER_PACKAGE_DEPENDS "silent-tanks-common (>= ${CPACK_PACKAGE_VERSION})")
 
-set(CPACK_DEBIAN_CLIENT_PACKAGE_DEPENDS "silent-tanks-common (>= ${CPACK_PACKAGE_VERSION})")
+  # Client package
+  set(CPACK_DEBIAN_CLIENT_PACKAGE_MAINTAINER "Liam Mercier <LiamMercier@proton.me>")
 
-# Bring over environment files
-install(DIRECTORY "${CMAKE_SOURCE_DIR}/envs"
-        DESTINATION "share/silent-tanks"
-        COMPONENT common)
+  set(CPACK_DEBIAN_CLIENT_PACKAGE_DEPENDS "silent-tanks-common (>= ${CPACK_PACKAGE_VERSION})")
 
-install(FILES "${CMAKE_SOURCE_DIR}/mapfile.txt"
-        DESTINATION "share/silent-tanks"
-        COMPONENT common)
+  # Bring over environment files
+  install(DIRECTORY "${CMAKE_SOURCE_DIR}/envs"
+          DESTINATION "share/silent-tanks"
+          COMPONENT common)
 
-install(FILES "${CMAKE_SOURCE_DIR}/README.md"
-        DESTINATION "share/silent-tanks"
-        COMPONENT common)
+  install(FILES "${CMAKE_SOURCE_DIR}/mapfile.txt"
+          DESTINATION "share/silent-tanks"
+          COMPONENT common)
+
+  install(FILES "${CMAKE_SOURCE_DIR}/README.md"
+          DESTINATION "share/silent-tanks"
+          COMPONENT common)
+
+# Handle windows packaging.
+elseif(TARGET_PLATFORM STREQUAL "windows")
+  set(CPACK_GENERATOR "NSIS")
+
+  set(CPACK_NSIS_DISPLAY_NAME "Silent Tanks")
+  set(CPACK_NSIS_PACKAGE_NAME "silent-tanks")
+  set(CPACK_NSIS_INSTALL_ROOT "$PROGRAMFILES64")
+  set(CPACK_NSIS_MODIFY_PATH ON)
+
+  # Bring over environment files
+  install(DIRECTORY "${CMAKE_SOURCE_DIR}/envs"
+          DESTINATION "share/silent-tanks")
+
+  install(FILES "${CMAKE_SOURCE_DIR}/mapfile.txt"
+          DESTINATION "share/silent-tanks")
+
+  install(FILES "${CMAKE_SOURCE_DIR}/README.md"
+          DESTINATION "share/silent-tanks")
+
+  set(CPACK_NSIS_EXTRA_INSTALL_COMMANDS
+  "SetOutPath \"$LOCALAPPDATA\\silent-tanks\"\n"
+  "File /r \"${CMAKE_CURRENT_BINARY_DIR}/share/*\"\n"
+  )
+
+endif()
 
 include(CPack)

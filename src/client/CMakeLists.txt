@@ -26,10 +26,20 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   target_compile_definitions(SilentTanks-Client PRIVATE DEV_BUILD=1)
 endif()
 
-install(TARGETS SilentTanks-Client
-        RUNTIME DESTINATION bin
-        COMPONENT client)
+# Install locations based on platform.
+if(TARGET_PLATFORM STREQUAL "debian")
+  install(TARGETS SilentTanks-Client
+          RUNTIME DESTINATION bin
+          COMPONENT client)
 
-install(FILES "${CMAKE_SOURCE_DIR}/server-list.txt"
-        DESTINATION "share/silent-tanks"
-        COMPONENT client)
+  install(FILES "${CMAKE_SOURCE_DIR}/server-list.txt"
+          DESTINATION "share/silent-tanks"
+          COMPONENT client)
+
+elseif(TARGET_PLATFORM STREQUAL "windows")
+  install(TARGETS SilentTanks-Client
+          RUNTIME DESTINATION bin)
+
+  install(FILES "${CMAKE_SOURCE_DIR}/server-list.txt"
+          DESTINATION "share/silent-tanks")
+endif()

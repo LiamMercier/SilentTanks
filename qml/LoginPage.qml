@@ -74,7 +74,8 @@ Rectangle {
                 text: "Login"
 
                 background: Rectangle {
-                    color: "#323436"
+                    color: loginButton.down ? "#202122" :
+                            loginButton.hovered ? "#3e4042" : "#323436"
                     radius: 2
                 }
 
@@ -99,7 +100,8 @@ Rectangle {
                 text: "Register"
 
                 background: Rectangle {
-                    color: "#323436"
+                    color: registerButton.down ? "#202122" :
+                            registerButton.hovered ? "#3e4042" : "#323436"
                     radius: 2
                 }
 

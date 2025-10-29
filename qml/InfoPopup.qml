@@ -4,7 +4,6 @@ import QtQuick.Layouts
 import QtQuick.Window
 import GUICommon 1.0
 
-// TODO: styling
 Window
 {
     id: infoPopup
@@ -34,38 +33,63 @@ Window
         Client.notify_popup_closed()
     }
 
-    ColumnLayout {
+    Rectangle {
         anchors.fill: parent
-        anchors.margins: 16
-        spacing: 12
+        color: "#202122"
 
-        Label {
-            id: titleText
-            text: ""
-            font.bold: true
+        ColumnLayout {
+            anchors.fill: parent
+            anchors.margins: 16
+            spacing: 12
 
-            horizontalAlignment: Text.AlignHCenter
-            wrapMode: Text.WordWrap
+            Label {
+                id: titleText
+                text: ""
+                font.bold: true
+                color: "#ffffff"
 
-            Layout.fillWidth: true
-            palette: infoPopup.palette
-        }
+                horizontalAlignment: Text.AlignHCenter
+                wrapMode: Text.WordWrap
 
-        Label {
-            id: bodyText
-            text: ""
+                Layout.fillWidth: true
+                palette: infoPopup.palette
+            }
 
-            horizontalAlignment: Text.AlignHCenter
-            wrapMode: Text.WordWrap
+            Label {
+                id: bodyText
+                text: ""
+                color: "#f2f2f2"
 
-            Layout.fillWidth: true
-            palette: infoPopup.palette
-        }
+                horizontalAlignment: Text.AlignHCenter
+                wrapMode: Text.WordWrap
 
-        Button {
-            text: qsTr("Ok")
-            Layout.alignment: Qt.AlignHCenter
-            onClicked: infoPopup.close()
+                Layout.fillWidth: true
+                palette: infoPopup.palette
+            }
+
+            Button {
+                id: popupOkButton
+                text: qsTr("Ok")
+                Layout.alignment: Qt.AlignHCenter
+                onClicked: infoPopup.close()
+
+                background: Rectangle {
+                    implicitWidth: 80
+                    implicitHeight: 32
+                    radius: 4
+                    color: popupOkButton.down ? "#1b1c1d" :
+                            popupOkButton.hovered ? "#3e4042" : "#323436"
+                }
+
+                contentItem: Text {
+                    text: popupOkButton.text
+                    color: "#f2f2f2"
+
+                    horizontalAlignment: Text.AlignHCenter
+
+                    anchors.centerIn: parent
+                }
+            }
         }
     }
 }

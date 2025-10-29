@@ -189,7 +189,8 @@ Rectangle {
             }
 
             background: Rectangle {
-                color: "#323436"
+                color: addButton.down ? "#202122" :
+                            addButton.hovered ? "#3e4042" : "#323436"
                 radius: 2
             }
 
@@ -328,7 +329,8 @@ Rectangle {
                 }
 
                 background: Rectangle {
-                    color: "#323436"
+                    color: saveButton.down ? "#202122" :
+                            saveButton.hovered ? "#3e4042" : "#323436"
                     radius: 2
                 }
 
@@ -340,8 +342,27 @@ Rectangle {
                         // was given.
                         if (identityField.text == "")
                         {
-                            // TODO: default port
-                            var res = addressField.text + ":" + portField.text
+                            // If no address, stop now.
+                            if (addressField.text == "")
+                            {
+                                // Clean up for next time.
+                                nameField.text = ""
+                                addressField.text = ""
+                                portField.text = ""
+                                identityField.text = ""
+                                connectColumn.addButtonVisible = false
+                                return
+                            }
+
+                            // Set default port if none provided
+                            var port = portField.text
+
+                            if (portField.text == "")
+                            {
+                                port = "49656"
+                            }
+
+                            var res = addressField.text + ":" + port
                             Client.save_server_domain(res,
                                                       nameField.text)
                         }
@@ -364,6 +385,7 @@ Rectangle {
                         }
 
                         // Clean up for next time.
+                        nameField.text = ""
                         addressField.text = ""
                         portField.text = ""
                         identityField.text = ""
@@ -388,7 +410,8 @@ Rectangle {
                 }
 
                 background: Rectangle {
-                    color: "#323436"
+                    color: cancelButton.down ? "#202122" :
+                            cancelButton.hovered ? "#3e4042" : "#323436"
                     radius: 2
                 }
 

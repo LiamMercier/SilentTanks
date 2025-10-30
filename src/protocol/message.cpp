@@ -1114,8 +1114,8 @@ void Message::create_serialized(const mType & req)
         {
             payload_buffer.insert(
                 payload_buffer.end(),
-                user.user_id.data,
-                user.user_id.data + user.user_id.size());
+                std::begin(user.user_id),
+                std::end(user.user_id));
 
             // Usernames are not allowed to surpass uint8_t in length.
             //

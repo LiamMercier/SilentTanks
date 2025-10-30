@@ -296,9 +296,35 @@ namespace AppAssets {
             "envs"
         };
 
-// TODO: windows specific copy path.
 #ifdef _WIN32
-        std::filesystem::path package_share = "";
+        // Try 64 bit program files
+        std::filesystem::path package_share = get_env_path("ProgramW6432");
+
+        if (package_share.empty())
+        {
+            // Try program files
+            package_share = get_env_path("ProgramFiles");
+        }
+
+        if (package_share.empty())
+        {
+            std::cerr << "Warning: Program Files \\ "
+                      << application_name
+                      << " \\ share"
+                      << " not found.\n";
+        }
+        else
+        {
+            package_share = package_share / "share" / application_name;
+        }
+
+        std::filesystem::path user_dir = get_assets_dir();
+
+        if (user_dir.empty())
+        {
+            std::cerr << "User asset directory not found.\n";
+            return false;
+        }
 
 // Linux copy path, uses /usr/share/silent-tanks
 #else

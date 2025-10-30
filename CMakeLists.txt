@@ -151,7 +151,11 @@ endif()
 
 add_subdirectory(src/libgame)
 add_subdirectory(src/protocol)
-add_subdirectory(src/server)
+
+if(NOT TARGET_PLATFORM STREQUAL "windows")
+  add_subdirectory(src/server)
+endif()
+
 add_subdirectory(src/client)
 
 # packaging

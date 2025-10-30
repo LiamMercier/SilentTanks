@@ -80,6 +80,18 @@ endforeach()
 
 file(APPEND "${QML_RCC}" "  </qresource>\n</RCC>\n")
 
+include(FetchContent)
+
+
+FetchContent_Declare(
+    glaze
+    GIT_REPOSITORY https://github.com/stephenberry/glaze.git
+    GIT_TAG main
+    GIT_SHALLOW TRUE
+  )
+
+FetchContent_MakeAvailable(glaze)
+
 find_package(Argon2 REQUIRED)
 
 find_package(OpenSSL REQUIRED)
@@ -93,18 +105,7 @@ find_package(Qt6 REQUIRED COMPONENTS
 )
 
 # Add server packages if target is a linux variant.
-if(TARGET_PLATFORM NOT STREQUAL "windows")
-  include(FetchContent)
-
-  FetchContent_Declare(
-    glaze
-    GIT_REPOSITORY https://github.com/stephenberry/glaze.git
-    GIT_TAG main
-    GIT_SHALLOW TRUE
-  )
-
-  FetchContent_MakeAvailable(glaze)
-
+if(NOT TARGET_PLATFORM STREQUAL "windows")
   find_package(libpqxx REQUIRED)
   find_package(libsodium REQUIRED)
 
@@ -137,7 +138,7 @@ if(NOT Qt6_FOUND)
 endif()
 
 # Package finding for server.
-if(TARGET_PLATFORM NOT STREQUAL "windows")
+if(NOT TARGET_PLATFORM STREQUAL "windows")
   if(NOT libpqxx_FOUND)
     message(FATAL_ERROR "libpqxx not found!")
   endif()

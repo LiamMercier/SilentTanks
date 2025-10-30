@@ -1193,8 +1193,8 @@ void Message::create_serialized(const mType & req)
             // UUIDs are 16 byte arrays, so we can just memcpy this.
             payload_buffer.insert(
                 payload_buffer.end(),
-                user.user_id.data,
-                user.user_id.data + user.user_id.size());
+                std::begin(user.user_id),
+                std::end(user.user_id));
 
             // Usernames are not allowed to surpass uint8_t in length.
             //
@@ -1225,8 +1225,8 @@ void Message::create_serialized(const mType & req)
 
         // Insert UUID.
         payload_buffer.insert(payload_buffer.end(),
-                              req.user_id.data,
-                              req.user_id.data + 16);
+                              std::begin(req.user_id),
+                              std::end(req.user_id));
 
         // Cast from bool to uint8_t.
         payload_buffer.push_back(static_cast<uint8_t>(req.decision));
@@ -1237,8 +1237,8 @@ void Message::create_serialized(const mType & req)
 
         // Insert UUID.
         payload_buffer.insert(payload_buffer.end(),
-                              req.user_id.data,
-                              req.user_id.data + 16);
+                              std::begin(req.user_id),
+                              std::end(req.user_id));
     }
     else if constexpr (std::is_same_v<mType, BlockRequest>)
     {
@@ -1254,15 +1254,15 @@ void Message::create_serialized(const mType & req)
 
         // Insert UUID.
         payload_buffer.insert(payload_buffer.end(),
-                              req.user_id.data,
-                              req.user_id.data + 16);
+                              std::begin(req.user_id),
+                              std::end(req.user_id));
     }
     else if constexpr (std::is_same_v<mType, NotifyRelationUpdate>)
     {
         // Insert UUID.
         payload_buffer.insert(payload_buffer.end(),
-                              req.user.user_id.data,
-                              req.user.user_id.data + 16);
+                              std::begin(req.user.user_id),
+                              std::end(req.user.user_id));
 
         // Insert username.
         payload_buffer.insert(payload_buffer.end(),
@@ -1273,8 +1273,8 @@ void Message::create_serialized(const mType & req)
     {
         // Insert UUID.
         payload_buffer.insert(payload_buffer.end(),
-                              req.user_id.data,
-                              req.user_id.data + 16);
+                              std::begin(req.user_id),
+                              std::end(req.user_id));
 
         // Insert text.
         payload_buffer.insert(payload_buffer.end(),
@@ -1285,8 +1285,8 @@ void Message::create_serialized(const mType & req)
     {
         // Insert UUID.
         payload_buffer.insert(payload_buffer.end(),
-                              req.user_id.data,
-                              req.user_id.data + 16);
+                              std::begin(req.user_id),
+                              std::end(req.user_id));
 
         // Insert the username with its length.
         payload_buffer.push_back(req.username_length);
@@ -1342,8 +1342,8 @@ void Message::create_serialized(const mType & req)
         {
             // Copy the UUID.
             payload_buffer.insert(payload_buffer.end(),
-                                  user.user_id.data,
-                                  user.user_id.data + user.user_id.size());
+                                  std::begin(user.user_id),
+                                  std::end(user.user_id));
 
             // Give the username length.
             uint8_t username_len = static_cast<uint8_t>(user.username.size());

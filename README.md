@@ -96,7 +96,7 @@ You should now see three debian packages in the builds directory.
 
 ## Compilation (Windows)
 
-This project does not compile the server for windows, the following creates the client.
+This project does not compile the server for windows, though it could be possible to do so with manual configuration. To create the client, do the following.
 
 Download [MSYS2](msys2.org). Verify the domain.
 
@@ -115,6 +115,8 @@ Grab the repository.
 `git clone https://github.com/LiamMercier/SilentTanks.git`
 
 Compile.
+
+`cd SilentTanks`
 
 `cmake -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release -DTARGET_PLATFORM=windows -S . -B builds`
 

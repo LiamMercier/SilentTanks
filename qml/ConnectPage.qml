@@ -180,6 +180,9 @@ Rectangle {
 
             text: "Add Server"
 
+            implicitHeight: 34
+            implicitWidth: 80
+
             contentItem: Text {
                 text: addButton.text
                 font: addButton.font
@@ -328,6 +331,9 @@ Rectangle {
 
                 text: "Save"
 
+                implicitHeight: 34
+                implicitWidth: 80
+
                 contentItem: Text {
                     text: saveButton.text
                     font: saveButton.font
@@ -408,6 +414,9 @@ Rectangle {
                 Layout.alignment: Qt.AlignHCenter
 
                 text: "Cancel"
+
+                implicitHeight: 34
+                implicitWidth: 80
 
                 contentItem: Text {
                     text: cancelButton.text

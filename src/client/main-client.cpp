@@ -13,6 +13,10 @@
 #include <QUrl>
 #include <QStringLiteral>
 
+#ifdef _WIN32
+#include <QQuickStyle>
+#endif
+
 #include "generic-constants.h"
 #include "gui-client.h"
 #include "asset-resolver.h"
@@ -49,6 +53,10 @@ int main(int argc, char* argv[])
     try
     {
         QGuiApplication app(argc, argv);
+
+#ifdef _WIN32
+        QQuickStyle::setStyle("Universal");
+#endif
 
         auto thread_count = std::thread::hardware_concurrency();
 

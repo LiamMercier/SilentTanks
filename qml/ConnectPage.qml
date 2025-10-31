@@ -208,7 +208,9 @@ Rectangle {
             visible: connectColumn.addButtonVisible
 
             placeholderText: "Server Name"
+            placeholderTextColor: "#a2a3a4"
             color: "#f2f2f2"
+
             // Above two buttons plus spacing
             Layout.preferredWidth: 362
             Layout.maximumWidth: 362
@@ -236,7 +238,9 @@ Rectangle {
                 Layout.alignment: Qt.AlignHCenter
 
                 placeholderText: "Server Domain"
+                placeholderTextColor: "#a2a3a4"
                 color: "#f2f2f2"
+
                 Layout.preferredWidth: 175
                 Layout.maximumWidth: 175
 
@@ -256,7 +260,9 @@ Rectangle {
                 Layout.alignment: Qt.AlignHCenter
 
                 placeholderText: "Port (empty for default)"
+                placeholderTextColor: "#a2a3a4"
                 color: "#f2f2f2"
+
                 Layout.preferredWidth: 175
                 Layout.maximumWidth: 175
 
@@ -289,7 +295,9 @@ Rectangle {
             visible: connectColumn.addButtonVisible
 
             placeholderText: "Server Identity String"
+            placeholderTextColor: "#a2a3a4"
             color: "#f2f2f2"
+
             // Above two buttons plus spacing
             Layout.preferredWidth: 362
             Layout.maximumWidth: 362

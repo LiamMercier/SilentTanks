@@ -29,6 +29,7 @@ Rectangle {
             Layout.maximumWidth: 250
             Layout.alignment: Qt.AlignHCenter
 
+            placeholderTextColor: "#a2a3a4"
             color: "#f2f2f2"
 
             background: Rectangle {
@@ -47,6 +48,7 @@ Rectangle {
             Layout.maximumWidth: 250
             Layout.alignment: Qt.AlignHCenter
 
+            placeholderTextColor: "#a2a3a4"
             color: "#eaeaea"
 
             background: Rectangle {

@@ -125,6 +125,7 @@ Popup {
             placeholderText: "Enter username to " + (showActionButtons ? "add" : "block")
             visible: false
 
+            placeholderTextColor: "#a2a3a4"
             color: "#eaeaea"
 
             background: Rectangle {

@@ -96,11 +96,31 @@ You should now see three debian packages in the builds directory.
 
 ## Compilation (Windows)
 
-This project only targets windows for the client software.
+This project does not compile the server for windows, the following creates the client.
 
-TODO: windows client compilation on windows
+Download [MSYS2](msys2.org). Verify the domain.
 
-## Compilation (Other users)
+Open the UCRT64 environment and update.
+
+`pacman -Syu`
+
+`pacman -Su`
+
+Install the toolchain and dependencies.
+
+`pacman -S mingw-w64-ucrt-x86_64-toolchain mingw-w64-ucrt-x86_64-qt6-base mingw-w64-ucrt-x86_64-qt6-declarative mingw-w64-ucrt-x86_64-qt6-svg mingw-w64-ucrt-x86_64-qt6-multimedia mingw-w64-ucrt-x86_64-boost mingw-w64-ucrt-x86_64-argon2 mingw-w64-ucrt-x86_64-cmake`
+
+Grab the repository.
+
+`git clone https://github.com/LiamMercier/SilentTanks.git`
+
+Compile.
+
+`cmake -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release -DTARGET_PLATFORM=windows -S . -B builds`
+
+`cmake --build builds`
+
+## Compilation (Other platforms)
 
 The client and server code should work on linux based systems, but must be manually packaged or run standalone.
 
@@ -109,6 +129,18 @@ TODO: give general advice for compilation
 ## Manual setup
 
 TODO: manual setup tips for windows and linux
+
+## Server hosting troubleshooting
+
+### Finding your address
+
+In a terminal.
+
+`ip addr show`
+
+TODO help less technical users
+
+### Allowing connections on the server device
 
 ## Dependencies and licenses
 

@@ -18,7 +18,10 @@ Item {
         id: triggerButton
         text: modeMenuRoot.label
         font.bold: true
+
         implicitHeight: 40
+        implicitWidth: 140
+
         onClicked: {
             popup.x = triggerButton.mapToItem(parent, triggerButton.x, triggerButton.y).x
             popup.y = triggerButton.mapToItem(parent, triggerButton.x, triggerButton.height).y
@@ -69,6 +72,8 @@ Item {
                     text: label
                     Layout.alignment: Qt.AlignCenter
                     font.pointSize: 11
+
+                    Layout.preferredHeight: 40
 
                     Layout.fillWidth: true
 

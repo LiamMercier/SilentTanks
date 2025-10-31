@@ -75,6 +75,9 @@ Rectangle {
                 id: loginButton
                 text: "Login"
 
+                implicitHeight: 34
+                implicitWidth: 80
+
                 background: Rectangle {
                     color: loginButton.down ? "#202122" :
                             loginButton.hovered ? "#3e4042" : "#323436"
@@ -100,6 +103,9 @@ Rectangle {
             Button {
                 id: registerButton
                 text: "Register"
+
+                implicitHeight: 34
+                implicitWidth: 80
 
                 background: Rectangle {
                     color: registerButton.down ? "#202122" :

@@ -33,6 +33,9 @@ Popup {
             text: "Message"
             Layout.fillWidth: true
 
+            implicitHeight: 34
+            implicitWidth: 148
+
             background: Rectangle {
                 radius: 2
                 anchors.fill: parent
@@ -57,6 +60,9 @@ Popup {
             id: unfriendButton
             text: "Remove"
             Layout.fillWidth: true
+
+            implicitHeight: 34
+            implicitWidth: 148
 
             background: Rectangle {
                 radius: 2

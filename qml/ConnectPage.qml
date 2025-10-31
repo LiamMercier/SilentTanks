@@ -181,7 +181,7 @@ Rectangle {
             text: "Add Server"
 
             implicitHeight: 34
-            implicitWidth: 80
+            implicitWidth: 84
 
             contentItem: Text {
                 text: addButton.text

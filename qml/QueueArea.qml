@@ -44,7 +44,7 @@ Rectangle {
 
                     onSelectedModeChanged:
                     {
-                        console.log("Selected mode: ",  queueMenus.selectedMode)
+                        print("Current selected mode:",  queueMenus.selectedMode)
                     }
                 }
 

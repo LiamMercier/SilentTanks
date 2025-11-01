@@ -1532,6 +1532,11 @@ try {
             match_history_callback_(std::move(results));
             break;
         }
+        case HeaderType::NoNewMatches:
+        {
+            std::cout << "No new matches from server.\n";
+            break;
+        }
         case HeaderType::MatchReplay:
         {
             std::cout << "Got replay ("

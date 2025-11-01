@@ -14,7 +14,7 @@ authenticated_(false),
 called_register_(false),
 user_data_()
 {
-
+    has_new_matches_.fill(true);
 }
 
 void Session::set_message_handler(MessageHandler m_handler, DisconnectHandler d_handler)

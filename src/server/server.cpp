@@ -640,16 +640,7 @@ try {
 
             GameMode mode = msg.to_gamemode();
 
-            if (!session->has_matches(mode))
-            {
-                Message no_matches;
-                no_matches.create_serialized(HeaderType::NoNewMatches);
-                session->deliver(no_matches);
-                break;
-            }
-
-            // Otherwise, fetch results and set has_new_matches to false.
-            if (mode == GameMode::NO_MODE)
+            if (mode >= GameMode::NO_MODE)
             {
                 Message b_req;
                 b_req.create_serialized(HeaderType::BadMessage);
@@ -659,10 +650,19 @@ try {
                 return;
             }
 
-            boost::uuids::uuid user_id = (session->get_user_data()).user_id;
-            db_.fetch_new_matches(user_id, mode, session);
+            if (!session->has_matches(mode))
+            {
+                Message no_matches;
+                no_matches.create_serialized(HeaderType::NoNewMatches);
+                session->deliver(no_matches);
+                break;
+            }
 
+            // Otherwise, fetch results and set has_new_matches to false.
+            boost::uuids::uuid user_id = (session->get_user_data()).user_id;
             session->set_has_matches(false, mode);
+
+            db_.fetch_new_matches(user_id, mode, session);
             break;
         }
         case HeaderType::MatchReplayRequest:

@@ -19,6 +19,12 @@ int MatchHistoryModel::rowCount(const QModelIndex & parent = QModelIndex()) cons
 
 QVariant MatchHistoryModel::data(const QModelIndex & index, int role) const
 {
+    if (current_history_mode_ < 0
+        || current_history_mode_ >= static_cast<int>(history_rows_.size()))
+    {
+        return {};
+    }
+
     if (!index.isValid()
         || index.row() >= static_cast<int>(history_rows_[current_history_mode_].size())
         || index.row() < 0)

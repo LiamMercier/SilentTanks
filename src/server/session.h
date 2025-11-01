@@ -186,7 +186,7 @@ private:
     //
     // Storing as bit flags could be useful, potential optimization.
     mutable std::mutex has_new_matches_mutex_;
-    std::array<bool, NUMBER_OF_MODES> has_new_matches_{true};
+    std::array<bool, NUMBER_OF_MODES> has_new_matches_{};
 
     bool awaiting_pong_;
 

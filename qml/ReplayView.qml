@@ -150,8 +150,6 @@ Item {
                 tileImageCache[key] = {img: img, size: pixelSize}
             }
         }
-
-        console.log(pixelSize)
     }
 
     onScaleChanged: {
@@ -229,7 +227,7 @@ Item {
                             }
                             else
                             {
-                                console.log("failed to load", keys[keyIndex])
+                                print("QML ERROR: failed to load", keys[keyIndex])
                             }
                         }
 

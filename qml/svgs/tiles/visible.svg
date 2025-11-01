@@ -2,23 +2,107 @@
 <!-- Created with Inkscape (http://www.inkscape.org/) -->
 
 <svg
-   width="120"
-   height="120"
-   viewBox="0 0 120 120"
+   width="360"
+   height="360"
+   viewBox="0 0 360 360"
    version="1.1"
    id="svg1"
+   xmlns:xlink="http://www.w3.org/1999/xlink"
    xmlns="http://www.w3.org/2000/svg"
    xmlns:svg="http://www.w3.org/2000/svg">
   <defs
-     id="defs1" />
+     id="defs1">
+    <linearGradient
+       xlink:href="#linear-gradient"
+       id="linearGradient10"
+       gradientUnits="userSpaceOnUse"
+       x1="572.19"
+       y1="310.82999"
+       x2="572.19"
+       y2="406.92001"
+       gradientTransform="matrix(0.11939506,0,0,0.11939506,0.90680663,0.90680663)" />
+    <linearGradient
+       id="linear-gradient"
+       x1="572.19"
+       y1="310.82999"
+       x2="572.19"
+       y2="406.92001"
+       gradientUnits="userSpaceOnUse">
+      <stop
+         offset="0"
+         stop-color="#7f8d57"
+         id="stop1" />
+      <stop
+         offset=".27"
+         stop-color="#606e45"
+         id="stop2" />
+      <stop
+         offset=".54"
+         stop-color="#485537"
+         id="stop3" />
+      <stop
+         offset=".79"
+         stop-color="#3a472e"
+         id="stop4" />
+      <stop
+         offset="1"
+         stop-color="#35422c"
+         id="stop5" />
+    </linearGradient>
+    <linearGradient
+       id="linear-gradient-2"
+       x1="2027.59"
+       y1="952.71997"
+       x2="2027.59"
+       y2="1048.8199"
+       xlink:href="#linear-gradient"
+       gradientTransform="matrix(0.11939506,0,0,0.11939506,0.90680663,0.90680663)" />
+    <linearGradient
+       id="linear-gradient-3"
+       x1="607.17999"
+       y1="1987.97"
+       x2="607.17999"
+       y2="2084.0701"
+       xlink:href="#linear-gradient"
+       gradientTransform="matrix(0.11939506,0,0,0.11939506,0.90680663,0.90680663)" />
+    <linearGradient
+       id="linear-gradient-4"
+       x1="2328.9199"
+       y1="2482.5801"
+       x2="2328.9199"
+       y2="2578.6799"
+       xlink:href="#linear-gradient"
+       gradientTransform="matrix(0.11939506,0,0,0.11939506,0.90680663,0.90680663)" />
+  </defs>
   <g
      id="layer1">
     <rect
-       style="fill:#83888e;fill-opacity:1;stroke-width:0.353542;stroke-linecap:round"
-       id="rect1"
-       width="120"
-       height="120"
-       x="0"
-       y="0" />
+       class="cls-4"
+       x="0.035222668"
+       y="0.035222668"
+       width="359.92957"
+       height="359.92957"
+       id="rect5"
+       style="fill:#657854;stroke:#272525;stroke-width:0.0704431px;stroke-miterlimit:10" />
+    <path
+       class="cls-2"
+       d="m 66.282766,49.124502 -4.411648,-9.557575 6.249138,8.455558 c 0,0 3.308437,-11.028521 3.308437,-9.925311 0,1.10321 -1.103211,9.925311 -1.103211,9.925311 l 6.249138,-6.984611 -5.147121,8.455558 -5.147121,-0.367736 z"
+       id="path5"
+       style="fill:url(#linearGradient10);stroke:#272525;stroke-width:0.0465641px;stroke-miterlimit:10" />
+    <path
+       class="cls-3"
+       d="m 240.05034,125.763 -4.41165,-9.55758 6.24914,8.45556 c 0,0 3.30843,-11.02852 3.30843,-9.92531 0,1.10321 -1.10321,9.92531 -1.10321,9.92531 l 6.24914,-6.98461 -5.14712,8.45556 -5.14712,-0.36774 z"
+       id="path6"
+       style="fill:url(#linear-gradient-2);stroke:#272525;stroke-width:0.0465641px;stroke-miterlimit:10" />
+    <path
+       class="cls-1"
+       d="m 70.460399,249.36673 -4.411648,-9.55757 6.249138,8.45556 c 0,0 3.308437,-11.02853 3.308437,-9.92532 0,1.10322 -1.10321,9.92532 -1.10321,9.92532 l 6.249137,-6.98461 -5.147121,8.45555 -5.147121,-0.36773 z"
+       id="path7"
+       style="fill:url(#linear-gradient-3);stroke:#272525;stroke-width:0.0465641px;stroke-miterlimit:10" />
+    <path
+       class="cls-5"
+       d="m 276.02765,308.42072 -4.41165,-9.55757 6.24914,8.45556 c 0,0 3.30844,-11.02852 3.30844,-9.92531 0,1.10321 -1.10321,9.92531 -1.10321,9.92531 l 6.24913,-6.98461 -5.14712,8.45555 -5.14712,-0.36773 z"
+       id="path8"
+       style="fill:url(#linear-gradient-4);stroke:#272525;stroke-width:0.0465641px;stroke-miterlimit:10" />
   </g>
 </svg>

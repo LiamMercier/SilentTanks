@@ -73,6 +73,8 @@
     <file>svgs/tiles/tank_4_south_east.svg</file>
     <file>svgs/tiles/tank_4_south_west.svg</file>
     <file>svgs/tiles/tank_4_west.svg</file>
+    <file>svgs/tiles/terrain_fog.svg</file>
+    <file>svgs/tiles/terrain_visible.svg</file>
     <file>svgs/tiles/visible.svg</file>
     <file>svgs/buttons/barrel_left.svg</file>
     <file>svgs/buttons/barrel_right.svg</file>

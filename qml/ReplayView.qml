@@ -59,6 +59,8 @@ Item {
                             "grass_top",
                             "grass_bottom_tank",
                             "grass_top_tank",
+                            "terrain_visible",
+                            "terrain_fog",
 
                             // tank cannons
                             "cannon_north",
@@ -212,29 +214,22 @@ Item {
                     var py = y * tilePx - camYRounded
 
                     // Draw tile.
-                    if (cell.occupant !== 255
-                        || cell.type === 0
-                        || cell.type === 1) {
-                        var keys = sourcesForTile(cell)
+                    var keys = sourcesForTile(cell)
 
-                        for (var keyIndex = 0; keyIndex < keys.length; keyIndex++)
+                    for (var keyIndex = 0; keyIndex < keys.length; keyIndex++)
+                    {
+                        var imageEntry = tileImageCache[keys[keyIndex]]
+
+                        if (imageEntry && imageEntry.img)
                         {
-                            var imageEntry = tileImageCache[keys[keyIndex]]
-
-                            if (imageEntry && imageEntry.img)
-                            {
-                                cntx.drawImage(imageEntry.img, px, py, tilePx, tilePx)
-                            }
-                            else
-                            {
-                                print("QML ERROR: failed to load", keys[keyIndex])
-                            }
+                            cntx.drawImage(imageEntry.img, px, py, tilePx, tilePx)
                         }
-
-                    }
-                    else {
-                        cntx.fillStyle = boardViewRoot.colorForTile(cell)
-                        cntx.fillRect(px, py, tilePx, tilePx)
+                        else
+                        {
+                            print("QML Error: failed to load", keys[keyIndex])
+                            cntx.fillStyle = boardViewRoot.colorForTile(cell)
+                            cntx.fillRect(px, py, tilePx, tilePx)
+                        }
                     }
                 }
             }
@@ -423,11 +418,11 @@ Item {
         {
             if (cell.visible)
             {
-                result.push("visible")
+                result.push("terrain_visible")
             }
             else
             {
-                result.push("fog")
+                result.push("terrain_fog")
             }
         }
 

@@ -225,8 +225,22 @@ elseif(TARGET_PLATFORM STREQUAL "windows")
   install(FILES "${CMAKE_SOURCE_DIR}/README.md"
           DESTINATION "share/silent-tanks")
 
+  set(WINDEPLOY_STAGING_DIR "${CMAKE_SOURCE_DIR}/staging")
+
+  # Set each dll in the staging directory to be installed.
+  if(EXISTS "${WINDEPLOY_STAGING_DIR}")
+    install(DIRECTORY "${WINDEPLOY_STAGING_DIR}/bin"
+            DESTINATION "."
+            FILES_MATCHING
+            PATTERN "*.dll")
+
+  else()
+    message(WARNING "staging directory not found.")
+  endif()
+
   set(CPACK_NSIS_EXTRA_INSTALL_COMMANDS
-  "SetOutPath \"$LOCALAPPDATA\\silent-tanks\"\n"
+  "ReadEnvStr $0 LOCALAPPDATA\n"
+  "SetOutPath \"$0\\\\silent-tanks\"\n"
   "File /r \"${CMAKE_CURRENT_BINARY_DIR}/share/*\"\n"
   )
 

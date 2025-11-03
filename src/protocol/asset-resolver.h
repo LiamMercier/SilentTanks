@@ -315,7 +315,7 @@ namespace AppAssets {
         }
         else
         {
-            package_share = package_share / "share" / application_name;
+            package_share = package_share / application_name / "share";
         }
 
         std::filesystem::path user_dir = get_assets_dir();

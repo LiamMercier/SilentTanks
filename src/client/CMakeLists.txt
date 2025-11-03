@@ -38,8 +38,8 @@ if(TARGET_PLATFORM STREQUAL "debian")
 
 elseif(TARGET_PLATFORM STREQUAL "windows")
   install(TARGETS SilentTanks-Client
-          RUNTIME DESTINATION bin)
+          RUNTIME DESTINATION .)
 
   install(FILES "${CMAKE_SOURCE_DIR}/server-list.txt"
-          DESTINATION "share/silent-tanks")
+          DESTINATION "share")
 endif()

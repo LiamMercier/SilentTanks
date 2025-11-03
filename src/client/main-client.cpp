@@ -12,6 +12,7 @@
 #include <QQmlContext>
 #include <QUrl>
 #include <QStringLiteral>
+#include <QDir>
 
 #ifdef _WIN32
 #include <QQuickStyle>
@@ -54,8 +55,12 @@ int main(int argc, char* argv[])
     {
         QGuiApplication app(argc, argv);
 
+        // Setup engine and set paths.
+        QQmlApplicationEngine engine;
+
 #ifdef _WIN32
         QQuickStyle::setStyle("Universal");
+        engine.addImportPath(QDir(qApp->applicationDirPath()).filePath("qml"));
 #endif
 
         auto thread_count = std::thread::hardware_concurrency();
@@ -82,8 +87,6 @@ int main(int argc, char* argv[])
                          server_list,
                          std::move(server_list_filename));
 
-        // Setup engine and point at our GUI client wrapper.
-        QQmlApplicationEngine engine;
         engine.rootContext()->setContextProperty("Client", &client);
 
         // Server list model for connection screen.

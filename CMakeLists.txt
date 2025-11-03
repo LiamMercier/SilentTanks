@@ -215,21 +215,26 @@ elseif(TARGET_PLATFORM STREQUAL "windows")
   set(CPACK_NSIS_INSTALL_ROOT "$PROGRAMFILES64")
   set(CPACK_NSIS_MODIFY_PATH ON)
 
+  set(CPACK_PACKAGE_INSTALL_DIRECTORY "silent-tanks")
+
   # Bring over environment files
   install(DIRECTORY "${CMAKE_SOURCE_DIR}/envs"
-          DESTINATION "share/silent-tanks")
+          DESTINATION "share")
 
   install(FILES "${CMAKE_SOURCE_DIR}/mapfile.txt"
-          DESTINATION "share/silent-tanks")
+          DESTINATION "share")
 
   install(FILES "${CMAKE_SOURCE_DIR}/README.md"
-          DESTINATION "share/silent-tanks")
+          DESTINATION "share")
 
   set(WINDEPLOY_STAGING_DIR "${CMAKE_SOURCE_DIR}/staging")
 
   # Set each dll in the staging directory to be installed.
   if(EXISTS "${WINDEPLOY_STAGING_DIR}")
-    install(DIRECTORY "${WINDEPLOY_STAGING_DIR}/bin"
+    install(DIRECTORY "${WINDEPLOY_STAGING_DIR}"/qml"
+            DESTINATION ".")
+
+    install(DIRECTORY "${WINDEPLOY_STAGING_DIR}"
             DESTINATION "."
             FILES_MATCHING
             PATTERN "*.dll")

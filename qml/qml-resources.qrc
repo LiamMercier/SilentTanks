@@ -146,8 +146,6 @@
     <file>sounds/OutOfAmmo.wav</file>
     <file>sounds/Reload.wav</file>
     <file>sounds/Rotate.wav</file>
-  </qresource>
-  <qresource prefix="/packaging/windows">
-    <file>../packaging/windows/silent-tanks.ico</file>
+    <file>icons/silent-tanks.ico</file>
   </qresource>
 </RCC>

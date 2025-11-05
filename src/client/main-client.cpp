@@ -9,6 +9,7 @@
 
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
+#include <QQuickWindow>
 #include <QQmlContext>
 #include <QUrl>
 #include <QStringLiteral>
@@ -55,8 +56,6 @@ int main(int argc, char* argv[])
     try
     {
         QGuiApplication app(argc, argv);
-
-        app.setWindowIcon(QIcon(":/packaging/windows/silent-tanks.ico"));
 
         // Setup engine and set paths.
         QQmlApplicationEngine engine;
@@ -167,6 +166,22 @@ int main(int argc, char* argv[])
         if (engine.rootObjects().isEmpty())
         {
             return 1;
+        }
+
+        // Set the icon.
+        QIcon app_icon(QStringLiteral(":/icons/silent-tanks.ico"));
+
+        // We need to grab the root window to set the icon.
+        QObject *root = engine.rootObjects().first();
+        QQuickWindow *window = qobject_cast<QQuickWindow *>(root);
+
+        if(window)
+        {
+            window->setIcon(app_icon);
+        }
+        else
+        {
+            std::cerr << "Failed to grab top window, icon may be default.\n";
         }
 
         // Setup our ASIO thread pool.

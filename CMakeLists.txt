@@ -88,21 +88,15 @@ foreach(wav ${SOUNDS})
     file(APPEND "${QML_RCC}" "    <file>${REL_PATH}</file>\n")
 endforeach()
 
-file(APPEND "${QML_RCC}" "  </qresource>\n")
+# Add icon files.
+file(GLOB APP_ICONS "${CMAKE_CURRENT_SOURCE_DIR}/qml/icons/*")
 
-# icon qrc
-file(APPEND "${QML_RCC}" "  <qresource prefix=\"/packaging/windows\">\n")
-
-# Add icon file.
-file(GLOB APP_ICONS "${CMAKE_CURRENT_SOURCE_DIR}/packaging/windows/*.ico")
 foreach(icon ${APP_ICONS})
   file(RELATIVE_PATH REL_PATH "${CMAKE_CURRENT_SOURCE_DIR}/qml" "${icon}")
   file(APPEND "${QML_RCC}" "    <file>${REL_PATH}</file>\n")
 endforeach()
 
-file(APPEND "${QML_RCC}" "  </qresource>\n")
-
-file(APPEND "${QML_RCC}" "</RCC>\n")
+file(APPEND "${QML_RCC}" "  </qresource>\n</RCC>\n")
 
 include(FetchContent)
 

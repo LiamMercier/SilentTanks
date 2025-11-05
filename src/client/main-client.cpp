@@ -171,18 +171,8 @@ int main(int argc, char* argv[])
         // Set the icon.
         QIcon app_icon(QStringLiteral(":/icons/silent-tanks.ico"));
 
-        // We need to grab the root window to set the icon.
-        QObject *root = engine.rootObjects().first();
-        QQuickWindow *window = qobject_cast<QQuickWindow *>(root);
-
-        if(window)
-        {
-            window->setIcon(app_icon);
-        }
-        else
-        {
-            std::cerr << "Failed to grab top window, icon may be default.\n";
-        }
+        // We can call the app to set the window from the api.
+        app.setWindowIcon(app_icon);
 
         // Setup our ASIO thread pool.
         std::vector<std::thread> threads;

@@ -108,7 +108,7 @@ Open the UCRT64 environment and update.
 
 Install the toolchain and dependencies.
 
-`pacman -S mingw-w64-ucrt-x86_64-toolchain mingw-w64-ucrt-x86_64-qt6-base mingw-w64-ucrt-x86_64-qt6-declarative mingw-w64-ucrt-x86_64-qt6-svg mingw-w64-ucrt-x86_64-qt6-multimedia mingw-w64-ucrt-x86_64-boost mingw-w64-ucrt-x86_64-argon2 mingw-w64-ucrt-x86_64-cmake`
+`pacman -S git mingw-w64-ucrt-x86_64-toolchain mingw-w64-ucrt-x86_64-qt6-base mingw-w64-ucrt-x86_64-qt6-declarative mingw-w64-ucrt-x86_64-qt6-svg mingw-w64-ucrt-x86_64-qt6-multimedia mingw-w64-ucrt-x86_64-boost mingw-w64-ucrt-x86_64-argon2 mingw-w64-ucrt-x86_64-cmake mingw-w64-ucrt-x86_64-nsis`
 
 Grab the repository.
 
@@ -118,9 +118,29 @@ Compile.
 
 `cd SilentTanks`
 
-`cmake -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release -DTARGET_PLATFORM=windows -S . -B builds`
+`cmake -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release -DTARGET_PLATFORM=windows -S . -B builds && cmake --build builds`
 
-`cmake --build builds`
+Add qmlimportscanner.exe to the path.
+
+`export PATH="/ucrt64/share/qt6/bin:$PATH"`
+
+Call windeployqt6.
+
+`windeployqt6 --release --qmldir "${PWD}/qml" --dir staging "${PWD}/builds/src/client/SilentTanks-Client.exe"`
+
+Copy the other required dll files into the staging folder.
+
+`./packaging/windows/copy-dlls.sh builds/src/client/SilentTanks-Client.exe staging/`
+
+Package into an executable.
+
+`cd builds`
+
+`cpack -G NSIS`
+
+Optionally if releasing to others fetch the checksum. This may not be the same as the repository release checksum because the builds are not setup to be deterministic.
+
+`sha256sum silent-tanks-X.Y.Z-win64.exe`
 
 ## Compilation (Other platforms)
 

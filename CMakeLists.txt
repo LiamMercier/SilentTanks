@@ -20,6 +20,16 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Werror")
 
 if(WIN32)
   set(TARGET_PLATFORM "windows" CACHE STRING "Target platform")
+
+  set(SOURCE_ICON "${CMAKE_SOURCE_DIR}/packaging/windows/silent-tanks.ico")
+
+  set(GENERATED_RC "${CMAKE_BINARY_DIR}/resources.rc")
+  set(ICON_PATH "${SOURCE_ICON}")
+  configure_file("${CMAKE_SOURCE_DIR}/packaging/windows/resources.rc.in"
+                 "${GENERATED_RC}"
+                 @ONLY)
+
+  set(CLIENT_RC "${GENERATED_RC}" CACHE FILEPATH "Windows client resource file")
 endif()
 
 if(NOT TARGET_PLATFORM)
@@ -215,6 +225,14 @@ elseif(TARGET_PLATFORM STREQUAL "windows")
   set(CPACK_NSIS_INSTALL_ROOT "$PROGRAMFILES64")
   set(CPACK_NSIS_MODIFY_PATH ON)
 
+  if(EXISTS "${SOURCE_ICON}")
+    file(TO_NATIVE_PATH "${SOURCE_ICON}" SOURCE_ICON_NATIVE)
+    set(CPACK_NSIS_MUI_ICON "${SOURCE_ICON_NATIVE}")
+    set(CPACK_NSIS_MUI_UNIICON "${SOURCE_ICON_NATIVE}")
+  else()
+    message(WARNING "Icon could not be added to NSIS package.")
+  endif()
+
   set(CPACK_PACKAGE_INSTALL_DIRECTORY "silent-tanks")
 
   # Bring over environment files
@@ -231,7 +249,7 @@ elseif(TARGET_PLATFORM STREQUAL "windows")
 
   # Set each dll in the staging directory to be installed.
   if(EXISTS "${WINDEPLOY_STAGING_DIR}")
-    install(DIRECTORY "${WINDEPLOY_STAGING_DIR}"/qml"
+    install(DIRECTORY "${WINDEPLOY_STAGING_DIR}/qml"
             DESTINATION ".")
 
     install(DIRECTORY "${WINDEPLOY_STAGING_DIR}"

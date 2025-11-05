@@ -8,6 +8,14 @@ add_executable(SilentTanks-Client main-client.cpp client-session.cpp client.cpp 
 target_include_directories(SilentTanks-Client PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 target_include_directories(SilentTanks-Client PRIVATE ${Boost_INCLUDE_DIRS})
 
+if(TARGET_PLATFORM STREQUAL "windows")
+  if(EXISTS "${CLIENT_RC}")
+    target_sources(SilentTanks-Client PRIVATE "${CLIENT_RC}")
+  else()
+    message(WARNING "Windows .rc file not found at ${CLIENT_RC}")
+  endif()
+endif()
+
 target_link_libraries(SilentTanks-Client PRIVATE
     libgame
     protocol

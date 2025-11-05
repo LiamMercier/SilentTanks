@@ -21,7 +21,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Werror")
 if(WIN32)
   set(TARGET_PLATFORM "windows" CACHE STRING "Target platform")
 
-  set(SOURCE_ICON "${CMAKE_SOURCE_DIR}/packaging/windows/silent-tanks.ico")
+  set(SOURCE_ICON "${CMAKE_SOURCE_DIR}/qml/icons/silent-tanks.ico")
 
   set(GENERATED_RC "${CMAKE_BINARY_DIR}/resources.rc")
   set(ICON_PATH "${SOURCE_ICON}")

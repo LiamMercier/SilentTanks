@@ -2,6 +2,7 @@ import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Dialogs
 import QtQuick.Window 2.15
+import QtQuick.Layouts 2.15
 
 import GUICommon 1.0
 
@@ -82,27 +83,104 @@ ApplicationWindow {
     function (close) {
         if (!calledClose){
             close.accepted = false
-            if (!confirmDialog.opened){
-                confirmDialog.open()
+            if (!confirmPopup.opened){
+                confirmPopup.open()
             }
         }
     }
 
-    Dialog {
-        id: confirmDialog
-        title: "Confirm Exit"
+    Popup {
+        id: confirmPopup
         modal: true
 
         x: (root.width - width) / 2
         y: (root.height - height) / 2
 
-        standardButtons: Dialog.Yes | Dialog.No
-        onAccepted: {
-            calledClose = true
-            Client.shutdown_client()
+        implicitWidth: 250
+        implicitHeight: 150
+        focus: true
+
+        background: Rectangle {
+            id: confirmExitBackground
+            anchors.fill: parent
+            radius: 6
+            color: "#323436"
         }
-        onRejected: {
-            calledClose = false
+
+        ColumnLayout {
+            anchors.fill: parent
+            spacing: 0
+
+            Text {
+                Layout.fillWidth: true
+
+                Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
+
+                horizontalAlignment: Text.AlignHCenter
+                verticalAlignment: Text.AlignVCenter
+
+                wrapMode: Text.NoWrap
+                elide: Text.ElideRight
+
+                text: "Exit Application?"
+                font.pointSize: 18
+                color: "#f2f2f2"
+            }
+
+            RowLayout {
+                Layout.fillWidth: true
+                Layout.alignment: Qt.AlignHCenter
+                spacing: 12
+
+                SvgButton {
+                    id: cancelButton
+
+                    implicitHeight: 30
+                    implicitWidth: 80
+
+                    Layout.alignment: Qt.AlignHCenter
+
+                    buttonText: "Cancel"
+                    fontChoice: "#1f1f1f"
+                    unfocusedOpacity: 1.00
+
+                    normalSource: "qrc:/svgs/buttons/forfeit_button.svg"
+                    hoverSource: "qrc:/svgs/buttons/forfeit_button_hovered.svg"
+                    pressedSource: "qrc:/svgs/buttons/forfeit_button_pressed.svg"
+
+                    toggled: false
+
+                    onClicked: {
+                        calledClose = false
+                        confirmPopup.close()
+                    }
+                }
+
+                SvgButton {
+                    id: exitButton
+
+                    implicitHeight: 30
+                    implicitWidth: 80
+
+                    Layout.alignment: Qt.AlignHCenter
+
+                    buttonText: "Exit"
+                    fontChoice: "#1f1f1f"
+                    unfocusedOpacity: 1.00
+
+                    normalSource: "qrc:/svgs/buttons/exit_button.svg"
+                    hoverSource: "qrc:/svgs/buttons/exit_button_hovered.svg"
+                    pressedSource: "qrc:/svgs/buttons/exit_button_pressed.svg"
+
+                    toggled: false
+
+                    onClicked: {
+                        calledClose = true
+                        confirmPopup.close()
+                        Client.shutdown_client()
+                    }
+                }
+            }
         }
     }
 

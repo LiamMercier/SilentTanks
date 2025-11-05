@@ -81,6 +81,9 @@
     <file>svgs/buttons/cancel_button.svg</file>
     <file>svgs/buttons/cancel_button_hovered.svg</file>
     <file>svgs/buttons/cancel_button_pressed.svg</file>
+    <file>svgs/buttons/exit_button.svg</file>
+    <file>svgs/buttons/exit_button_hovered.svg</file>
+    <file>svgs/buttons/exit_button_pressed.svg</file>
     <file>svgs/buttons/fire.svg</file>
     <file>svgs/buttons/forfeit_button.svg</file>
     <file>svgs/buttons/forfeit_button_hovered.svg</file>

@@ -269,10 +269,8 @@ elseif(TARGET_PLATFORM STREQUAL "windows")
     message(WARNING "staging directory not found.")
   endif()
 
-  set(CPACK_NSIS_EXTRA_INSTALL_COMMANDS
-  "ReadEnvStr $0 LOCALAPPDATA\n"
-  "SetOutPath \"$0\\\\silent-tanks\"\n"
-  "File /r \"${CMAKE_CURRENT_BINARY_DIR}/share/*\"\n"
+  set(CPACK_NSIS_CREATE_ICONS_EXTRA
+  "CreateShortCut '$SMPROGRAMS\\\\$STARTMENU_FOLDER\\\\Silent Tanks.lnk' '$INSTDIR\\\\SilentTanks-Client.exe'"
   )
 
 endif()

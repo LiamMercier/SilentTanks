@@ -32,6 +32,8 @@ public:
     using MatchDataCallback = std::function<void(StaticMatchData data)>;
 
     using MatchReplayCallback = std::function<void(MatchReplay replay)>;
+
+    using ShutdownCallback = std::function<void()>;
 public:
     Client(asio::io_context & cntx,
            LoginCallback login_callback,
@@ -43,7 +45,8 @@ public:
            MatchHistoryCallback match_history_callback,
            ViewUpdateCallback view_callback,
            MatchDataCallback match_data_callback,
-           MatchReplayCallback match_replay_callback);
+           MatchReplayCallback match_replay_callback,
+           ShutdownCallback shutdown_callback);
 
     inline ClientState get_state() const;
 
@@ -84,6 +87,8 @@ public:
 
     void request_match_replay(uint64_t match_id);
 
+    void shutdown();
+
 private:
     void send_direct_message(std::string text,
                              boost::uuids::uuid receiver);
@@ -111,6 +116,8 @@ private:
 
     ClientSession::ptr current_session_;
 
+    std::atomic<bool> shutting_down_{false};
+
     LoginCallback login_callback_;
     StateChangeCallback state_change_callback_;
     PopupCallback popup_callback_;
@@ -121,6 +128,7 @@ private:
     ViewUpdateCallback view_callback_;
     MatchDataCallback match_data_callback_;
     MatchReplayCallback match_replay_callback_;
+    ShutdownCallback shutdown_callback_;
 };
 
 inline ClientState Client::get_state() const

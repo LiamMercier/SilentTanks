@@ -153,6 +153,8 @@ public:
     Q_INVOKABLE void send_fire_tank(int x, int y);
 
     Q_INVOKABLE void send_reload_tank(int x, int y);
+
+    Q_INVOKABLE void shutdown_client();
 private:
     void try_show_popup();
 
@@ -171,6 +173,8 @@ signals:
                     QString body);
 
     void play_sound(SoundType type);
+
+    void client_shutdown();
 
 private:
     Client client_;

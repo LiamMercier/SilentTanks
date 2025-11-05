@@ -43,7 +43,8 @@ Client::Client(asio::io_context & cntx,
                MatchHistoryCallback match_history_callback,
                ViewUpdateCallback view_callback,
                MatchDataCallback match_data_callback,
-               MatchReplayCallback match_replay_callback)
+               MatchReplayCallback match_replay_callback,
+               ShutdownCallback shutdown_callback)
 :io_context_(cntx),
 client_strand_(cntx.get_executor()),
 state_(ClientState::ConnectScreen),
@@ -56,7 +57,8 @@ display_message_callback_(std::move(display_message_callback)),
 match_history_callback_(std::move(match_history_callback)),
 view_callback_(std::move(view_callback)),
 match_data_callback_(std::move(match_data_callback)),
-match_replay_callback_(std::move(match_replay_callback))
+match_replay_callback_(std::move(match_replay_callback)),
+shutdown_callback_(std::move(shutdown_callback))
 {
 
 }
@@ -66,6 +68,11 @@ void Client::connect(ServerIdentity identity)
     asio::post(client_strand_,
         [this,
         identity = std::move(identity)]{
+
+        if(shutting_down_.load(std::memory_order_acquire))
+        {
+            return;
+        }
 
         this->current_session_ = std::make_shared<ClientSession>
                                     (
@@ -774,6 +781,40 @@ void Client::request_match_replay(uint64_t match_id)
         replay_request_msg.create_serialized(replay_req);
         current_session_->deliver(replay_request_msg);
 
+    });
+}
+
+void Client::shutdown()
+{
+    if(shutting_down_.load(std::memory_order_acquire))
+    {
+        return;
+    }
+
+    // Try to shutdown the client.
+    shutting_down_.store(true, std::memory_order_release);
+
+    // Post work to strand.
+    asio::post(client_strand_, [this]{
+        if (current_session_)
+        {
+            // Creates a side effect on disconnect_handler to finish shutdown.
+            current_session_->close_session();
+        }
+        // If not connected, we do not need to wait and can just exit.
+        else
+        {
+            if (shutdown_callback_)
+            {
+                shutdown_callback_();
+                shutdown_callback_ = nullptr;
+                std::cout << "Called shutdown callback in client\n";
+            }
+            else
+            {
+                std::cout << "Shutdown callback was called twice.\n";
+            }
+        }
     });
 }
 
@@ -1587,6 +1628,24 @@ void Client::on_disconnect()
 {
     asio::post(client_strand_,
         [this]{
+
+        {
+            if (shutting_down_.load(std::memory_order_acquire))
+            {
+                // Exit and emit shutdown signal for main.
+                if (shutdown_callback_)
+                {
+                    shutdown_callback_();
+                    shutdown_callback_ = nullptr;
+                    std::cout << "Called shutdown callback in client\n";
+                }
+                else
+                {
+                    std::cout << "Shutdown callback was called twice.\n";
+                }
+                return;
+            }
+        }
 
         {
             change_state(ClientState::Disconnected);

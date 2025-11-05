@@ -75,8 +75,7 @@ ApplicationWindow {
         }
     }
 
-    // Handle application close. TODO: implement later.
-    /*
+    // Handle application close.
     property bool calledClose: false
 
     onClosing:
@@ -93,12 +92,18 @@ ApplicationWindow {
         id: confirmDialog
         title: "Confirm Exit"
         modal: true
+
+        x: (root.width - width) / 2
+        y: (root.height - height) / 2
+
         standardButtons: Dialog.Yes | Dialog.No
         onAccepted: {
             calledClose = true
-            Qt.quit()
+            Client.shutdown_client()
+        }
+        onRejected: {
+            calledClose = false
         }
     }
-    */
 
 }

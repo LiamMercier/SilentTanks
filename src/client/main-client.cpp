@@ -188,6 +188,19 @@ int main(int argc, char* argv[])
             });
         }
 
+        QObject::connect(
+            &client,
+            &GUIClient::client_shutdown,
+            &app,
+            [&]{
+                std::cerr << "GUI signaled for shutdown.\n";
+                work_guard.reset();
+                io_context.stop();
+                // Also shutdown the GUI.
+                QMetaObject::invokeMethod(qApp, "quit", Qt::QueuedConnection);
+            },
+            Qt::QueuedConnection);
+
         // Start the GUI, this thread is now being used.
         app.exec();
 

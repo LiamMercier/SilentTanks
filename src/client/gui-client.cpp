@@ -119,6 +119,9 @@ client_
             }
         },
         Qt::QueuedConnection);
+    },
+    [this](){
+        emit client_shutdown();
     }
 ),
 server_list_(server_list_filename),
@@ -594,6 +597,11 @@ Q_INVOKABLE void GUIClient::send_reload_tank(int x, int y)
     client_.send_command(std::move(cmd));
 
     emit play_sound(SoundType::Reload);
+}
+
+Q_INVOKABLE void GUIClient::shutdown_client()
+{
+    client_.shutdown();
 }
 
 void GUIClient::try_show_popup()

@@ -78,7 +78,7 @@ void Database::authenticate(Message msg,
                             std::shared_ptr<Session> session,
                             std::string client_ip)
 {
-    if(shutting_down_.load(std::memory_order_relaxed))
+    if(shutting_down_.load(std::memory_order_acquire))
     {
         return;
     }
@@ -129,7 +129,7 @@ void Database::register_account(Message msg,
                                 std::shared_ptr<Session> session,
                                 std::string client_ip)
 {
-    if(shutting_down_.load(std::memory_order_relaxed))
+    if(shutting_down_.load(std::memory_order_acquire))
     {
         return;
     }
@@ -206,7 +206,7 @@ void Database::record_match(MatchResult result)
 void Database::ban_ip(std::string ip,
             std::chrono::system_clock::time_point banned_until)
 {
-    if(shutting_down_.load(std::memory_order_relaxed))
+    if(shutting_down_.load(std::memory_order_acquire))
     {
         return;
 
@@ -217,7 +217,7 @@ void Database::ban_ip(std::string ip,
 
 void Database::unban_ip(std::string ip)
 {
-    if(shutting_down_.load(std::memory_order_relaxed))
+    if(shutting_down_.load(std::memory_order_acquire))
     {
         return;
     }
@@ -229,7 +229,7 @@ void Database::ban_user(std::string username,
               std::chrono::system_clock::time_point banned_until,
               std::string reason)
 {
-    if(shutting_down_.load(std::memory_order_relaxed))
+    if(shutting_down_.load(std::memory_order_acquire))
     {
         return;
     }
@@ -241,7 +241,7 @@ void Database::ban_user(std::string username,
 
 void Database::unban_user(std::string username, uint64_t ban_id)
 {
-    if(shutting_down_.load(std::memory_order_relaxed))
+    if(shutting_down_.load(std::memory_order_acquire))
     {
         return;
     }
@@ -253,7 +253,7 @@ void Database::send_friend_request(boost::uuids::uuid user,
                                    Message msg,
                                    std::shared_ptr<Session> session)
 {
-    if(shutting_down_.load(std::memory_order_relaxed))
+    if(shutting_down_.load(std::memory_order_acquire))
     {
         return;
     }
@@ -274,7 +274,7 @@ void Database::respond_friend_request(boost::uuids::uuid user,
                                       Message msg,
                                       std::shared_ptr<Session> session)
 {
-    if(shutting_down_.load(std::memory_order_relaxed))
+    if(shutting_down_.load(std::memory_order_acquire))
     {
         return;
     }
@@ -296,7 +296,7 @@ void Database::block_user(boost::uuids::uuid blocker,
                           Message msg,
                           std::shared_ptr<Session> session)
 {
-    if(shutting_down_.load(std::memory_order_relaxed))
+    if(shutting_down_.load(std::memory_order_acquire))
     {
         return;
     }
@@ -317,7 +317,7 @@ void Database::unblock_user(boost::uuids::uuid blocker,
                             Message msg,
                             std::shared_ptr<Session> session)
 {
-    if(shutting_down_.load(std::memory_order_relaxed))
+    if(shutting_down_.load(std::memory_order_acquire))
     {
         return;
     }
@@ -338,7 +338,7 @@ void Database::remove_friend(boost::uuids::uuid user,
                              Message msg,
                              std::shared_ptr<Session> session)
 {
-    if(shutting_down_.load(std::memory_order_relaxed))
+    if(shutting_down_.load(std::memory_order_acquire))
     {
         return;
     }
@@ -358,7 +358,7 @@ void Database::remove_friend(boost::uuids::uuid user,
 void Database::fetch_blocks(boost::uuids::uuid user,
                             std::shared_ptr<Session> session)
 {
-    if(shutting_down_.load(std::memory_order_relaxed))
+    if(shutting_down_.load(std::memory_order_acquire))
     {
         return;
     }
@@ -369,7 +369,7 @@ void Database::fetch_blocks(boost::uuids::uuid user,
 void Database::fetch_friends(boost::uuids::uuid user,
                              std::shared_ptr<Session> session)
 {
-    if(shutting_down_.load(std::memory_order_relaxed))
+    if(shutting_down_.load(std::memory_order_acquire))
     {
         return;
     }
@@ -380,7 +380,7 @@ void Database::fetch_friends(boost::uuids::uuid user,
 void Database::fetch_friend_requests(boost::uuids::uuid user,
                                      std::shared_ptr<Session> session)
 {
-    if(shutting_down_.load(std::memory_order_relaxed))
+    if(shutting_down_.load(std::memory_order_acquire))
     {
         return;
     }
@@ -392,7 +392,7 @@ void Database::fetch_new_matches(boost::uuids::uuid user,
                        GameMode mode,
                        std::shared_ptr<Session> session)
 {
-    if (shutting_down_.load(std::memory_order_relaxed))
+    if (shutting_down_.load(std::memory_order_acquire))
     {
         return;
     }
@@ -403,7 +403,7 @@ void Database::fetch_new_matches(boost::uuids::uuid user,
 void Database::fetch_replay(ReplayRequest req,
                             std::shared_ptr<Session> session)
 {
-    if (shutting_down_.load(std::memory_order_relaxed))
+    if (shutting_down_.load(std::memory_order_acquire))
     {
         return;
     }

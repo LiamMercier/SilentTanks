@@ -13,6 +13,7 @@
 #include <QUrl>
 #include <QStringLiteral>
 #include <QDir>
+#include <QIcon>
 
 #ifdef _WIN32
 #include <QQuickStyle>
@@ -54,6 +55,8 @@ int main(int argc, char* argv[])
     try
     {
         QGuiApplication app(argc, argv);
+
+        app.setWindowIcon(QIcon(":/packaging/windows/silent-tanks.ico"));
 
         // Setup engine and set paths.
         QQmlApplicationEngine engine;

@@ -88,7 +88,21 @@ foreach(wav ${SOUNDS})
     file(APPEND "${QML_RCC}" "    <file>${REL_PATH}</file>\n")
 endforeach()
 
-file(APPEND "${QML_RCC}" "  </qresource>\n</RCC>\n")
+file(APPEND "${QML_RCC}" "  </qresource>\n")
+
+# icon qrc
+file(APPEND "${QML_RCC}" "  <qresource prefix=\"/packaging/windows\">\n")
+
+# Add icon file.
+file(GLOB APP_ICONS "${CMAKE_CURRENT_SOURCE_DIR}/packaging/windows/*.ico")
+foreach(icon ${APP_ICONS})
+  file(RELATIVE_PATH REL_PATH "${CMAKE_CURRENT_SOURCE_DIR}/qml" "${icon}")
+  file(APPEND "${QML_RCC}" "    <file>${REL_PATH}</file>\n")
+endforeach()
+
+file(APPEND "${QML_RCC}" "  </qresource>\n")
+
+file(APPEND "${QML_RCC}" "</RCC>\n")
 
 include(FetchContent)
 
@@ -252,7 +266,7 @@ elseif(TARGET_PLATFORM STREQUAL "windows")
     install(DIRECTORY "${WINDEPLOY_STAGING_DIR}/qml"
             DESTINATION ".")
 
-    install(DIRECTORY "${WINDEPLOY_STAGING_DIR}"
+    install(DIRECTORY "${WINDEPLOY_STAGING_DIR}/"
             DESTINATION "."
             FILES_MATCHING
             PATTERN "*.dll")

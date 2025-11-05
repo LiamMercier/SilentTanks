@@ -44,6 +44,15 @@ if(TARGET_PLATFORM STREQUAL "debian")
           DESTINATION "share/silent-tanks"
           COMPONENT client)
 
+  # Add desktop file and icon.
+  install(FILES "${CMAKE_SOURCE_DIR}/packaging/linux/silent-tanks.desktop"
+          DESTINATION "/usr/share/applications"
+          COMPONENT client)
+
+  install(FILES "${CMAKE_SOURCE_DIR}/qml/svgs/icons/silent-tanks.svg"
+          DESTINATION "/usr/share/icons/hicolor/scalable/apps"
+          COMPONENT client)
+
 elseif(TARGET_PLATFORM STREQUAL "windows")
   install(TARGETS SilentTanks-Client
           RUNTIME DESTINATION .)

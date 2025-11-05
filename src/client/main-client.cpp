@@ -63,6 +63,9 @@ int main(int argc, char* argv[])
 #ifdef _WIN32
         QQuickStyle::setStyle("Universal");
         engine.addImportPath(QDir(qApp->applicationDirPath()).filePath("qml"));
+#else
+        // set desktop filename on linux.
+        app.setDesktopFileName("silent-tanks.desktop");
 #endif
 
         auto thread_count = std::thread::hardware_concurrency();

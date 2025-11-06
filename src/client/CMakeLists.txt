@@ -14,6 +14,11 @@ if(TARGET_PLATFORM STREQUAL "windows")
   else()
     message(WARNING "Windows .rc file not found at ${CLIENT_RC}")
   endif()
+
+  # Set linker flags to make the application a GUI app instead of console.
+  if(TARGET_APP_TYPE STREQUAL "gui")
+    set_target_properties(SilentTanks-Client PROPERTIES LINK_FLAGS "-mwindows")
+  endif()
 endif()
 
 target_link_libraries(SilentTanks-Client PRIVATE

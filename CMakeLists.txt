@@ -18,9 +18,19 @@ endif()
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Werror")
 
+# Either gui or console (which still spawns gui).
+if(NOT TARGET_APP_TYPE)
+  set(TARGET_APP_TYPE "gui")
+endif()
+
+set_property(CACHE TARGET_APP_TYPE PROPERTY STRINGS gui console)
+
+message(STATUS "App type: ${TARGET_APP_TYPE}")
+
 if(WIN32)
   set(TARGET_PLATFORM "windows" CACHE STRING "Target platform")
 
+  # Set the icon to be shipped with the executable.
   set(SOURCE_ICON "${CMAKE_SOURCE_DIR}/qml/icons/silent-tanks.ico")
 
   set(GENERATED_RC "${CMAKE_BINARY_DIR}/resources.rc")

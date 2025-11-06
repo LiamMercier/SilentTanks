@@ -209,6 +209,8 @@ include(InstallRequiredSystemLibraries)
 set(CPACK_PACKAGE_VERSION "1.0.0")
 set(CPACK_PACKAGE_CONTACT "LiamMercier@proton.me")
 set(CPACK_PACKAGE_NAME "silent-tanks")
+set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_SOURCE_DIR}/LICENSE")
+set(CPACK_RESOURCE_FILE_README "${CMAKE_SOURCE_DIR}/README.md")
 
 # Decide on package generation method.
 if(TARGET_PLATFORM STREQUAL "debian")
@@ -250,6 +252,10 @@ if(TARGET_PLATFORM STREQUAL "debian")
           DESTINATION "share/silent-tanks"
           COMPONENT common)
 
+  install(FILES "${CMAKE_SOURCE_DIR}/LICENSE"
+          DESTINATION "share/silent-tanks"
+          COMPONENT common)
+
 # Handle windows packaging.
 elseif(TARGET_PLATFORM STREQUAL "windows")
   set(CPACK_GENERATOR "NSIS")
@@ -278,6 +284,10 @@ elseif(TARGET_PLATFORM STREQUAL "windows")
 
   install(FILES "${CMAKE_SOURCE_DIR}/README.md"
           DESTINATION "share")
+
+  install(FILES "${CMAKE_SOURCE_DIR}/LICENSE"
+          DESTINATION "share"
+          COMPONENT common)
 
   set(WINDEPLOY_STAGING_DIR "${CMAKE_SOURCE_DIR}/staging")
 

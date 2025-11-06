@@ -142,7 +142,7 @@ void ClientSession::on_resolve(boost::system::error_code ec,
 
         std::cerr << res_failed << "\n\n";
 
-        on_alert_relay_(res_failed);
+        on_alert_relay_(std::move(res_failed));
         return;
     }
     else
@@ -190,7 +190,7 @@ void ClientSession::on_connect(boost::system::error_code ec,
 
             std::cerr << refused_con << "\n\n";
 
-            on_alert_relay_(refused_con);
+            on_alert_relay_(std::move(refused_con));
         }
         return;
     }
@@ -233,7 +233,7 @@ void ClientSession::on_connect(boost::system::error_code ec,
 
                     std::cerr << bad_tls << "\n\n";
 
-                    self->on_alert_relay_(bad_tls);
+                    self->on_alert_relay_(std::move(bad_tls));
 
                     self->force_close_session();
                     return;
@@ -250,7 +250,12 @@ void ClientSession::on_connect_timeout(boost::system::error_code ec)
         return;
     }
 
-    std::cerr << "Connection timed out, cancelling\n\n";
+    std::string timeout = "Connection timed out, cancelling";
+
+    std::cerr << timeout << "\n\n";
+
+    on_alert_relay_(std::move(timeout));
+
     ssl_socket_.lowest_layer().cancel();
 }
 
@@ -444,6 +449,10 @@ void ClientSession::close_session()
     }
 
     live_.store(false, std::memory_order_release);
+
+    std::string dc_msg = "The session was disconnected.";
+
+    on_alert_relay_(std::move(dc_msg));
 
     force_close_session();
 }

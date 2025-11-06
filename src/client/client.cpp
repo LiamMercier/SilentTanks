@@ -106,7 +106,7 @@ void Client::connect(ServerIdentity identity)
                             PopupType::Info,
                             "Session Error",
                             std::move(alert)),
-                            STANDARD_POPUP);
+                            URGENT_POPUP);
             }
         );
 
@@ -1691,12 +1691,6 @@ void Client::on_disconnect()
 
             last_queued_mode_ = GameMode::NO_MODE;
         }
-
-        popup_callback_(Popup(
-                            PopupType::Info,
-                            "Session Disconnected",
-                            "The session was disconnected."),
-                            URGENT_POPUP);
 
         playing_.store(false, std::memory_order_release);
         change_state(ClientState::ConnectScreen);

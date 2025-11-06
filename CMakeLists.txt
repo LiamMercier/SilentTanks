@@ -256,6 +256,10 @@ if(TARGET_PLATFORM STREQUAL "debian")
           DESTINATION "share/silent-tanks"
           COMPONENT common)
 
+  install(DIRECTORY "${CMAKE_SOURCE_DIR}/THIRD_PARTY_LICENSES"
+          DESTINATION "share/silent-tanks"
+          COMPONENT common)
+
 # Handle windows packaging.
 elseif(TARGET_PLATFORM STREQUAL "windows")
   set(CPACK_GENERATOR "NSIS")
@@ -286,6 +290,9 @@ elseif(TARGET_PLATFORM STREQUAL "windows")
           DESTINATION "share")
 
   install(FILES "${CMAKE_SOURCE_DIR}/LICENSE"
+          DESTINATION "share")
+
+  install(DIRECTORY "${CMAKE_SOURCE_DIR}/THIRD_PARTY_LICENSES"
           DESTINATION "share")
 
   set(WINDEPLOY_STAGING_DIR "${CMAKE_SOURCE_DIR}/staging")

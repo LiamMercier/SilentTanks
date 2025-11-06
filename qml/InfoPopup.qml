@@ -25,7 +25,7 @@ Window
     id: infoPopup
 
     width: 350
-    height: 150
+    height: 175
 
     // Prevent resizing.
     minimumWidth: width

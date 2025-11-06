@@ -34,11 +34,13 @@ connect_timer_(cntx)
 
 void ClientSession::set_message_handler(MessageHandler m_handler,
                                         ConnectionHandler c_handler,
-                                        DisconnectHandler d_handler)
+                                        DisconnectHandler d_handler,
+                                        AlertHandler on_alert_relay)
 {
     on_message_relay_ = std::move(m_handler);
     on_connection_relay_ = std::move(c_handler);
     on_disconnect_relay_ = std::move(d_handler);
+    on_alert_relay_ = std::move(on_alert_relay);
 }
 
 void ClientSession::start(ServerIdentity identity)
@@ -135,7 +137,12 @@ void ClientSession::on_resolve(boost::system::error_code ec,
 {
     if (ec)
     {
-        std::cerr << "Resolve failed " << ec.message() << "\n\n";
+        std::string res_failed = "Resolve failed: "
+                                 + ec.message();
+
+        std::cerr << res_failed << "\n\n";
+
+        on_alert_relay_(res_failed);
         return;
     }
     else
@@ -179,7 +186,11 @@ void ClientSession::on_connect(boost::system::error_code ec,
     {
         if (ec.value() == asio::error::connection_refused)
         {
-            std::cerr << "Connection was refused. Bad endpoint?\n\n";
+            std::string refused_con = "Connection was refused. Bad endpoint?";
+
+            std::cerr << refused_con << "\n\n";
+
+            on_alert_relay_(refused_con);
         }
         return;
     }
@@ -213,7 +224,17 @@ void ClientSession::on_connect(boost::system::error_code ec,
                 }
                 else
                 {
-                    std::cerr << "TLS failed to verify. Closing session.\n\n";
+                    std::string bad_tls = std::string("TLS failed to verify. The ")
+                                          + std::string("server entry may be missing ")
+                                          + std::string("the fingerprint, server ")
+                                          + std::string("certificate may be expired, ")
+                                          + std::string("or the server could be ")
+                                          + std::string("getting impersonated.");
+
+                    std::cerr << bad_tls << "\n\n";
+
+                    self->on_alert_relay_(bad_tls);
+
                     self->force_close_session();
                     return;
                 }

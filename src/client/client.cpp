@@ -99,7 +99,15 @@ void Client::connect(ServerIdentity identity)
         (
             [this](const ptr & s, Message m){ on_message(s, m); },
             [this](){ on_connection(); },
-            [this](){ on_disconnect(); }
+            [this](){ on_disconnect(); },
+            [this](std::string alert)
+            {
+                popup_callback_(Popup(
+                            PopupType::Info,
+                            "Session Error",
+                            std::move(alert)),
+                            STANDARD_POPUP);
+            }
         );
 
         this->current_session_->start(std::move(identity));

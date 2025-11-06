@@ -43,12 +43,14 @@ public:
     using MessageHandler = std::function<void(const ptr & session, Message msg)>;
     using ConnectionHandler = std::function<void()>;
     using DisconnectHandler = std::function<void()>;
+    using AlertHandler = std::function<void(std::string alert)>;
 
     ClientSession(asio::io_context & cntx);
 
     void set_message_handler(MessageHandler handler,
                              ConnectionHandler c_handler,
-                             DisconnectHandler d_handler);
+                             DisconnectHandler d_handler,
+                             AlertHandler alert_handler);
 
     void start(ServerIdentity identity);
 
@@ -119,6 +121,9 @@ private:
     MessageHandler on_message_relay_;
     ConnectionHandler on_connection_relay_;
     DisconnectHandler on_disconnect_relay_;
+
+    // Used to send strings of information to the client when necessary
+    AlertHandler on_alert_relay_;
 };
 
 inline asio::ip::tcp::socket & ClientSession::socket()

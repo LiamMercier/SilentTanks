@@ -101,7 +101,7 @@ int main(int argc, char* argv[])
             work_guard.reset();
             io_context.stop();
             // Also shutdown the GUI.
-            QMetaObject::invokeMethod(qApp, "quit", Qt::QueuedConnection);
+            QMetaObject::invokeMethod(qApp, "exit", Qt::QueuedConnection);
         });
 
         GUIClient client(io_context,

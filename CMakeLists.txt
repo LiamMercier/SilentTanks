@@ -286,8 +286,7 @@ elseif(TARGET_PLATFORM STREQUAL "windows")
           DESTINATION "share")
 
   install(FILES "${CMAKE_SOURCE_DIR}/LICENSE"
-          DESTINATION "share"
-          COMPONENT common)
+          DESTINATION "share")
 
   set(WINDEPLOY_STAGING_DIR "${CMAKE_SOURCE_DIR}/staging")
 

@@ -30,6 +30,16 @@ mkdir -p "$STAGING"
 
 # Grab every .dll reported by ldd.
 ldd "$BINARY" | awk '/=>/ {print $3}' | while read dll; do
+    if [[ "$dll" == /c/WINDOWS/* ]]; then
+        echo "Skipping windows system dll ($dll)"
+        continue
+    fi
+
+    if [[ "$dll" != /ucrt64/bin/* ]]; then
+        echo "Skipped dll ($dll) not from /ucrt64/bin/"
+        continue
+    fi
+
     if [[ -f "$dll" ]]; then
         cp "$dll" "$STAGING/"
         echo "Copying $dll"

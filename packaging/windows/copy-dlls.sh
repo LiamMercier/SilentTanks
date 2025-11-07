@@ -43,6 +43,23 @@ ldd "$BINARY" | awk '/=>/ {print $3}' | while read dll; do
     if [[ -f "$dll" ]]; then
         cp "$dll" "$STAGING/"
         echo "Copying $dll"
+
+        # also copy license file
+        pkg="$(pacman -Qo "$dll" 2>/dev/null | awk '{print $5}' || true)"
+
+        if [[ -n "$pkg" ]]; then
+            pkg_root="$(echo "$pkg" | sed -E 's/^(mingw-w64-(ucrt-)?(x86_64)-|ucrt64-)//')"
+            licenses="/ucrt64/share/licenses/$pkg_root"
+            if [[ -d "$licenses" ]]; then
+                mkdir -p "$STAGING/licenses/$pkg_root"
+                echo "Copying licenses for $pkg"
+                cp -a "$licenses" "$STAGING/licenses/$pkg_root/"
+            else
+                echo "WARNING: No licenses found for $pkg"
+            fi
+        else
+            echo "WARNING: pacman lookup failed for $dll"
+        fi
     else
         echo "Missing a .dll reported by ldd ($dll)"
     fi

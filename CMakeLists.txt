@@ -307,6 +307,9 @@ elseif(TARGET_PLATFORM STREQUAL "windows")
             FILES_MATCHING
             PATTERN "*.dll")
 
+    install(DIRECTORY "${WINDEPLOY_STAGING_DIR}/licenses/"
+            DESTINATION "share/THIRD_PARTY_LICENSES/")
+
   else()
     message(WARNING "staging directory not found.")
   endif()

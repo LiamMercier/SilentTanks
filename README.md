@@ -8,11 +8,11 @@ This repository contains an asynchronous multithreaded server and QML client for
 
 - [Installation (client)](#installation-client)
     - [Windows](#windows)
-    - [Linux (Debian based)](linux-debian-based)
+    - [Linux (Debian based)](#linux-debian-based)
     - [Other users](#other-users)
 - [Installation (server)](#installation-server)
     - [Windows](#windows-1)
-    - [Linux (Debian based)](linux-debian-based-1)
+    - [Linux (Debian based)](#linux-debian-based-1)
     - [Other users](#other-users-1)
 - [Compilation (Debian based)](#compilation-debian-based)
 - [Compilation (Windows)](#compilation-windows)
@@ -49,7 +49,9 @@ Install the client package.
 sudo apt install ./silent-tanks-X.Y.Z-Linux-client.deb
 ```
 
-The client can now be run from the start menu assuming your desktop environment supports desktop entries. For terminal logging you can manually run the application.
+The client can now be run from the start menu assuming your desktop environment supports desktop entries.
+
+For terminal logging you can manually run the application.
 
 ```
 SilentTanks-Client
@@ -65,7 +67,7 @@ The client is not packaged for .rpm or other package formats, self compilation a
 
 Untested.
 
-Users should install windows subsystem for linux (WSL) and read the following section.
+Users could try to use windows subsystem for linux (WSL) or a debian based virtual machine and read the following section.
 
 ### Linux (Debian based)
 
@@ -119,13 +121,13 @@ The server is not packaged for .rpm or other package formats, self compilation a
 
 ## Compilation (Debian based)
 
-The client and server are setup to produce .deb packages. To start, ensure all project dependencies and make tools are installed.
+The CMake script is setup to produce .deb packages for the client and server. To start, ensure all project dependencies and make tools are installed.
 
 ```
 sudo apt install git build-essential cmake libargon2-dev libssl-dev qt6-base-dev qt6-declarative-dev libpqxx-dev libsodium-dev libboost-dev libboost-system-dev libboost-program-options-dev
 ```
 
-Download the repository and change directories to the project root.
+Download the repository and change to the project root.
 
 ```
 git clone https://github.com/LiamMercier/SilentTanks.git
@@ -141,7 +143,7 @@ Compile with the following.
 cmake -DCMAKE_BUILD_TYPE=Release -DTARGET_PLATFORM=debian -DTARGET_APP_TYPE=gui -B builds -H. && cmake --build builds --target package
 ```
 
-Optionally, compile with N threads using the following.
+Optionally, you can instead compile with N threads using the following.
 
 ```
 cmake -DCMAKE_BUILD_TYPE=Release -DTARGET_PLATFORM=debian -DTARGET_APP_TYPE=gui -B builds -H. && cmake --build builds -j <N> --target package
@@ -149,7 +151,7 @@ cmake -DCMAKE_BUILD_TYPE=Release -DTARGET_PLATFORM=debian -DTARGET_APP_TYPE=gui 
 
 You should now see three debian packages in the builds directory.
 
-Optionally if releasing to others fetch the checksum. This may not be the same as the repository release checksum because the builds are not setup to be deterministic.
+Optionally if releasing to others fetch the checksum values. This may not be the same as the repository release checksum because the builds are not setup to be deterministic.
 
 ```
 sha256sum builds/silent-tanks-*
@@ -159,7 +161,7 @@ sha256sum builds/silent-tanks-*
 
 This project does not compile the server for windows, though it could be possible to do so with manual configuration. To create the client, do the following.
 
-Download [MSYS2](msys2.org). Verify the domain.
+Download [MSYS2](https://msys2.org). Verify the domain.
 
 Open the UCRT64 environment and update.
 
@@ -217,7 +219,7 @@ Copy the other required dll files and their licenses into the staging folder.
 ./packaging/windows/copy-dlls.sh builds/src/client/SilentTanks-Client.exe staging/
 ```
 
-You will likely see three WARNING lines corresponding to the icu library components, since they are not included in the licenses directory. If so, copy the license from the version being packaged.
+You will likely see three WARNING lines corresponding to the icu library components, since they are not included in the licenses directory. If so, copy the license from the version being packaged, though it is likely the license folder for the Qt6 version you are using already had these.
 
 ```
 mkdir -p staging/licenses/icu && cp /ucrt64/share/icu/77.1/LICENSE staging/licenses/icu
@@ -265,7 +267,7 @@ Now you will have an executable that you can package or otherwise use.
 
 ## Manual setup (Client)
 
-To setup the client manually on a linux system, you need to place mapfile.txt, envs, and server-list.txt into /home/YOUR_USERNAME/.local/share/silent-tanks since this is where the client expects these files.
+To setup the client manually on a linux system, you need to place `mapfile.txt`, `envs`, and `server-list.txt` into `/home/YOUR_USERNAME/.local/share/silent-tanks` since this is where the client expects these files.
 
 To setup the desktop entry and icon, assuming you are in the project root, do
 
@@ -281,7 +283,7 @@ And make it so the .desktop target SilentTanks-Client is executable.
 
 ## Manual setup (Server)
 
-Any files that the root CMakeLists.txt and src/server/CMakeLists.txt install should be moved manually.
+Any files that the root `CMakeLists.txt` and `src/server/CMakeLists.txt` install should be moved manually.
 
 The .deb package mainly calls the `postinst` shell script to move other files as root, create a server user, etc. 
 
@@ -311,7 +313,7 @@ ip route get 1.1.1.1
 
 You will likely need to enable port forwarding on the router to forward the traffic from your public address to your server device's private address. By default, the server uses `49656` for the port, but you can change this when you launch the server.
 
-Find your private address and your router's public address (possibly by logging into your router or using an external site). Enable port forwarding for your port to your private address. This server uses TCP for packets.
+Find your private address and your router's public address (possibly by logging into your router or using an external site). Enable port forwarding on your desired port to the server device's private address; this server uses TCP for packets.
 
 You may also need to alter your firewall rules (on your router, server device, or both) to allow traffic on the port.
 
@@ -323,7 +325,7 @@ While your server is running, you can print the identity string with `showidenti
 
 `[Private Address]:Port:Fingerprint`
 
-If people outside of your private network will connect to your server, you must replace the ip address with your public ip address. Private addresses are fine for LAN servers.
+If people outside of your private network will connect to your server, you must replace the private address with your public ip address. Private addresses are fine for LAN servers.
 
 Server identities have two formats, with and without name metadata. Both can be pasted into the client to automatically save a server.
 
@@ -335,16 +337,16 @@ If you have a domain name, you can have the user enter the domain and they will 
 
 ## Dependencies and licenses
 
-You can find the licenses for this project's dependencies in the THIRD_PARTY_LICENSES folder. Windows installs will have additional licenses from the numerous dynamic libraries that are to be brought over for the runtime. You can find a copy of every license available for these projects in the same directory after installing on windows with the understanding that the least restrictive license is being used (though all are compatible with this project's license). Most of these are from qt6 (and thus duplicated in the respective qt6 license folders).
+You can find the licenses for this project's dependencies in the THIRD_PARTY_LICENSES folder. Windows installs will have additional licenses from the numerous dynamic libraries that are brought over for the runtime. You can find a copy of every license available for these projects in the same directory after installing on windows with the understanding that the least restrictive license is being used (though all are compatible with this project's license). Most of these are from qt6 (and thus duplicated in the respective qt6 license folders).
 
 The following table enumerates which dependencies are being targeted, with a known good version for compilation.
 
 | Dependency | Tested version | Debian package | License |
 |------------|----------------|----------------|---------|
-| Boost | 1.83.0 | libboost-all-dev | Boost | Boost Software License 1.0 |
+| Boost | 1.83.0 | libboost-all-dev | Boost Software License 1.0 |
 | Argon2 | 0~20190702+dfsg-4+b2 | libargon2-dev | CC0 1.0 |
 | OpenSSL | 3.5.1-1 | libssl-dev | Apache 2.0 |
-| libpqxx | 7.10.0-2 | libpqxx-ev | BSD-3 |
+| libpqxx | 7.10.0-2 | libpqxx-dev | BSD-3 |
 | Glaze | 6.0.2 | N/A (pulled by CMake) | MIT |
 | Sodium | 1.0.18-1 | libsodium-dev | ISC license |
 | Qt | 6.8.2 | qt6-base-dev <br> qt6-declarative-dev | LGPL 3.0 |

@@ -65,7 +65,21 @@ void Session::deliver(Message msg)
     asio::post(strand_, [self = shared_from_this(), m = std::move(msg)]{
         // if the write queue is currently not empty
         bool write_in_progress = !self->write_queue_.empty();
+
         self->write_queue_.push_back(std::move(m));
+
+        // Prevent malicious clients from intentionally building up a large
+        // queue of messages that they refuse to read any faster than the
+        // timer we have for message writes.
+        //
+        // Any client that does not respect this is either malicious or malformed.
+        if (self->write_queue_.size() > MAX_MESSAGE_BACKLOG)
+        {
+            boost::system::error_code ignored;
+            self->ssl_socket_.lowest_layer().cancel(ignored);
+            return;
+        }
+
         if (!write_in_progress)
         {
             self->do_write();
@@ -187,9 +201,16 @@ void Session::start_ping()
     }));
 }
 
+// We cannot add a timeout to this, because there is no difference
+// between a slowloris attack that opens connections but does nothing
+// and a client who is not currently requesting anything.
+//
+// Mitigations would need to involve limiting session's per incoming address
+// or computational costs in the heartbeat ping.
 void Session::do_read_header()
 {
     auto self = shared_from_this();
+
     // read from the header using buffer of size of the header
     asio::async_read(ssl_socket_,
         asio::buffer(&incoming_header_, sizeof(Header)),
@@ -295,6 +316,19 @@ void Session::do_write()
             asio::buffer(msg.payload)
         }
     };
+
+    // Setup an async timer to ensure malicious clients can't
+    // intentionally read their data too slowly.
+    write_timer_.expires_after(std::chrono::seconds(WRITE_TIMEOUT));
+    write_timer_.async_wait(asio::bind_executor(strand_,
+        [self](boost::system::error_code ec){
+            if (!ec)
+            {
+                boost::system::error_code ignored;
+                self->ssl_socket_.lowest_layer().cancel(ignored);
+            }
+
+        }));
 
     asio::async_write(ssl_socket_,
                       bufs,

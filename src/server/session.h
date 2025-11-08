@@ -32,6 +32,7 @@
 // Seconds to wait before closing session when data is not sent.
 static constexpr uint64_t READ_TIMEOUT = 10;
 static constexpr uint64_t PING_TIMEOUT = READ_TIMEOUT;
+static constexpr uint64_t WRITE_TIMEOUT = READ_TIMEOUT;
 
 // Seconds between pings to the client.
 static constexpr uint64_t PING_INTERVAL = 90;
@@ -41,6 +42,9 @@ static constexpr uint64_t TOKENS_REFILL_RATE = 10;
 
 // Allow bursts of up to 10x the refill rate.
 static constexpr uint64_t MAX_TOKENS = 10 * TOKENS_REFILL_RATE;
+
+// Upper bound on messages waiting to be written.
+static constexpt size_t MAX_MESSAGE_BACKLOG = 50;
 
 // Command to get the cost in tokens of a command.
 constexpr uint64_t weight_of_cmd(Header h)
@@ -161,10 +165,13 @@ private:
     asio::strand<asio::io_context::executor_type> strand_;
 
     // We need to ensure clients are not connecting and
-    // pretending to send data (slowloris), so we set this
+    // pretending to send data (slowloris style DoS), so we set this
     // timer and disconnect the session if they do not deliver
     // their data in a reasonable manner.
     asio::steady_timer read_timer_;
+
+    // Same case, but for when we try to write data.
+    asio::steady_timer write_timer_;
 
     // We need to ensure sessions are still active and remove
     // them if we see no activity for awhile.

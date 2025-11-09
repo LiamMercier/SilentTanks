@@ -1,3 +1,19 @@
+// Copyright (c) 2025 Liam Mercier
+//
+// This file is part of SilentTanks.
+//
+// SilentTanks is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Affero General Public License Version 3.0
+// as published by the Free Software Foundation.
+//
+// SilentTanks is distributed in the hope that it will be useful, but
+// WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+// or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License v3.0
+// for more details.
+//
+// You should have received a copy of the GNU Affero General Public License v3.0
+// along with SilentTanks. If not, see <https://www.gnu.org/licenses/agpl-3.0.txt>
+
 #pragma once
 
 #include <glaze/glaze.hpp>
@@ -19,6 +35,7 @@ struct Command
 {
     uint8_t sender;
     CommandType type;
+    // Doubles as "direction" when placed in setup phase.
     uint8_t tank_id;
     // Primary place to put a command parameter.
     uint8_t payload_first;
@@ -42,6 +59,14 @@ struct CommandHead
     payload_second(cmd.payload_second)
     {}
 
+    CommandHead()
+    :sender(0),
+    type(static_cast<CommandType>(0)),
+    tank_id(0),
+    payload_first(0),
+    payload_second(0)
+    {}
+
     uint8_t sender;
     CommandType type;
     uint8_t tank_id;
@@ -49,6 +74,8 @@ struct CommandHead
     uint8_t payload_first;
     // Mostly used to give a second x coordinate for placement.
     uint8_t payload_second;
+
+    static constexpr std::size_t COMMAND_SIZE = 5 * sizeof(uint8_t);
 };
 
 namespace glz{

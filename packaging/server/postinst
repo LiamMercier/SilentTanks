@@ -1,0 +1,115 @@
+#!/bin/bash
+set -euo pipefail
+
+# Copyright (c) 2025 Liam Mercier
+#
+# This file is part of SilentTanks.
+#
+# SilentTanks is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License Version 3.0
+# as published by the Free Software Foundation.
+#
+# SilentTanks is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+# or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License v3.0
+# for more details.
+#
+# You should have received a copy of the GNU Affero General Public License v3.0
+# along with SilentTanks. If not, see <https://www.gnu.org/licenses/agpl-3.0.txt>
+
+if [ "${1:-}" != "configure" ]; then
+    exit 0
+fi
+
+# Our main goal post install is to move necessary files from the install directory
+# /usr/share/silent-tanks to /var/lib/silent-tanks for use in the server
+# and ensure a server user/group exists.
+
+APP_USER="silent-tanks"
+APP_GROUP="silent-tanks"
+
+# Store server variable data in /var/lib/silent-tanks
+ROOT_DIR="/var/lib/silent-tanks"
+CERT_DIR="$ROOT_DIR/certs"
+
+# Package specific scripts and files.
+PKG_SHARE="/usr/share/silent-tanks"
+
+if ! getent group "$APP_GROUP" >/dev/null; then
+    if command -v addgroup >/dev/null 2>&1; then
+        addgroup --system "$APP_GROUP" || true
+    elif command -v groupadd >/dev/null 2>&1; then
+        groupadd --system "$APP_GROUP" || true
+    else
+        echo "no groupadd or addgroup available."
+        exit 1
+    fi
+fi
+
+if ! id -u "$APP_USER" >/dev/null 2>&1; then
+    if command -v adduser >/dev/null 2>&1; then
+        adduser --system --group --no-create-home --quiet "$APP_USER"
+    elif command -v useradd >/dev/null 2>&1; then
+        useradd --system --no-create-home --shell /usr/sbin/nologin --gid "$APP_GROUP" "$APP_USER" || true
+    else
+        echo "No useradd/adduser available."
+        exit 1
+    fi
+fi
+
+EXECUTABLE_PATH="/usr/lib/silent-tanks/SilentTanks-Server"
+
+if [ -f "$EXECUTABLE_PATH" ]; then
+    chown root:"${APP_GROUP}" "$EXECUTABLE_PATH"
+    chmod 750 "$EXECUTABLE_PATH"
+else
+    echo "Exectuable for server not found in ${EXECUTABLE_PATH}"
+fi
+
+mkdir -p "$ROOT_DIR"
+mkdir -p "$CERT_DIR"
+
+chown -R "${APP_USER}:${APP_GROUP}" "$ROOT_DIR"
+chown -R "${APP_USER}:${APP_GROUP}" "$CERT_DIR"
+
+chmod 700 "$ROOT_DIR"
+chmod 700 "$CERT_DIR"
+
+# Move over the environment files, map file
+if [ -d "$PKG_SHARE/envs" ]; then
+    DEST_ENVS="$ROOT_DIR/envs"
+    if [ ! -d "$DEST_ENVS" ]; then
+        cp -r "$PKG_SHARE/envs" "$DEST_ENVS"
+        chown -R "${APP_USER}:${APP_GROUP}" "$DEST_ENVS"
+        chmod -R u+rwX,go-rwx "$DEST_ENVS"
+        echo "Copied environments folder to $DEST_ENVS"
+    else
+        echo "Environment folder already exists"
+    fi
+else
+    echo "Environment folder not found in ${PKG_SHARE}/envs"
+fi
+
+if [ -f "$PKG_SHARE/mapfile.txt" ]; then
+    DEST_MAPFILE="$ROOT_DIR/mapfile.txt"
+    if [ ! -f "$ROOT_DIR/mapfile.txt" ]; then
+        cp "$PKG_SHARE/mapfile.txt" "$DEST_MAPFILE"
+        chown "${APP_USER}:${APP_GROUP}" "$DEST_MAPFILE"
+        chmod u+rwX,go-rwx "$DEST_MAPFILE"
+        echo "Copied mapfile.txt to $DEST_MAPFILE"
+    else
+        echo "Mapfile already exists"
+    fi
+else
+    echo "mapfile.txt not found at ${PKG_SHARE}/mapfile.txt"
+fi
+
+# Tell server admin to generate key and certificate.
+if [ ! -f "${CERT_DIR}/server.key" ] || [ ! -f "${CERT_DIR}/server.crt" ]; then
+    echo "server.crt or server.key are missing from ${CERT_DIR}. Generate a self signed certificate using create_self_signed_cert.sh or supply your own."
+else
+    echo "Certificate and key already exist at ${CERT_DIR}."
+fi
+
+echo "Finished setup. Server administrator should call setup-database.sh"
+exit 0

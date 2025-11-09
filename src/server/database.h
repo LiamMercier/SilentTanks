@@ -1,3 +1,19 @@
+// Copyright (c) 2025 Liam Mercier
+//
+// This file is part of SilentTanks.
+//
+// SilentTanks is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Affero General Public License Version 3.0
+// as published by the Free Software Foundation.
+//
+// SilentTanks is distributed in the hope that it will be useful, but
+// WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+// or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License v3.0
+// for more details.
+//
+// You should have received a copy of the GNU Affero General Public License v3.0
+// along with SilentTanks. If not, see <https://www.gnu.org/licenses/agpl-3.0.txt>
+
 #pragma once
 
 #include "message.h"
@@ -21,23 +37,15 @@
 
 class UserManager;
 
-constexpr size_t SALT_LENGTH = 16;
-
-constexpr uint32_t ARGON2_TIME = 4;
-constexpr uint32_t ARGON2_MEMORY = 65536;
-constexpr uint32_t ARGON2_PARALLEL = 1;
-
 // Limit how much memory we are consuming for logins.
 constexpr size_t MAX_CONCURRENT_AUTHS = 3;
 
 // Maximum number of requests to hold at one time, to prevent spam.
 constexpr int MAX_FRIEND_REQUESTS = 50;
 
-constexpr bool ACCEPT_REQUEST = true;
-
 namespace asio = boost::asio;
 
-// TODO: pipeline everything that can be pipelined.
+// TODO <optimization>: pipeline everything that can be pipelined.
 // This is especially true for the match write function.
 class Database
 {
@@ -113,6 +121,13 @@ public:
     void fetch_friend_requests(boost::uuids::uuid user,
                                std::shared_ptr<Session> session);
 
+    void fetch_new_matches(boost::uuids::uuid user,
+                           GameMode mode,
+                           std::shared_ptr<Session> session);
+
+    void fetch_replay(ReplayRequest req,
+                      std::shared_ptr<Session> session);
+
     std::unordered_map<std::string, std::chrono::system_clock::time_point>
     load_bans();
 
@@ -173,6 +188,13 @@ private:
 
     void do_fetch_friend_requests(boost::uuids::uuid user,
                                   std::shared_ptr<Session> session);
+
+    void do_fetch_new_matches(boost::uuids::uuid user,
+                              GameMode mode,
+                              std::shared_ptr<Session> session);
+
+    void do_fetch_replay(ReplayRequest req,
+                         std::shared_ptr<Session> session);
 
     void prepares();
 

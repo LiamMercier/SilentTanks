@@ -1,5 +1,22 @@
+// Copyright (c) 2025 Liam Mercier
+//
+// This file is part of SilentTanks.
+//
+// SilentTanks is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Affero General Public License Version 3.0
+// as published by the Free Software Foundation.
+//
+// SilentTanks is distributed in the hope that it will be useful, but
+// WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+// or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License v3.0
+// for more details.
+//
+// You should have received a copy of the GNU Affero General Public License v3.0
+// along with SilentTanks. If not, see <https://www.gnu.org/licenses/agpl-3.0.txt>
+
 #include "map-repository.h"
 #include "message.h"
+#include "asset-resolver.h"
 
 #include <iostream>
 #include <filesystem>
@@ -12,6 +29,7 @@ MapRepository::MapRepository()
 
 }
 
+// TODO <refactoring>: make a map file format that isn't reprehensible.
 void MapRepository::load_map_file(std::string map_file_name)
 {
     // Lock all maps.
@@ -19,13 +37,15 @@ void MapRepository::load_map_file(std::string map_file_name)
 
     std::error_code ec;
 
-    if (!std::filesystem::is_regular_file(map_file_name, ec))
+    auto mapfile_path = AppAssets::resolve_asset(map_file_name);
+
+    if (mapfile_path.empty())
     {
-        std::cerr << "Map file not found, closing server.\n";
-        throw std::runtime_error("Failed to find map file.");
+        std::cerr << "Map file does not exist\n";
+        throw std::runtime_error("Map file does not exist.");
     }
 
-    auto size = std::filesystem::file_size(map_file_name, ec);
+    auto size = std::filesystem::file_size(mapfile_path, ec);
 
     if (ec)
     {
@@ -39,7 +59,7 @@ void MapRepository::load_map_file(std::string map_file_name)
         throw std::runtime_error("Map file is empty.");
     }
 
-    std::ifstream in_file(map_file_name);
+    std::ifstream in_file(mapfile_path);
 
     if (!in_file.is_open())
     {
@@ -60,7 +80,8 @@ void MapRepository::load_map_file(std::string map_file_name)
     // Go line by line and read map data.
     while (in_file >> name >> w >> h >> tanks >> players >> mode)
     {
-        std::filesystem::path map_path = std::filesystem::path("envs") / name;
+        std::string map_path_name = "envs/" + name;
+        std::filesystem::path map_path = AppAssets::resolve_asset(map_path_name);
 
         // Check that numbers are valid for their datatype.
         if (w <= 0 || w >= UINT8_MAX ||
@@ -69,7 +90,7 @@ void MapRepository::load_map_file(std::string map_file_name)
             players <= 0 || players >= UINT8_MAX ||
             mode < 0 || mode >= NUMBER_OF_MODES)
         {
-            std::cerr << "Environment file " << map_path
+            std::cerr << "Environment file " << map_path_name
                         << " has invalid values\n";
             throw std::runtime_error("Environment file has invalid values.");
         }

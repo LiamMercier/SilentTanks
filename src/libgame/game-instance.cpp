@@ -1,14 +1,63 @@
+// Copyright (c) 2025 Liam Mercier
+//
+// This file is part of SilentTanks.
+//
+// SilentTanks is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Affero General Public License Version 3.0
+// as published by the Free Software Foundation.
+//
+// SilentTanks is distributed in the hope that it will be useful, but
+// WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+// or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License v3.0
+// for more details.
+//
+// You should have received a copy of the GNU Affero General Public License v3.0
+// along with SilentTanks. If not, see <https://www.gnu.org/licenses/agpl-3.0.txt>
+
 #include "game-instance.h"
 #include "constants.h"
 
-#include <filesystem>
+// Take the difference without overflows.
+uint8_t abs_uint8_dist(uint8_t p1, uint8_t p2)
+{
+    if (p1 > p2)
+    {
+        return (p1 - p2);
+    }
+    else
+    {
+        return (p2 - p1);
+    }
+}
+
+// Take in two positions and output if they touch on an 8-grid.
+bool tile_beside_grass(uint8_t x1, uint8_t y1, uint8_t x2, uint8_t y2)
+{
+    if (abs_uint8_dist(x1, x2) <= 1
+        && abs_uint8_dist(y1, y2) <= 1)
+    {
+        return true;
+    }
+
+    return false;
+}
+
+GameInstance::GameInstance()
+:num_players_(0),
+num_tanks_(0),
+game_env_(),
+placement_mask_(0),
+tanks_(0)
+{
+}
 
 // Constructor for match instances.
 GameInstance::GameInstance(GameMap map)
 :num_players_(map.map_settings.num_players),
 num_tanks_(map.map_settings.num_tanks),
 game_env_(std::move(map.env)),
-placement_mask_(std::move(map.mask))
+placement_mask_(std::move(map.mask)),
+tanks_(num_tanks_ * num_players_)
 {
     players_.reserve(num_players_);
 
@@ -17,8 +66,6 @@ placement_mask_(std::move(map.mask))
     {
         players_.emplace_back(num_tanks_, i);
     }
-
-    tanks_ = (new Tank[num_tanks_ * num_players_]{});
 }
 
 // Constructor when no map repository exists.
@@ -26,7 +73,8 @@ GameInstance::GameInstance(const MapSettings & map_settings)
 :num_players_(map_settings.num_players),
 num_tanks_(map_settings.num_tanks),
 game_env_(map_settings.width, map_settings.height),
-placement_mask_(map_settings.width * map_settings.height)
+placement_mask_(map_settings.width * map_settings.height),
+tanks_(num_tanks_ * num_players_)
 {
     players_.reserve(num_players_);
 
@@ -35,19 +83,12 @@ placement_mask_(map_settings.width * map_settings.height)
     {
         players_.emplace_back(num_tanks_, i);
     }
-
-    tanks_ = (new Tank[num_tanks_ * num_players_]{});
-}
-
-GameInstance::~GameInstance()
-{
-    delete[] tanks_;
 }
 
 // Rotate a tank of given ID
 void GameInstance::rotate_tank(uint8_t ID, uint8_t dir)
 {
-    Tank& curr_tank = tanks_[ID];
+    Tank & curr_tank = tanks_[ID];
     if (dir == 0)
     {
         curr_tank.turn_clockwise();
@@ -61,7 +102,7 @@ void GameInstance::rotate_tank(uint8_t ID, uint8_t dir)
 // Rotate the barrel of a tank of given ID
 void GameInstance::rotate_tank_barrel(uint8_t ID, uint8_t dir)
 {
-    Tank& curr_tank = tanks_[ID];
+    Tank & curr_tank = tanks_[ID];
     if (dir == 0)
     {
         curr_tank.barrel_clockwise();
@@ -77,7 +118,7 @@ void GameInstance::rotate_tank_barrel(uint8_t ID, uint8_t dir)
 // Return True if the move was successful, or false if there was terrain or other objects.
 bool GameInstance::move_tank(uint8_t ID, bool reverse)
 {
-    Tank& curr_tank = tanks_[ID];
+    Tank & curr_tank = tanks_[ID];
     uint8_t dir = curr_tank.current_direction_;
 
     if (reverse == true)
@@ -394,14 +435,17 @@ bool GameInstance::fire_tank(uint8_t ID)
     // Expend the shell
     curr_tank.loaded_ = false;
 
-    for (int i = 1; i <= FIRING_DIST; i++)
+    uint8_t shell_distance = (curr_tank.barrel_direction_ % 2) == 0
+                             ? FIRING_DIST_HORIZONTAL : FIRING_DIST_DIAGONAL;
+
+    for (int i = 1; i <= shell_distance; i++)
     {
         // Take a step
         curr_loc = curr_loc + shell_dir;
 
         // Test if this tile is out of bounds
-        if ((curr_loc.x_ > game_env_.get_height() - 1)
-            || (curr_loc.y_ > game_env_.get_width() - 1))
+        if ((curr_loc.x_ > game_env_.get_width() - 1)
+            || (curr_loc.y_ > game_env_.get_height() - 1))
         {
                 return false;
         }
@@ -417,7 +461,13 @@ bool GameInstance::fire_tank(uint8_t ID)
         // test if the tile has a tank
         if (curr_cell.occupant_ != NO_OCCUPANT)
         {
-            Tank& hit_tank = tanks_[curr_cell.occupant_];
+            Tank & hit_tank = tanks_[curr_cell.occupant_];
+
+            if (hit_tank.owner_ == curr_tank.owner_)
+            {
+                return false;
+            }
+
             hit_tank.deal_damage(SHELL_DAMAGE);
 
             // if the health of the tank is zero, remove it from play
@@ -434,6 +484,93 @@ bool GameInstance::fire_tank(uint8_t ID)
     return false;
 }
 
+MoveStatus GameInstance::replay_fire_tank(uint8_t ID)
+{
+    Tank & curr_tank = tanks_[ID];
+
+    vec2 shell_dir = dir_to_vec[curr_tank.barrel_direction_];
+    vec2 curr_loc = curr_tank.pos_;
+
+    // Expend the shell
+    curr_tank.loaded_ = false;
+
+    uint8_t shell_distance = (curr_tank.barrel_direction_ % 2) == 0
+                             ? FIRING_DIST_HORIZONTAL : FIRING_DIST_DIAGONAL;
+
+    for (int i = 1; i <= shell_distance; i++)
+    {
+        // Take a step
+        curr_loc = curr_loc + shell_dir;
+
+        // Test if this tile is out of bounds
+        if ((curr_loc.x_ > game_env_.get_width() - 1)
+            || (curr_loc.y_ > game_env_.get_height() - 1))
+        {
+                return MoveStatus();
+        }
+
+        GridCell curr_cell = game_env_[idx(curr_loc)];
+
+        // test if the tile is terrain
+        if (curr_cell.type_ == CellType::Terrain)
+        {
+            return MoveStatus();
+        }
+
+        // test if the tile has a tank
+        if (curr_cell.occupant_ != NO_OCCUPANT)
+        {
+            Tank & hit_tank = tanks_[curr_cell.occupant_];
+            hit_tank.deal_damage(SHELL_DAMAGE);
+
+            // if the health of the tank is zero, remove it from play
+            if (hit_tank.health_ == 0)
+            {
+                vec2 hit_pos = hit_tank.pos_;
+                game_env_[idx(hit_pos)].occupant_ = NO_OCCUPANT;
+            }
+
+            MoveStatus status;
+            status.success = true;
+            status.hits.push_back(hit_tank.pos_);
+
+            return status;
+        }
+
+    }
+    return MoveStatus();
+}
+
+void GameInstance::repair_tank(vec2 pos)
+{
+    GridCell target_cell = game_env_[idx(pos)];
+
+    // Speed up lookup if tank is alive.
+    if (target_cell.occupant_ != NO_OCCUPANT)
+    {
+        Tank & tank = tanks_[target_cell.occupant_];
+        tank.repair(SHELL_DAMAGE);
+    }
+    // Otherwise, see if any of the dead tanks exist at this tile.
+    else
+    {
+        for (Tank & tank : tanks_)
+        {
+            // If a tank exists at this position
+            if (tank.pos_.x_ == pos.x_
+                && tank.pos_.y_ == pos.y_)
+            {
+                // Heal the tank.
+                tank.repair(SHELL_DAMAGE);
+
+                // Ensure the tank is added back into play.
+                vec2 this_pos = tank.pos_;
+                game_env_[idx(this_pos)].occupant_ = tank.id_;
+            }
+        }
+    }
+}
+
 // Below is probably the worst function in the entire code base.
 //
 // Should really be re-worked one day.
@@ -446,7 +583,7 @@ bool GameInstance::fire_tank(uint8_t ID)
 //
 // We start with the current game environment and set all cells
 // to having no vision
-PlayerView GameInstance::compute_view(uint8_t player_ID, uint8_t & live_tanks)
+PlayerView GameInstance::compute_view(uint8_t player_ID, uint8_t & num_live_tanks)
 {
     uint8_t width = game_env_.get_width();
     uint8_t height = game_env_.get_height();
@@ -470,7 +607,7 @@ PlayerView GameInstance::compute_view(uint8_t player_ID, uint8_t & live_tanks)
     // the visibility depends on the aim_state_ of the tank
 
     const Player& this_player =  get_player(player_ID);
-    const int* player_tank_IDs = this_player.get_tanks_list();
+    const std::vector<int> & player_tank_IDs = this_player.get_tanks_list();
 
     for (size_t i = 0; i < num_tanks_; i++)
     {
@@ -492,7 +629,7 @@ PlayerView GameInstance::compute_view(uint8_t player_ID, uint8_t & live_tanks)
         }
 
         // otherwise increment the number of alive tanks
-        live_tanks += 1;
+        num_live_tanks += 1;
 
         // Add the current tank to the visibility map
         vec2 tank_pos = curr_tank.pos_;
@@ -516,7 +653,7 @@ PlayerView GameInstance::compute_view(uint8_t player_ID, uint8_t & live_tanks)
 
         // We can compute horizontal/vertical options by using 7 rays.
         //
-        // TODO: Convert this mess into a compatible cast_ray version
+        // TODO <refactoring>: Convert this mess into a compatible cast_ray version
         if (curr_tank.aim_focused_ == false)
         {
             // We can compute horizontal/vertical options by using 7 rays.
@@ -598,6 +735,7 @@ PlayerView GameInstance::compute_view(uint8_t player_ID, uint8_t & live_tanks)
                         // we want to be permissive with our ray casting (design choice)
                         // so we will treat 0.5 as not touching a mountain.
 
+                        // If the ray is closer to the top then
                         // check upper square for terrain, if it exists
                         if (frac_sec > 0.5f + 0.001f)
                         {
@@ -610,20 +748,74 @@ PlayerView GameInstance::compute_view(uint8_t player_ID, uint8_t & live_tanks)
                             }
                             // if location is a mountain, break
                             GridCell curr_cell;
+                            size_t this_idx = 0;
+
                             if (primary_var_y == true)
                             {
-                                curr_cell = game_env_[idx(sec_int, p)];
+                                this_idx = idx(sec_int, p);
+                                curr_cell = game_env_[this_idx];
                             }
                             else
                             {
-                                curr_cell = game_env_[idx(p, sec_int)];
+                                this_idx = idx(p, sec_int);
+                                curr_cell = game_env_[this_idx];
                             }
 
                             if (curr_cell.type_ == CellType::Terrain)
                             {
+                                player_view[this_idx].visible_ = true;
+                                break;
+                            }
+
+                            // If the tile is grass and the tank is beside it,
+                            // then we should set visibility to true.
+                            if (curr_cell.type_ == CellType::Foliage)
+                            {
+                                bool grass_visible = false;
+
+                                if (primary_var_y == true)
+                                {
+                                    grass_visible = tile_beside_grass
+                                                        (
+                                                            curr_tank.pos_.x_,
+                                                            curr_tank.pos_.y_,
+                                                            sec_int,
+                                                            p
+                                                        );
+                                }
+
+                                else
+                                {
+                                    grass_visible = tile_beside_grass
+                                                        (
+                                                            curr_tank.pos_.x_,
+                                                            curr_tank.pos_.y_,
+                                                            p,
+                                                            sec_int
+                                                        );
+                                }
+
+                                // Reveal tile and tank if visible.
+                                if (grass_visible)
+                                {
+                                    player_view[this_idx].visible_ = true;
+
+                                    uint8_t occ = game_env_[this_idx].occupant_;
+                                    player_view[this_idx].occupant_ = occ;
+
+                                    // Add occupant to list of tanks.
+                                    if (occ != NO_OCCUPANT)
+                                    {
+                                        const Tank & this_tank = tanks_[occ];
+                                        view.visible_tanks.push_back(this_tank);
+                                    }
+                                }
+
+                                // We cannot see past grass, finish.
                                 break;
                             }
                         }
+                        // If the ray is closer to the bottom then
                         // check lower square for terrain
                         else if (frac_sec < 0.5f - 0.001f)
                         {
@@ -634,20 +826,73 @@ PlayerView GameInstance::compute_view(uint8_t player_ID, uint8_t & live_tanks)
                             }
                             // if location is a mountain, break
                             GridCell curr_cell;
+                            size_t this_idx = 0;
+
                             if (primary_var_y == true)
                             {
-                                curr_cell = game_env_[idx(sec_int, p)];
+                                this_idx = idx(sec_int, p);
+                                curr_cell = game_env_[this_idx];
                             }
                             else {
-                                curr_cell = game_env_[idx(p, sec_int)];
+                                this_idx = idx(p, sec_int);
+                                curr_cell = game_env_[this_idx];
                             }
 
                             if (curr_cell.type_ == CellType::Terrain)
                             {
+                                player_view[this_idx].visible_ = true;
+                                break;
+                            }
+
+                            // If the tile is grass and the tank is beside it,
+                            // then we should set visibility to true.
+                            if (curr_cell.type_ == CellType::Foliage)
+                            {
+                                bool grass_visible = false;
+
+                                if (primary_var_y == true)
+                                {
+                                    grass_visible = tile_beside_grass
+                                                        (
+                                                            curr_tank.pos_.x_,
+                                                            curr_tank.pos_.y_,
+                                                            sec_int,
+                                                            p
+                                                        );
+                                }
+
+                                else
+                                {
+                                    grass_visible = tile_beside_grass
+                                                        (
+                                                            curr_tank.pos_.x_,
+                                                            curr_tank.pos_.y_,
+                                                            p,
+                                                            sec_int
+                                                        );
+                                }
+
+                                // Reveal tile and tank if visible.
+                                if (grass_visible)
+                                {
+                                    player_view[this_idx].visible_ = true;
+
+                                    uint8_t occ = game_env_[this_idx].occupant_;
+                                    player_view[this_idx].occupant_ = occ;
+
+                                    // Add occupant to list of tanks.
+                                    if (occ != NO_OCCUPANT)
+                                    {
+                                        const Tank & this_tank = tanks_[occ];
+                                        view.visible_tanks.push_back(this_tank);
+                                    }
+                                }
+
+                                // We cannot see past grass, finish.
                                 break;
                             }
                         }
-                        // if the value is ~0.5 then continue, don't check either side as being a mountain.
+                        // if the value is ~0.5 then only check grass, don't check either side as being a mountain.
                         else
                         {
                             continue;
@@ -711,6 +956,35 @@ PlayerView GameInstance::compute_view(uint8_t player_ID, uint8_t & live_tanks)
 
 
             }
+        }
+    }
+
+    return view;
+}
+
+PlayerView GameInstance::dump_global_view()
+{
+    uint8_t width = game_env_.get_width();
+    uint8_t height = game_env_.get_height();
+    uint16_t total = width * height;
+
+    PlayerView view(width, height);
+
+    // Copy the entire board.
+    view.map_view = game_env_;
+
+    // Set each cell to visible.
+    for (int i = 0; i < total; i++)
+    {
+        view.map_view[i].visible_ = true;
+    }
+
+    // Copy each living tank, they should all be visible.
+    for (const auto & tank : tanks_)
+    {
+        if (tank.health_ > 0)
+        {
+            view.visible_tanks.push_back(tank);
         }
     }
 
@@ -784,12 +1058,41 @@ void GameInstance::cast_ray(PlayerView & player_view, vec2 start, vec2 slope, fl
         {
             break;
         }
+
         // check if this is terrain
         GridCell curr_cell = game_env_[idx(cx_t, cy_t)];
         if (curr_cell.type_ == CellType::Terrain)
         {
+            // Set the mountain as visible and break.
+            view[idx(cx_t, cy_t)].visible_ = true;
             break;
         }
+
+        // Check if this is foliage.
+        if (curr_cell.type_ == CellType::Foliage)
+        {
+            if (tile_beside_grass(start.x_, start.y_, cx_t, cy_t))
+            {
+                view[idx(cx_t, cy_t)].visible_ = true;
+
+                uint8_t occ = game_env_[idx(cx_t, cy_t)].occupant_;
+                view[idx(cx_t, cy_t)].occupant_ = occ;
+
+                // Add occupant to list of tanks.
+                if (occ != NO_OCCUPANT)
+                {
+                    const Tank & this_tank = tanks_[occ];
+                    player_view.visible_tanks.push_back(this_tank);
+                }
+            }
+
+            // Break if not on starting tile.
+            if (start.x_ != cx_t || start.y_ != cy_t)
+            {
+                break;
+            }
+        }
+
         // otherwise, mark the cell as visible
         view[idx(cx_t, cy_t)].visible_ = true;
 
@@ -799,7 +1102,7 @@ void GameInstance::cast_ray(PlayerView & player_view, vec2 start, vec2 slope, fl
         // Add occupant to list of tanks.
         if (occ != NO_OCCUPANT)
         {
-            Tank & this_tank = tanks_[occ];
+            const Tank & this_tank = tanks_[occ];
             player_view.visible_tanks.push_back(this_tank);
         }
 
@@ -809,7 +1112,9 @@ void GameInstance::cast_ray(PlayerView & player_view, vec2 start, vec2 slope, fl
     return;
 }
 
-void GameInstance::place_tank(vec2 pos, uint8_t player_ID)
+void GameInstance::place_tank(vec2 pos,
+                              uint8_t player_ID,
+                              uint8_t placement_direction)
 {
 
     GridCell & this_cell = game_env_[idx(pos)];
@@ -824,12 +1129,14 @@ void GameInstance::place_tank(vec2 pos, uint8_t player_ID)
     this_tank.health_ = 3;
     this_tank.loaded_ = true;
     this_tank.id_ = tank_ID;
+    this_tank.current_direction_ = placement_direction;
+    this_tank.barrel_direction_ = placement_direction;
 
     // set occupant
     this_cell.occupant_ = tank_ID;
 
     // update the tank list for the player
-    int * tank_list = this_player.get_tanks_list();
+    std::vector<int> & tank_list = this_player.get_tanks_list();
     tank_list[this_player.tanks_placed_] = tank_ID;
     this_player.tanks_placed_ += 1;
 
@@ -843,10 +1150,51 @@ void GameInstance::place_tank(vec2 pos, uint8_t player_ID)
 
 }
 
+void GameInstance::remove_tank(vec2 pos, uint8_t player_ID)
+{
+    GridCell & this_cell = game_env_[idx(pos)];
+    Player & this_player = players_[player_ID];
+
+    uint8_t tank_ID = (this_player.tanks_placed_ - 1) + (player_ID * num_tanks_);
+
+    // Set the tank to destroyed with no owner.
+    Tank & this_tank = tanks_[tank_ID];
+    this_tank.pos_ = NO_POS_VEC;
+    this_tank.owner_ = NO_OWNER;
+    this_tank.health_ = 0;
+    this_tank.loaded_ = false;
+    this_tank.id_ = tank_ID;
+    this_tank.current_direction_ = 0;
+    this_tank.barrel_direction_ = 0;
+
+    // Remove the occupant
+    this_cell.occupant_ = NO_TANK;
+
+    // Reduce the number of tanks.
+    this_player.tanks_placed_ -= 1;
+
+    // Remove the tank from the list for this player.
+    std::vector<int> & tank_list = this_player.get_tanks_list();
+    tank_list[this_player.tanks_placed_] = NO_TANK;
+
+    return;
+}
+
 void GameInstance::load_tank(uint8_t ID)
 {
     tanks_[ID].loaded_ = true;
     return;
+}
+
+void GameInstance::unload_tank(uint8_t ID)
+{
+    tanks_[ID].loaded_ = false;
+    return;
+}
+
+const std::vector<uint8_t> GameInstance::get_mask()
+{
+    return placement_mask_;
 }
 
 bool GameInstance::read_env_by_name(const std::string& filename,
@@ -854,13 +1202,15 @@ bool GameInstance::read_env_by_name(const std::string& filename,
 {
     std::error_code ec;
 
-    if (!std::filesystem::is_regular_file(filename, ec))
+    std::filesystem::path map_path = std::filesystem::path("envs") / filename;
+
+    if (!std::filesystem::is_regular_file(map_path, ec))
     {
-        std::cerr << "Environment file not found or not regular\n";
+        std::cerr << "Environment file " << filename << " not found or not regular\n";
         return false;
     }
 
-    auto size = std::filesystem::file_size(filename, ec);
+    auto size = std::filesystem::file_size(map_path, ec);
 
     if (ec)
     {
@@ -875,7 +1225,103 @@ bool GameInstance::read_env_by_name(const std::string& filename,
         return false;
     }
 
-    std::ifstream file(filename, std::ios::binary);
+    std::ifstream file(map_path, std::ios::binary);
+
+    if (!file.is_open())
+    {
+        std::cerr << "ERROR IN FILE OPENING\n";
+        return false;
+    }
+
+    // read the file all at once into the buffer
+    std::vector<char> env_buffer(total);
+    file.read(env_buffer.data(), total);
+
+    if (file.gcount() != total)
+    {
+        std::cerr << "Too few bytes for environment\n";
+        return false;
+    }
+
+    if (!file)
+    {
+        std::cerr << "IO error reading environment\n";
+        return false;
+    }
+
+    // Read bitmask for tank placements.
+    std::vector<char> mask_buffer(total);
+    file.read(mask_buffer.data(), total);
+
+    if (file.gcount() != total)
+    {
+        std::cerr << "Too few bytes for mask\n";
+        return false;
+    }
+
+    if (!file)
+    {
+        std::cerr << "IO error reading mask\n";
+        return false;
+    }
+
+    // turn the ASCII data (48, 49, 50..) into the correct integers (0,1,2)
+    // and assign the GridCell elements the correct type accordingly.
+    for (uint16_t i = 0; i < total; i++)
+    {
+        char c = env_buffer[i];
+        if (c < '0' || c > '2')
+        {
+            std::cerr << "Invalid environment character \n";
+            return false;
+        }
+        uint8_t value = static_cast<uint8_t>(c - '0');
+
+        // CellType is an enum derived from uint8_t, hence the two casts.
+        //
+        // Normally you shouldn't do this, but we're reading a chunk of data.
+        game_env_[i].type_ = static_cast<CellType>(value);
+        game_env_[i].occupant_ = NO_OCCUPANT;
+        game_env_[i].visible_ = true;
+
+        // Convert the bitmask for each player.
+        //
+        // Places where a player may place their tank are identified
+        // by their player ID.
+        placement_mask_[i] = static_cast<uint8_t>(mask_buffer[i] - '0');
+    }
+
+    return true;
+
+}
+
+bool GameInstance::read_env_by_path(const std::filesystem::path & map_path,
+                                    uint16_t total)
+{
+    std::error_code ec;
+
+    if (!std::filesystem::is_regular_file(map_path, ec))
+    {
+        std::cerr << "Environment file " << map_path << " not found or not regular\n";
+        return false;
+    }
+
+    auto size = std::filesystem::file_size(map_path, ec);
+
+    if (ec)
+    {
+        std::cerr << "Unable to query file size \n";
+        return false;
+    }
+
+    if (size != static_cast<std::size_t>(total) * 2)
+    {
+        std::cerr << "File size mismatch in environment setup.\n";
+        std::cerr << size << "\n";
+        return false;
+    }
+
+    std::ifstream file(map_path, std::ios::binary);
 
     if (!file.is_open())
     {

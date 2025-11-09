@@ -1,3 +1,19 @@
+// Copyright (c) 2025 Liam Mercier
+//
+// This file is part of SilentTanks.
+//
+// SilentTanks is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Affero General Public License Version 3.0
+// as published by the Free Software Foundation.
+//
+// SilentTanks is distributed in the hope that it will be useful, but
+// WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+// or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License v3.0
+// for more details.
+//
+// You should have received a copy of the GNU Affero General Public License v3.0
+// along with SilentTanks. If not, see <https://www.gnu.org/licenses/agpl-3.0.txt>
+
 #pragma once
 #include <cstdint>
 #include "vec2.h"
@@ -6,13 +22,19 @@ constexpr uint8_t INITIAL_HEALTH = 3;
 
 constexpr uint8_t TURN_PLAYER_FUEL = 3;
 
-constexpr uint8_t FIRING_DIST = 3;
+constexpr uint8_t FIRING_DIST_DIAGONAL = 3;
+
+constexpr uint8_t FIRING_DIST_HORIZONTAL = 4;
 
 constexpr uint8_t SHELL_DAMAGE = 1;
 
 constexpr uint8_t NO_OWNER = UINT8_MAX;
 constexpr uint8_t NO_OCCUPANT = UINT8_MAX;
 constexpr uint8_t NO_TANK = UINT8_MAX;
+constexpr uint8_t NO_PLAYER = UINT8_MAX;
+
+constexpr uint8_t NO_POS = UINT8_MAX;
+constexpr vec2 NO_POS_VEC = vec2(UINT8_MAX, UINT8_MAX);
 
 // lookup table for converting from directions to vectors
 constexpr vec2 dir_to_vec[8]

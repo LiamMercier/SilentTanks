@@ -1,3 +1,19 @@
+// Copyright (c) 2025 Liam Mercier
+//
+// This file is part of SilentTanks.
+//
+// SilentTanks is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Affero General Public License Version 3.0
+// as published by the Free Software Foundation.
+//
+// SilentTanks is distributed in the hope that it will be useful, but
+// WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+// or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License v3.0
+// for more details.
+//
+// You should have received a copy of the GNU Affero General Public License v3.0
+// along with SilentTanks. If not, see <https://www.gnu.org/licenses/agpl-3.0.txt>
+
 #include "user-manager.h"
 #include "match-instance.h"
 
@@ -113,10 +129,11 @@ void UserManager::disconnect(std::shared_ptr<Session> session)
     });
 }
 
-void UserManager::notify_match_finished(boost::uuids::uuid user_id)
+void UserManager::notify_match_finished(boost::uuids::uuid user_id,
+                                        GameMode mode)
 {
     boost::asio::post(strand_,
-    [this, user_id]{
+    [this, user_id, mode]{
 
         // Find the User and void its weak pointer.
         auto user_itr = users_.find(user_id);
@@ -137,6 +154,14 @@ void UserManager::notify_match_finished(boost::uuids::uuid user_id)
         if (!user->current_session || !(user->current_session->is_live()))
         {
             users_.erase(user_itr);
+        }
+        // Otherwise, session exists and is live. Set it as having match
+        // history to grab.
+        else
+        {
+            user
+            ->current_session
+            ->set_has_matches(true, mode);
         }
 
     });
@@ -179,14 +204,26 @@ void UserManager::notify_elo_update(boost::uuids::uuid user_id,
          new_elo,
          mode]{
 
-        auto & user = (this->users_)[uuid];
+        auto it = (this->users_.find(uuid));
+
+        // Prevent bad updates when user isn't online.
+        if (it == users_.end() || !it->second)
+        {
+            return;
+        }
+
+        auto & user = it->second;
 
         uint8_t mode_idx = elo_ranked_index(mode);
 
         user->user_data.matching_elos[mode_idx] = new_elo;
 
-        // Now, update the session's data.
-        (user->current_session)->update_elo(new_elo, mode_idx);
+        // Now, update the session's data. If the user data doesn't exist,
+        // this will simply create a client side error until they login again.
+        if ((user->current_session) && (user->current_session->is_live()))
+        {
+            (user->current_session)->update_elo(new_elo, mode_idx);
+        }
 
     });
 }
@@ -257,6 +294,30 @@ void UserManager::on_block_user(boost::uuids::uuid blocker,
             // Add the blocked user to the list.
             user_it->second->blocked_users.emplace(std::move(blocked));
 
+        }
+
+        // Do the update for the other user as well.
+        auto blocked_it = this->users_.find(blocked);
+
+        if (blocked_it != this->users_.end() && blocked_it->second)
+        {
+            // If friends, remove friendship.
+            blocked_it->second->friends.erase(blocker);
+
+            // Notify this session if they are online.
+            if (blocked_it->second->current_session)
+            {
+                NotifyRelationUpdate notification;
+                notification.user.user_id = std::move(blocker);
+                // Not needed.
+                notification.user.username.clear();
+
+                Message notify_unfriend;
+                notify_unfriend.header.type_ = HeaderType::NotifyFriendRemoved;
+                notify_unfriend.create_serialized(notification);
+
+                blocked_it->second->current_session->deliver(notify_unfriend);
+            }
         }
 
     });
@@ -368,6 +429,51 @@ void UserManager::on_unfriend_user(boost::uuids::uuid user_id,
     });
 }
 
+void UserManager::on_friend_request(boost::uuids::uuid sender,
+                                    boost::uuids::uuid friend_id)
+{
+    boost::asio::post(strand_,
+        [this,
+         sender = std::move(sender),
+         friend_id = std::move(friend_id)]{
+
+        // Find the person who is getting the friend request.
+        auto user_it = this->users_.find(friend_id);
+
+        // Do work if the user exists.
+        if (user_it != this->users_.end() && user_it->second)
+        {
+            NotifyRelationUpdate notification;
+
+            // Find the sender's username.
+            auto sender_it = this->users_.find(sender);
+
+            if (sender_it != this->users_.end() && sender_it->second)
+            {
+                notification.user.username = sender_it
+                                             ->second
+                                             ->user_data.username;
+            }
+
+            notification.user.user_id = std::move(sender);
+
+            Message request_notification;
+            request_notification.create_serialized(notification);
+            request_notification.header.type_ = HeaderType::NotifyFriendRequest;
+
+            // Send them the other person's info if possible.
+            if ((user_it->second)->current_session)
+            {
+                 (user_it->second)
+                 ->current_session
+                 ->deliver(request_notification);
+            }
+
+        }
+
+    });
+}
+
 void UserManager::direct_message_user(boost::uuids::uuid sender,
                                       TextMessage dm)
 {
@@ -378,8 +484,27 @@ void UserManager::direct_message_user(boost::uuids::uuid sender,
 
         // If the user isn't online, drop the message.
         auto user_it = this->users_.find(dm.user_id);
+
         if (user_it == this->users_.end() || !user_it->second)
         {
+            // If the users are friends, tell the friend they are offline.
+            auto sender_it = (this->users_.find(sender));
+
+            // Only do this if the sender is still online, otherwise stop.
+            if (sender_it == this->users_.end() || !sender_it->second)
+            {
+                return;
+            }
+
+            // Find the relation and send if friends.
+            if (sender_it->second->friends.find(dm.user_id)
+                != sender_it->second->friends.end())
+            {
+                Message notify_msg;
+                notify_msg.create_serialized(HeaderType::FriendOffline);
+                sender_it->second->current_session->deliver(notify_msg);
+            }
+
             return;
         }
 

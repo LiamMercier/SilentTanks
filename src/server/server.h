@@ -1,3 +1,19 @@
+// Copyright (c) 2025 Liam Mercier
+//
+// This file is part of SilentTanks.
+//
+// SilentTanks is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Affero General Public License Version 3.0
+// as published by the Free Software Foundation.
+//
+// SilentTanks is distributed in the hope that it will be useful, but
+// WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+// or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License v3.0
+// for more details.
+//
+// You should have received a copy of the GNU Affero General Public License v3.0
+// along with SilentTanks. If not, see <https://www.gnu.org/licenses/agpl-3.0.txt>
+
 #pragma once
 
 #include <utility>
@@ -6,8 +22,15 @@
 #include "match-maker.h"
 #include "user-manager.h"
 #include "database.h"
+#include "asset-resolver.h"
+#include "server-identity.h"
 
 static constexpr int SHUTDOWN_COMPONENTS_COUNT = 3;
+
+// TODO <security>: profile how many sessions can be a reasonable default.
+static constexpr int DEFAULT_MAX_SESSIONS = 1600;
+
+static constexpr std::string_view default_mapfile_name = "mapfile.txt";
 
 class Server
 {
@@ -17,7 +40,9 @@ class Server
 public:
     // construct the server given a context and an endpoint
     Server(asio::io_context & cntx,
-           tcp::endpoint endpoint);
+           tcp::endpoint endpoint,
+           asio::ssl::context & ssl_cntx,
+           ServerIdentity server_identity);
 
     void CONSOLE_ban_user(std::string username,
                           std::chrono::system_clock::time_point banned_until,
@@ -29,6 +54,9 @@ public:
     void shutdown();
 
     void do_accept();
+
+    inline std::string get_identity_string() const;
+
 private:
     void handle_accept(const boost::system::error_code & ec,
                        tcp::socket socket);
@@ -59,6 +87,12 @@ private:
 
     // Strand to prevent race conditions on session removal and addition.
     asio::strand<asio::io_context::executor_type> server_strand_;
+
+    // SSL context for accepting connections and communicating.
+    asio::ssl::context & ssl_cntx_;
+
+    mutable std::mutex identity_mutex_;
+    ServerIdentity server_identity_;
 
     // Acceptor bound to an endpoint.
     tcp::acceptor acceptor_;
@@ -96,8 +130,7 @@ private:
     // Increasing counter for the next session ID.
     uint64_t next_session_id_{1};
 
-    // TODO: consider how to estimate this value.
-    std::atomic<std::size_t> max_sessions_{1600};
+    std::atomic<std::size_t> max_sessions_{DEFAULT_MAX_SESSIONS};
 
     std::atomic<bool> shutting_down_{false};
 
@@ -106,3 +139,9 @@ private:
     size_t remaining_shutdown_tasks_ = 0;
 
 };
+
+inline std::string Server::get_identity_string() const
+{
+    std::lock_guard lock(identity_mutex_);
+    return server_identity_.get_identity_string();
+}

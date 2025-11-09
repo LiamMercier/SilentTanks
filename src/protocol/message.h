@@ -1,20 +1,32 @@
+// Copyright (c) 2025 Liam Mercier
+//
+// This file is part of SilentTanks.
+//
+// SilentTanks is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Affero General Public License Version 3.0
+// as published by the Free Software Foundation.
+//
+// SilentTanks is distributed in the hope that it will be useful, but
+// WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+// or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License v3.0
+// for more details.
+//
+// You should have received a copy of the GNU Affero General Public License v3.0
+// along with SilentTanks. If not, see <https://www.gnu.org/licenses/agpl-3.0.txt>
+
 #pragma once
 
 #include "header.h"
 #include "player-view.h"
 #include "command.h"
-#include "external-user.h"
+#include "match-result-structs.h"
+#include "message-structs.h"
 
 #include <type_traits>
-#include <vector>
-#include <array>
 #include <cstring>
 #include <algorithm>
 #include <chrono>
 #include <bit>
-#include <boost/uuid/uuid.hpp>
-
-constexpr size_t HASH_LENGTH = 32;
 
 // Construct a lookup table of valid username characters.
 constexpr std::array<bool, 256> allowed_username_characters = []
@@ -39,190 +51,35 @@ constexpr std::array<bool, 256> allowed_username_characters = []
     return a;
 }();
 
-// This must be ordered so that all ranked modes are together.
-enum class GameMode : uint8_t
-{
-    ClassicTwoPlayer = 0,
-    RankedTwoPlayer,
-    NO_MODE
-};
-
-// First GameMode which is ranked, for fast checks of a game mode.
-constexpr uint8_t RANKED_MODES_START = static_cast<uint8_t>(GameMode::RankedTwoPlayer);
-
-constexpr uint8_t NUMBER_OF_MODES = static_cast<uint8_t>(GameMode::NO_MODE);
-
-constexpr uint8_t RANKED_MODES_COUNT = static_cast<uint8_t>(GameMode::NO_MODE)
-                                       - RANKED_MODES_START;
-
-// Helpers to get the index for elo vectors.
-inline uint8_t elo_ranked_index(GameMode m)
-{
-    uint8_t idx = static_cast<uint8_t>(m);
-    return idx - RANKED_MODES_START;
-}
-
-inline uint8_t elo_ranked_index(uint8_t m)
-{
-    return m - RANKED_MODES_START;
-}
-
 constexpr std::array<uint8_t, NUMBER_OF_MODES> players_for_gamemode = []
 {
     std::array<uint8_t, NUMBER_OF_MODES> a{};
 
     a[static_cast<uint8_t>(GameMode::ClassicTwoPlayer)] = 2;
     a[static_cast<uint8_t>(GameMode::RankedTwoPlayer)] = 2;
+    a[static_cast<uint8_t>(GameMode::ClassicThreePlayer)] = 3;
+    a[static_cast<uint8_t>(GameMode::ClassicFivePlayer)] = 5;
 
     return a;
 }();
 
-struct QueueMatchRequest
-{
-    QueueMatchRequest(GameMode input_mode)
-    :mode(input_mode)
-    {
-    }
+constexpr uint8_t MAX_PLAYERS = players_for_gamemode[static_cast<uint8_t>(
+                                    GameMode::ClassicFivePlayer)];
 
-    GameMode mode;
-};
-
-struct CancelMatchRequest
-{
-    CancelMatchRequest(GameMode input_mode)
-    :mode(input_mode)
-    {
-    }
-
-    GameMode mode;
-};
-
-struct BadRegNotification
-{
-    enum class Reason : uint8_t
-    {
-        NotUnique = 0,
-        InvalidUsername,
-        CurrentlyAuthenticated,
-        ServerError
-    };
-
-    BadRegNotification(Reason input_reason)
-    :reason(input_reason)
-    {
-    }
-
-    Reason reason;
-};
-
-struct BadAuthNotification
-{
-    enum class Reason : uint8_t
-    {
-        BadHash,
-        InvalidUsername,
-        CurrentlyAuthenticated,
-        ServerError
-    };
-
-    BadAuthNotification(Reason input_reason)
-    :reason(input_reason)
-    {
-    }
-
-    Reason reason;
-};
-
-
-struct MatchStartNotification
-{
-    uint8_t player_id;
-};
-
-struct LoginRequest
-{
-    std::array<uint8_t, HASH_LENGTH> hash;
-    std::string username;
-};
-
-struct RegisterRequest
-{
-    std::array<uint8_t, HASH_LENGTH> hash;
-    std::string username;
-};
-
-struct BanMessage
-{
-    std::chrono::system_clock::time_point time_till_unban;
-    std::string reason;
-};
-
-struct UserList
-{
-    std::vector<ExternalUser> users;
-};
-
-struct FriendRequest
-{
-    std::string username;
-};
-
-struct FriendDecision
-{
-    boost::uuids::uuid user_id;
-    bool decision;
-};
-
-struct UnfriendRequest
-{
-    boost::uuids::uuid user_id;
-};
-
-struct BlockRequest
-{
-    std::string username;
-};
-
-struct UnblockRequest
-{
-    boost::uuids::uuid user_id;
-};
-
-struct NotifyRelationUpdate
-{
-    ExternalUser user;
-};
-
-struct TextMessage
-{
-    // Sender/receiver based on context.
-    boost::uuids::uuid user_id;
-    std::string text;
-};
-
-struct InternalMatchMessage
-{
-    boost::uuids::uuid user_id;
-    std::string sender_username;
-    std::string text;
-};
-
-struct ExternalMatchMessage
-{
-    boost::uuids::uuid user_id;
-    uint8_t username_length;
-    std::string sender_username;
-    std::string text;
-};
+constexpr int LATEST_MATCHES_COUNT = 10;
 
 struct Message
 {
 public:
     bool valid_matching_command() const;
 
+    std::array<int, RANKED_MODES_COUNT> to_elos();
+
     LoginRequest to_login_request() const;
 
     Command to_command();
+
+    StaticMatchData to_static_match_data(bool & op_status);
 
     // Modify view with success return type.
     PlayerView to_player_view(bool & op_status);
@@ -242,6 +99,14 @@ public:
     TextMessage to_text_message();
 
     InternalMatchMessage to_match_message();
+
+    GameMode to_gamemode();
+
+    MatchResultList to_results_list();
+
+    ReplayRequest to_replay_request();
+
+    MatchReplay to_match_replay(bool & op_status);
 
     template <typename mType>
     void create_serialized(const mType & req);

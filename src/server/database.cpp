@@ -1,10 +1,28 @@
+// Copyright (c) 2025 Liam Mercier
+//
+// This file is part of SilentTanks.
+//
+// SilentTanks is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Affero General Public License Version 3.0
+// as published by the Free Software Foundation.
+//
+// SilentTanks is distributed in the hope that it will be useful, but
+// WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+// or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License v3.0
+// for more details.
+//
+// You should have received a copy of the GNU Affero General Public License v3.0
+// along with SilentTanks. If not, see <https://www.gnu.org/licenses/agpl-3.0.txt>
+
 #include "database.h"
+#include "cryptography-constants.h"
 #include "message.h"
 #include "user-manager.h"
 #include "elo-updates.h"
 #include "console.h"
 
 #include <boost/uuid/uuid_io.hpp>
+#include <pqxx/strconv.hxx>
 
 // One connection to the database per thread in the thread pool.
 static thread_local std::unique_ptr<pqxx::connection> conn_;
@@ -76,7 +94,7 @@ void Database::authenticate(Message msg,
                             std::shared_ptr<Session> session,
                             std::string client_ip)
 {
-    if(shutting_down_.load(std::memory_order_relaxed))
+    if(shutting_down_.load(std::memory_order_acquire))
     {
         return;
     }
@@ -127,7 +145,7 @@ void Database::register_account(Message msg,
                                 std::shared_ptr<Session> session,
                                 std::string client_ip)
 {
-    if(shutting_down_.load(std::memory_order_relaxed))
+    if(shutting_down_.load(std::memory_order_acquire))
     {
         return;
     }
@@ -204,7 +222,7 @@ void Database::record_match(MatchResult result)
 void Database::ban_ip(std::string ip,
             std::chrono::system_clock::time_point banned_until)
 {
-    if(shutting_down_.load(std::memory_order_relaxed))
+    if(shutting_down_.load(std::memory_order_acquire))
     {
         return;
 
@@ -215,7 +233,7 @@ void Database::ban_ip(std::string ip,
 
 void Database::unban_ip(std::string ip)
 {
-    if(shutting_down_.load(std::memory_order_relaxed))
+    if(shutting_down_.load(std::memory_order_acquire))
     {
         return;
     }
@@ -227,7 +245,7 @@ void Database::ban_user(std::string username,
               std::chrono::system_clock::time_point banned_until,
               std::string reason)
 {
-    if(shutting_down_.load(std::memory_order_relaxed))
+    if(shutting_down_.load(std::memory_order_acquire))
     {
         return;
     }
@@ -239,7 +257,7 @@ void Database::ban_user(std::string username,
 
 void Database::unban_user(std::string username, uint64_t ban_id)
 {
-    if(shutting_down_.load(std::memory_order_relaxed))
+    if(shutting_down_.load(std::memory_order_acquire))
     {
         return;
     }
@@ -251,7 +269,7 @@ void Database::send_friend_request(boost::uuids::uuid user,
                                    Message msg,
                                    std::shared_ptr<Session> session)
 {
-    if(shutting_down_.load(std::memory_order_relaxed))
+    if(shutting_down_.load(std::memory_order_acquire))
     {
         return;
     }
@@ -272,7 +290,7 @@ void Database::respond_friend_request(boost::uuids::uuid user,
                                       Message msg,
                                       std::shared_ptr<Session> session)
 {
-    if(shutting_down_.load(std::memory_order_relaxed))
+    if(shutting_down_.load(std::memory_order_acquire))
     {
         return;
     }
@@ -294,7 +312,7 @@ void Database::block_user(boost::uuids::uuid blocker,
                           Message msg,
                           std::shared_ptr<Session> session)
 {
-    if(shutting_down_.load(std::memory_order_relaxed))
+    if(shutting_down_.load(std::memory_order_acquire))
     {
         return;
     }
@@ -315,7 +333,7 @@ void Database::unblock_user(boost::uuids::uuid blocker,
                             Message msg,
                             std::shared_ptr<Session> session)
 {
-    if(shutting_down_.load(std::memory_order_relaxed))
+    if(shutting_down_.load(std::memory_order_acquire))
     {
         return;
     }
@@ -336,7 +354,7 @@ void Database::remove_friend(boost::uuids::uuid user,
                              Message msg,
                              std::shared_ptr<Session> session)
 {
-    if(shutting_down_.load(std::memory_order_relaxed))
+    if(shutting_down_.load(std::memory_order_acquire))
     {
         return;
     }
@@ -356,7 +374,7 @@ void Database::remove_friend(boost::uuids::uuid user,
 void Database::fetch_blocks(boost::uuids::uuid user,
                             std::shared_ptr<Session> session)
 {
-    if(shutting_down_.load(std::memory_order_relaxed))
+    if(shutting_down_.load(std::memory_order_acquire))
     {
         return;
     }
@@ -367,7 +385,7 @@ void Database::fetch_blocks(boost::uuids::uuid user,
 void Database::fetch_friends(boost::uuids::uuid user,
                              std::shared_ptr<Session> session)
 {
-    if(shutting_down_.load(std::memory_order_relaxed))
+    if(shutting_down_.load(std::memory_order_acquire))
     {
         return;
     }
@@ -378,12 +396,35 @@ void Database::fetch_friends(boost::uuids::uuid user,
 void Database::fetch_friend_requests(boost::uuids::uuid user,
                                      std::shared_ptr<Session> session)
 {
-    if(shutting_down_.load(std::memory_order_relaxed))
+    if(shutting_down_.load(std::memory_order_acquire))
     {
         return;
     }
 
     do_fetch_friend_requests(std::move(user), std::move(session));
+}
+
+void Database::fetch_new_matches(boost::uuids::uuid user,
+                       GameMode mode,
+                       std::shared_ptr<Session> session)
+{
+    if (shutting_down_.load(std::memory_order_acquire))
+    {
+        return;
+    }
+
+    do_fetch_new_matches(user, mode, session);
+}
+
+void Database::fetch_replay(ReplayRequest req,
+                            std::shared_ptr<Session> session)
+{
+    if (shutting_down_.load(std::memory_order_acquire))
+    {
+        return;
+    }
+
+    do_fetch_replay(req, session);
 }
 
 std::unordered_map<std::string, std::chrono::system_clock::time_point>
@@ -395,12 +436,12 @@ Database::load_bans()
     std::unique_ptr<pqxx::connection> temp_conn_ = std::make_unique<pqxx::connection>(
             "host=127.0.0.1 "
             "port=5432 "
-            "dbname=SilentTanksDB "
-            "user=SilentTanksOperator");
+            "dbname=silenttanksdb "
+            "user=silenttanksoperator");
 
     pqxx::work txn{*temp_conn_};
     // Get the time in terms of the unix epoch
-    auto res = txn.exec_params(
+    auto res = txn.exec(
         "SELECT ip, (extract(epoch FROM banned_until)*1000)::bigint AS banned_ms "
         "FROM BannedIPs");
 
@@ -448,17 +489,15 @@ void Database::do_auth(LoginRequest request,
             prepares();
 
             pqxx::work txn{*conn_};
-            auto res = txn.exec_prepared("auth", req.username);
+            auto res = txn.exec(pqxx::prepped{"auth"},
+                                pqxx::params{req.username});
 
             if (!res.empty())
             {
                 auto row = res[0];
 
-                pqxx::binarystring hb{row["hash"]};
-                pqxx::binarystring sb{row["salt"]};
-
-                std::string hash_bytes = hb.str();
-                std::string salt_bytes = sb.str();
+                auto hash_bytes = row["hash"].as<pqxx::bytes>();
+                auto salt_bytes = row["salt"].as<pqxx::bytes>();
 
                 boost::uuids::string_generator gen;
                 boost::uuids::uuid user_id = gen(row["user_id"].as<std::string>());
@@ -480,10 +519,10 @@ void Database::do_auth(LoginRequest request,
             prepares();
 
             pqxx::work txn{*conn_};
-            pqxx::result ban_res = txn.exec_prepared
+            pqxx::result ban_res = txn.exec
                                     (
-                                        "check_bans",
-                                        boost::uuids::to_string(user_id)
+                                        pqxx::prepped{"check_bans"},
+                                        pqxx::params{boost::uuids::to_string(user_id)}
                                     );
 
             // If user is banned, reject and send them a banned message.
@@ -581,15 +620,17 @@ void Database::do_auth(LoginRequest request,
                     data.username = req.username;
 
                     // Update the user's login history.
-                    txn.exec_prepared("update_user_logins",
-                                      ip,
-                                      boost::uuids::to_string(user_id));
+                    txn.exec(pqxx::prepped{"update_user_logins"},
+                             pqxx::params{
+                             ip,
+                             boost::uuids::to_string(user_id)});
 
                     // Grab user relations.
                     boost::uuids::string_generator gen;
 
-                    auto f_res = txn.exec_prepared("INTERNAL_fetch_friends",
-                                      boost::uuids::to_string(user_id));
+                    auto f_res = txn.exec(pqxx::prepped{"INTERNAL_fetch_friends"},
+                                          pqxx::params{
+                                          boost::uuids::to_string(user_id)});
 
                     friends.clear();
                     friends.reserve(f_res.size());
@@ -600,8 +641,9 @@ void Database::do_auth(LoginRequest request,
                             gen(row["friend_id"].as<std::string>()));
                     }
 
-                    auto b_res = txn.exec_prepared("INTERNAL_fetch_blocks",
-                                      boost::uuids::to_string(user_id));
+                    auto b_res = txn.exec(pqxx::prepped{"INTERNAL_fetch_blocks"},
+                                          pqxx::params{
+                                          boost::uuids::to_string(user_id)});
 
                     blocks.clear();
                     blocks.reserve(b_res.size());
@@ -613,9 +655,9 @@ void Database::do_auth(LoginRequest request,
                     }
 
                     // Fetch elo's for this user.
-                    auto mode_elos = txn.exec_prepared(
-                                            "get_mode_elos",
-                                            boost::uuids::to_string(user_id));
+                    auto mode_elos = txn.exec(pqxx::prepped{"get_mode_elos"},
+                                              pqxx::params{
+                                              boost::uuids::to_string(user_id)});
 
                     for (const auto & row : mode_elos)
                     {
@@ -633,15 +675,6 @@ void Database::do_auth(LoginRequest request,
 
                         data.matching_elos[idx] =  row["current_elo"]
                                                     .as<int>();
-
-                        // TODO: remove
-                        std::string lmsg = "Loaded elo "
-                                            + std::to_string(
-                                                data.matching_elos[idx])
-                                            + " for game mode "
-                                            + std::to_string(mode);
-
-                        Console::instance().log(lmsg, LogLevel::INFO);
                     }
 
                 }
@@ -663,6 +696,12 @@ void Database::do_auth(LoginRequest request,
                                     + std::string(argon2_error_message(result));
                 Console::instance().log(std::move(lmsg),
                                         LogLevel::ERROR);
+
+                Message bad_auth;
+                BadAuthNotification a_notif(BadAuthNotification::Reason::ServerError);
+                bad_auth.create_serialized(a_notif);
+
+                s->deliver(bad_auth);
             }
 
         txn.commit();
@@ -785,23 +824,26 @@ void Database::do_register(LoginRequest request,
             // Create a random UUID for database insert
             boost::uuids::uuid user_id = boost::uuids::random_generator()();
 
-            txn.exec_prepared(
-                "reg",
+            txn.exec(
+                pqxx::prepped{"reg"},
+                pqxx::params{
                 boost::uuids::to_string(user_id),
                 req.username,
-                pqxx::binarystring(reinterpret_cast<const char*>(computed_hash.data()), computed_hash.size()),
-                pqxx::binarystring(reinterpret_cast<const char*>(salt.data()), salt.size()),
-                ip);
+                pqxx::bytes(reinterpret_cast<const std::byte*>(computed_hash.data()), computed_hash.size()),
+                pqxx::bytes(reinterpret_cast<const std::byte*>(salt.data()), salt.size()),
+                ip
+                });
 
             // Create initial elo entries for the user.
             for (uint8_t mode = RANKED_MODES_START;
                  mode < static_cast<uint8_t>(GameMode::NO_MODE);
                  mode++)
             {
-                txn.exec_prepared("add_user_elos",
-                              boost::uuids::to_string(user_id),
-                              static_cast<int16_t>(mode),
-                              DEFAULT_ELO);
+                txn.exec(pqxx::prepped{"add_user_elos"},
+                         pqxx::params{
+                         boost::uuids::to_string(user_id),
+                         static_cast<int16_t>(mode),
+                         DEFAULT_ELO});
             }
 
             txn.commit();
@@ -890,11 +932,12 @@ void Database::do_record(std::vector<boost::uuids::uuid> user_ids,
             pqxx::work match_txn{*conn_};
 
             // Insert the match
-            auto res_m_id = match_txn.exec_prepared(
-                "insert_matches",
+            auto res_m_id = match_txn.exec(
+                pqxx::prepped{"insert_matches"},
+                pqxx::params{
                 static_cast<int16_t>(mode),
                 settings_json,
-                moves_json
+                moves_json}
             );
 
             long match_id = res_m_id[0][0].as<long>();
@@ -905,11 +948,18 @@ void Database::do_record(std::vector<boost::uuids::uuid> user_ids,
             // This is a candidate for pipelining.
             for (size_t i = 0; i < N_players; i++)
             {
-                match_txn.exec_prepared("insert_player",
-                                  match_id,
-                                  boost::uuids::to_string(user_ids[i]),
-                                  static_cast<int16_t>(i),
-                                  static_cast<int16_t>(elimination_order[i]));
+                // The elimination order is 0, 1, ... so higher is better.
+                //
+                // The placement becomes N_players - elimination.
+                //
+                // Example: N = 3, elimination_order = {0, 2, 1}, then placement is
+                // now {3, 1, 2} as expected.
+                match_txn.exec(pqxx::prepped{"insert_player"},
+                               pqxx::params{
+                               match_id,
+                               boost::uuids::to_string(user_ids[i]),
+                               static_cast<int16_t>(i),
+                               static_cast<int16_t>(N_players - elimination_order[i])});
             }
 
             match_txn.commit();
@@ -934,10 +984,10 @@ void Database::do_record(std::vector<boost::uuids::uuid> user_ids,
                 // Manually turn this into an array of values.
                 std::string user_id_array = uuid_to_pq_array(user_id_strs);
 
-                auto read_res = elo_txn.exec_prepared(
-                            "get_elos",
-                            user_id_array,
-                            static_cast<int16_t>(mode));
+                auto read_res = elo_txn.exec(pqxx::prepped{"get_elos"},
+                                             pqxx::params{
+                                             user_id_array,
+                                             static_cast<int16_t>(mode)});
 
                 // Get elo values out of our result.
                 //
@@ -982,7 +1032,7 @@ void Database::do_record(std::vector<boost::uuids::uuid> user_ids,
                 //
                 // We do not expect this to occur under normal operation, but
                 // it is good to guard against bad elo updates.
-                if (read_res.size() < N_players)
+                if (static_cast<std::size_t>(read_res.size()) < N_players)
                 {
                     std::string lmsg = "Found "
                                         + std::to_string(read_res.size())
@@ -1016,17 +1066,19 @@ void Database::do_record(std::vector<boost::uuids::uuid> user_ids,
                 // This is a candidate for pipelining.
                 for (size_t i = 0; i < N_players; i++)
                 {
-                    elo_txn.exec_prepared("record_elo_history",
-                                          boost::uuids::to_string(user_ids[i]),
-                                          match_id,
-                                          static_cast<int16_t>(mode),
-                                          elos[i],
-                                          new_elos[i]);
+                    elo_txn.exec(pqxx::prepped{"record_elo_history"},
+                                 pqxx::params{
+                                 boost::uuids::to_string(user_ids[i]),
+                                 match_id,
+                                 static_cast<int16_t>(mode),
+                                 elos[i],
+                                 new_elos[i]});
 
-                    elo_txn.exec_prepared("update_elo",
-                                          boost::uuids::to_string(user_ids[i]),
-                                          static_cast<int16_t>(mode),
-                                          new_elos[i]);
+                    elo_txn.exec(pqxx::prepped{"update_elo"},
+                                 pqxx::params{
+                                 boost::uuids::to_string(user_ids[i]),
+                                 static_cast<int16_t>(mode),
+                                 new_elos[i]});
 
                     // Inform the user manager of elo updates.
                     user_manager_->notify_elo_update(user_ids[i],
@@ -1036,12 +1088,13 @@ void Database::do_record(std::vector<boost::uuids::uuid> user_ids,
 
                 elo_txn.commit();
 
-                // Record that we finished writing.
-                pending_writes_.fetch_sub(1, std::memory_order_acq_rel);
-
-                // Attempt to finish shutdown if necessary.
-                try_finish_shutdown();
             }
+
+            // Record that we finished writing.
+            pending_writes_.fetch_sub(1, std::memory_order_seq_cst);
+
+            // Attempt to finish shutdown if necessary.
+            try_finish_shutdown();
 
         }
         catch (const std::exception & e)
@@ -1067,7 +1120,10 @@ void Database::do_ban_ip(std::string ip,
 
             std::string banned_until_str = timepoint_to_string(banned_until);
 
-            txn.exec_prepared("ban_ip", ip, banned_until_str);
+            txn.exec(pqxx::prepped{"ban_ip"},
+                     pqxx::params{
+                     ip,
+                     banned_until_str});
 
             txn.commit();
         }
@@ -1091,7 +1147,9 @@ void Database::do_unban_ip(std::string ip)
 
             pqxx::work txn{*conn_};
 
-            txn.exec_prepared("unban_ip", ip);
+            txn.exec(pqxx::prepped{"unban_ip"},
+                     pqxx::params{
+                     ip});
 
             txn.commit();
         }
@@ -1124,7 +1182,9 @@ void Database::do_ban_user(std::string username,
 
             // Find the uuid for this username
 
-            auto user_res = txn.exec_prepared("find_uuid", username);
+            auto user_res = txn.exec(pqxx::prepped{"find_uuid"},
+                                     pqxx::params{
+                                     username});
 
             if(!user_res.empty())
             {
@@ -1151,10 +1211,11 @@ void Database::do_ban_user(std::string username,
                 std::string banned_until_str = timepoint_to_string(banned_until);
 
                 // Now insert the ban based on the UUID.
-                txn.exec_prepared("ban_user",
-                                  boost::uuids::to_string(user_id),
-                                  banned_until_str,
-                                  reason);
+                txn.exec(pqxx::prepped{"ban_user"},
+                         pqxx::params{
+                         boost::uuids::to_string(user_id),
+                         banned_until_str,
+                         reason});
 
                 txn.commit();
 
@@ -1199,7 +1260,9 @@ void Database::do_unban_user(std::string username, uint64_t ban_id)
 
             // Find the uuid for this username
 
-            auto user_res = txn.exec_prepared("find_uuid", username);
+            auto user_res = txn.exec(pqxx::prepped{"find_uuid"},
+                                     pqxx::params{
+                                     username});
 
             if(!user_res.empty())
             {
@@ -1219,7 +1282,9 @@ void Database::do_unban_user(std::string username, uint64_t ban_id)
 
                 pqxx::work txn{*conn_};
 
-                txn.exec_prepared("unban_user", ban_id);
+                txn.exec(pqxx::prepped{"unban_user"},
+                         pqxx::params{
+                         static_cast<int64_t>(ban_id)});
 
                 txn.commit();
 
@@ -1262,7 +1327,9 @@ void Database::do_send_friend_request(boost::uuids::uuid user,
 
             // Find the uuid for this username
 
-            auto user_res = txn.exec_prepared("find_uuid", friend_username);
+            auto user_res = txn.exec(pqxx::prepped{"find_uuid"},
+                                     pqxx::params{
+                                     friend_username});
 
             if(!user_res.empty())
             {
@@ -1277,6 +1344,11 @@ void Database::do_send_friend_request(boost::uuids::uuid user,
                 // Drop this work if user is trying to friend themselves.
                 if (user == friend_id)
                 {
+                    std::string lmsg = "User "
+                                       + uuid_str
+                                       + " tried to friend themselves.";
+                    Console::instance().log(lmsg, LogLevel::WARN);
+
                     txn.commit();
                     return;
                 }
@@ -1295,9 +1367,10 @@ void Database::do_send_friend_request(boost::uuids::uuid user,
 
                     // Check if the sender is blocked
                     // by the receiver.
-                    auto blocked_res = txn.exec_prepared("check_blocked",
-                                      boost::uuids::to_string(user),
-                                      boost::uuids::to_string(friend_id));
+                    auto blocked_res = txn.exec(pqxx::prepped{"check_blocked"},
+                                                pqxx::params{
+                                                boost::uuids::to_string(user),
+                                                boost::uuids::to_string(friend_id)});
 
                     // If blocked, finish transaction and close.
                     if (!blocked_res.empty())
@@ -1307,9 +1380,10 @@ void Database::do_send_friend_request(boost::uuids::uuid user,
                     }
 
                     // Check if they are already friends.
-                    auto friends_res = txn.exec_prepared("check_friends",
-                                        boost::uuids::to_string(user),
-                                        boost::uuids::to_string(friend_id));
+                    auto friends_res = txn.exec(pqxx::prepped{"check_friends"},
+                                                pqxx::params{
+                                                boost::uuids::to_string(user),
+                                                boost::uuids::to_string(friend_id)});
 
                     // If already friends, stop now.
                     if (!friends_res.empty())
@@ -1320,10 +1394,13 @@ void Database::do_send_friend_request(boost::uuids::uuid user,
 
                     // If a friend request already exists, this will
                     // simply do nothing.
-                    txn.exec_prepared("friend_request",
-                                      boost::uuids::to_string(user),
-                                      boost::uuids::to_string(friend_id),
-                                      MAX_FRIEND_REQUESTS);
+                    txn.exec(pqxx::prepped{"friend_request"},
+                             pqxx::params{
+                             boost::uuids::to_string(user),
+                             boost::uuids::to_string(friend_id),
+                             MAX_FRIEND_REQUESTS});
+
+                    user_manager_->on_friend_request(user, friend_id);
 
                     txn.commit();
                 }
@@ -1374,26 +1451,29 @@ void Database::do_respond_friend_request(boost::uuids::uuid user,
 
         pqxx::work txn{*conn_};
 
-        if (decision == ACCEPT_REQUEST)
+        if (decision == ACCEPT_FRIEND_REQUEST)
         {
             // Check if this friend request exists.
-            auto req_res = txn.exec_prepared(
-                                    "find_friend_request",
+            auto req_res = txn.exec(pqxx::prepped{"find_friend_request"},
+                                    pqxx::params{
                                     boost::uuids::to_string(user),
-                                    boost::uuids::to_string(sender));
+                                    boost::uuids::to_string(sender)});
 
             if(!req_res.empty())
             {
-                txn.exec_prepared("accept_friend",
-                                  boost::uuids::to_string(user),
-                                  boost::uuids::to_string(sender));
+                txn.exec(pqxx::prepped{"accept_friend"},
+                         pqxx::params{
+                         boost::uuids::to_string(user),
+                         boost::uuids::to_string(sender)});
 
-                txn.exec_prepared("delete_friend_request",
-                                  boost::uuids::to_string(sender),
-                                  boost::uuids::to_string(user));
+                txn.exec(pqxx::prepped{"delete_friend_request"},
+                         pqxx::params{
+                         boost::uuids::to_string(sender),
+                         boost::uuids::to_string(user)});
 
-                auto f_res = txn.exec_prepared("find_username",
-                                            boost::uuids::to_string(sender));
+                auto f_res = txn.exec(pqxx::prepped{"find_username"},
+                                      pqxx::params{
+                                      boost::uuids::to_string(sender)});
 
                 // Send notification to caller on friend accepted.
                 NotifyRelationUpdate notification;
@@ -1429,9 +1509,10 @@ void Database::do_respond_friend_request(boost::uuids::uuid user,
         }
         else
         {
-            txn.exec_prepared("delete_friend_request",
-                              boost::uuids::to_string(sender),
-                              boost::uuids::to_string(user));
+            txn.exec(pqxx::prepped{"delete_friend_request"},
+                     pqxx::params{
+                     boost::uuids::to_string(sender),
+                     boost::uuids::to_string(user)});
         }
 
         txn.commit();
@@ -1465,7 +1546,9 @@ void Database::do_block_user(boost::uuids::uuid blocker,
 
             // Find the uuid for this username
 
-            auto user_res = txn.exec_prepared("find_uuid", blocked);
+            auto user_res = txn.exec(pqxx::prepped{"find_uuid"},
+                                     pqxx::params{
+                                     blocked});
 
             if(!user_res.empty())
             {
@@ -1476,6 +1559,15 @@ void Database::do_block_user(boost::uuids::uuid blocker,
 
                 boost::uuids::string_generator gen;
                 boost::uuids::uuid blocked_id = gen(uuid_str);
+
+                if (blocker == blocked_id)
+                {
+                    std::string lmsg = "User "
+                                       + uuid_str
+                                       + " tried to block themselves.";
+                    Console::instance().log(lmsg, LogLevel::WARN);
+                    return;
+                }
 
                 uuid_strands_.post(blocked_id,
                     [this,
@@ -1491,24 +1583,28 @@ void Database::do_block_user(boost::uuids::uuid blocker,
                 pqxx::work txn{*conn_};
 
                 // Block the user, idempotent.
-                txn.exec_prepared("block_user",
-                                  boost::uuids::to_string(blocker),
-                                  boost::uuids::to_string(blocked_id));
+                txn.exec(pqxx::prepped{"block_user"},
+                         pqxx::params{
+                         boost::uuids::to_string(blocker),
+                         boost::uuids::to_string(blocked_id)});
 
                 // Remove any friend requests that might exist.
-                txn.exec_prepared("delete_friend_request",
-                                  boost::uuids::to_string(blocked_id),
-                                  boost::uuids::to_string(blocker));
+                txn.exec(pqxx::prepped{"delete_friend_request"},
+                         pqxx::params{
+                         boost::uuids::to_string(blocked_id),
+                         boost::uuids::to_string(blocker)});
 
-                txn.exec_prepared("delete_friend_request",
-                                  boost::uuids::to_string(blocker),
-                                  boost::uuids::to_string(blocked_id));
+                txn.exec(pqxx::prepped{"delete_friend_request"},
+                         pqxx::params{
+                         boost::uuids::to_string(blocker),
+                         boost::uuids::to_string(blocked_id)});
 
                 // Remove any friendships that exist between
                 // the two users.
-                txn.exec_prepared("remove_friend",
-                                  boost::uuids::to_string(blocker),
-                                  boost::uuids::to_string(blocked_id));
+                txn.exec(pqxx::prepped{"remove_friend"},
+                         pqxx::params{
+                         boost::uuids::to_string(blocker),
+                         boost::uuids::to_string(blocked_id)});
 
                 txn.commit();
 
@@ -1571,9 +1667,10 @@ void Database::do_unblock_user(boost::uuids::uuid blocker,
 
         pqxx::work txn{*conn_};
 
-        txn.exec_prepared("unblock_user",
-                          boost::uuids::to_string(blocker),
-                          boost::uuids::to_string(blocked_id));
+        txn.exec(pqxx::prepped{"unblock_user"},
+                 pqxx::params{
+                 boost::uuids::to_string(blocker),
+                 boost::uuids::to_string(blocked_id)});
 
         txn.commit();
 
@@ -1620,9 +1717,10 @@ void Database::do_remove_friend(boost::uuids::uuid user,
 
         pqxx::work txn{*conn_};
 
-        txn.exec_prepared("remove_friend",
-                          boost::uuids::to_string(user),
-                          boost::uuids::to_string(friend_id));
+        txn.exec(pqxx::prepped{"remove_friend"},
+                 pqxx::params{
+                 boost::uuids::to_string(user),
+                 boost::uuids::to_string(friend_id)});
 
         txn.commit();
 
@@ -1667,8 +1765,9 @@ void Database::do_fetch_blocks(boost::uuids::uuid user,
 
         pqxx::work txn{*conn_};
 
-        auto blocks_res = txn.exec_prepared("fetch_blocks",
-                                            boost::uuids::to_string(user));
+        auto blocks_res = txn.exec(pqxx::prepped{"fetch_blocks"},
+                                   pqxx::params{
+                                   boost::uuids::to_string(user)});
 
         // This transaction is read only. Commit now.
         txn.commit();
@@ -1722,8 +1821,9 @@ void Database::do_fetch_friends(boost::uuids::uuid user,
 
         pqxx::work txn{*conn_};
 
-        auto friends_res = txn.exec_prepared("fetch_friends",
-                                             boost::uuids::to_string(user));
+        auto friends_res = txn.exec(pqxx::prepped{"fetch_friends"},
+                                    pqxx::params{
+                                    boost::uuids::to_string(user)});
 
         // This transaction is read only. Commit now.
         txn.commit();
@@ -1739,7 +1839,7 @@ void Database::do_fetch_friends(boost::uuids::uuid user,
             {
                 ExternalUser curr_friend;
 
-                curr_friend.user_id = gen(row["user_id"].c_str());
+                curr_friend.user_id = gen(row["friend_id"].c_str());
                 curr_friend.username = row["username"].as<std::string>();
 
                 friends.users.push_back(curr_friend);
@@ -1777,8 +1877,9 @@ void Database::do_fetch_friend_requests(boost::uuids::uuid user,
 
         pqxx::work txn{*conn_};
 
-        auto friends_req_res = txn.exec_prepared("fetch_friend_requests",
-                                             boost::uuids::to_string(user));
+        auto friends_req_res = txn.exec(pqxx::prepped{"fetch_friend_requests"},
+                                        pqxx::params{
+                                        boost::uuids::to_string(user)});
 
         // This transaction is read only. Commit now.
         txn.commit();
@@ -1818,6 +1919,196 @@ void Database::do_fetch_friend_requests(boost::uuids::uuid user,
     });
 }
 
+void Database::do_fetch_new_matches(boost::uuids::uuid user,
+                                    GameMode mode,
+                                    std::shared_ptr<Session> session)
+{
+uuid_strands_.post(user,
+        [this,
+        user = std::move(user),
+        mode,
+        s = std::move(session)]() mutable {
+
+    try
+    {
+        prepares();
+
+        pqxx::work txn{*conn_};
+
+        auto matches_res = txn.exec(pqxx::prepped{"fetch_latest_matches"},
+                                        pqxx::params{
+                                        boost::uuids::to_string(user),
+                                        static_cast<int16_t>(mode),
+                                        LATEST_MATCHES_COUNT
+                                        });
+
+        // This transaction is read only. Commit now.
+        txn.commit();
+
+        // Inform client that nothing exists.
+        if (matches_res.empty())
+        {
+            Message match_history_message;
+            match_history_message.create_serialized(HeaderType::NoNewMatches);
+            s->deliver(match_history_message);
+        }
+
+        // Iterate through the rows and extract results.
+        MatchResultList results;
+        results.mode = mode;
+
+        for (const auto & row : matches_res)
+        {
+            MatchResultRow result;
+            result.match_id = row["match_id"].as<std::int64_t>();
+            result.placement = row["placement"].as<std::uint16_t>();
+            result.elo_change = row["elo_change"].as<std::int32_t>();
+
+            auto finished_at = row["finished_at"].as<std::time_t>();
+            result.finished_at = std::chrono::system_clock::from_time_t(finished_at);
+
+            results.match_results.push_back(std::move(result));
+        }
+
+        Message match_history_message;
+        match_history_message.create_serialized(results);
+        s->deliver(match_history_message);
+
+    }
+    catch (const std::exception & e)
+    {
+        std::string lmsg = "Exception in do_fetch_new_matches: "
+                            + std::string(e.what());
+        Console::instance().log(std::move(lmsg),
+                                LogLevel::ERROR);
+    }
+    });
+}
+
+void Database::do_fetch_replay(ReplayRequest req,
+                               std::shared_ptr<Session> session)
+{
+    asio::post(thread_pool_,
+        [this,
+        req,
+        s = std::move(session)](){
+
+    try
+    {
+        prepares();
+
+        pqxx::work txn{*conn_};
+
+        auto replay_res = txn.exec(pqxx::prepped{"fetch_replay"},
+                                    pqxx::params{
+                                    static_cast<int64_t>(req.match_id)
+                                    });
+
+        auto players_res = txn.exec(pqxx::prepped{"fetch_match_users"},
+                                    pqxx::params{
+                                    static_cast<int64_t>(req.match_id)
+                                    });
+
+        // This transaction is read only. Commit now.
+        txn.commit();
+
+        // Handle the match ID being bad, shouldn't happen with correct
+        // clients.
+        if (replay_res.empty() || players_res.empty())
+        {
+            Message empty_replay;
+            empty_replay.create_serialized(HeaderType::NoReplay);
+            s->deliver(empty_replay);
+            return;
+        }
+
+        // Otherwise, take our json bytes and deserialize into a list of commands.
+        std::string moves_json = replay_res[0]["move_history"].as<std::string>();
+        std::vector<CommandHead> moves{};
+
+        auto ec = glz::read_json(moves, moves_json);
+
+        if (ec) {
+            std::string lmsg = "Failed to parse moves. Input: " + moves_json;
+            Console::instance().log(std::move(lmsg),
+                                    LogLevel::ERROR);
+            return;
+        }
+
+        std::string settings_json = replay_res[0]["settings"].as<std::string>();
+        MatchResult result_settings;
+
+        auto settings_ec = glz::read_json(result_settings, settings_json);
+
+        if (settings_ec) {
+            std::string lmsg = "Failed to parse settings. Input: " + settings_json;
+            Console::instance().log(std::move(lmsg),
+                                    LogLevel::ERROR);
+            return;
+        }
+
+        MatchReplay match_replay;
+
+        match_replay.moves = std::move(moves);
+
+        match_replay.settings = std::move(result_settings.settings);
+        match_replay.initial_time_ms = result_settings.initial_time_ms;
+        match_replay.increment_ms = result_settings.increment_ms;
+        match_replay.match_id = req.match_id;
+
+        if (match_replay.settings.num_players <= 0
+            || match_replay.settings.num_players > 8)
+        {
+            std::string lmsg = "Settings had bad num_players. Input: " + settings_json;
+            Console::instance().log(std::move(lmsg),
+                                    LogLevel::ERROR);
+            return;
+        }
+
+        std::vector<ExternalUser> player_list;
+        player_list.resize(match_replay.settings.num_players);
+
+        boost::uuids::string_generator gen;
+
+        for (const auto & row : players_res)
+        {
+            uint8_t p_id = static_cast<uint8_t>(row["player_id"].as<int>());
+
+            if (p_id > player_list.size() || p_id < 0)
+            {
+                std::string lmsg = "Players had bad player_id: "
+                                   + std::to_string(p_id);
+                Console::instance().log(std::move(lmsg),
+                                        LogLevel::WARN);
+                continue;
+            }
+
+            ExternalUser user;
+
+            user.user_id = gen(row["user_id"].as<std::string>());
+            user.username = row["username"].as<std::string>();
+
+            player_list[p_id] = user;
+        }
+
+        match_replay.players.users = player_list;
+
+        Message match_replay_message;
+        match_replay_message.create_serialized(match_replay);
+        s->deliver(match_replay_message);
+
+    }
+    catch (const std::exception & e)
+    {
+        std::string lmsg = "Exception in do_fetch_replay: "
+                            + std::string(e.what());
+        Console::instance().log(std::move(lmsg),
+                                LogLevel::ERROR);
+    }
+
+    });
+}
+
 void Database::prepares()
 {
     if (!conn_)
@@ -1825,8 +2116,8 @@ void Database::prepares()
         conn_ = std::make_unique<pqxx::connection>(
             "host=127.0.0.1 "
             "port=5432 "
-            "dbname=SilentTanksDB "
-            "user=SilentTanksOperator"
+            "dbname=silenttanksdb "
+            "user=silenttanksoperator"
             );
         conn_->prepare("auth",
             "SELECT user_id, hash, salt "
@@ -2006,6 +2297,38 @@ void Database::prepares()
             "FROM BlockedUsers b "
             "WHERE b.blocker = $1"
             );
+        conn_->prepare("fetch_latest_matches",
+            "SELECT m.match_id, "
+            "FLOOR(EXTRACT(epoch from m.finished_at))::bigint as finished_at, "
+            "mp.placement, "
+            "COALESCE(eh.elo_change, 0) AS elo_change "
+            "FROM matches m JOIN MatchPlayers mp ON mp.match_id = m.match_id "
+            "LEFT JOIN LATERAL ( "
+            "SELECT (new_elo - old_elo) AS elo_change "
+            "FROM EloHistory eh "
+            "WHERE eh.match_id = m.match_id "
+            "AND eh.user_id = mp.user_id "
+            "AND eh.game_mode = m.game_mode "
+            "ORDER BY history_id DESC "
+            "LIMIT 1 "
+            ") eh ON true "
+            "WHERE mp.user_id = $1::uuid "
+            "AND m.game_mode = $2::int "
+            "ORDER BY m.finished_at DESC "
+            "LIMIT $3"
+            );
+        conn_->prepare("fetch_replay",
+            "SELECT move_history, settings "
+            "FROM Matches "
+            "WHERE match_id = $1"
+            );
+        conn_->prepare("fetch_match_users",
+            "SELECT u.user_id, u.username, mp.player_id "
+            "FROM MatchPlayers mp "
+            "JOIN Users u ON u.user_id = mp.user_id "
+            "WHERE mp.match_id = $1 "
+            "ORDER BY mp.player_id"
+            );
     }
 }
 
@@ -2016,9 +2339,16 @@ void Database::try_finish_shutdown()
         return;
     }
 
-    if (pending_writes_.load(std::memory_order_acquire) > 0)
+    if (pending_writes_.load(std::memory_order_seq_cst) > 0)
     {
-        std::cerr << pending_writes_.load(std::memory_order_acquire) << "\n";
+        std::string lmsg = std::to_string
+                                (
+                                    pending_writes_
+                                    .load(std::memory_order_seq_cst)
+                                )
+                            + " match writes remaining.";
+
+        Console::instance().log(lmsg, LogLevel::CONSOLE);
         return;
     }
 

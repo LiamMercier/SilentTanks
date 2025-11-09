@@ -1,10 +1,29 @@
+// Copyright (c) 2025 Liam Mercier
+//
+// This file is part of SilentTanks.
+//
+// SilentTanks is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Affero General Public License Version 3.0
+// as published by the Free Software Foundation.
+//
+// SilentTanks is distributed in the hope that it will be useful, but
+// WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+// or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License v3.0
+// for more details.
+//
+// You should have received a copy of the GNU Affero General Public License v3.0
+// along with SilentTanks. If not, see <https://www.gnu.org/licenses/agpl-3.0.txt>
+
 #include "session.h"
 #include "console.h"
 
-Session::Session(asio::io_context & cntx, uint64_t session_id)
-:socket_(cntx),
+Session::Session(asio::io_context & cntx,
+                 uint64_t session_id,
+                 asio::ssl::context & ssl_cntx)
+:ssl_socket_(cntx, ssl_cntx),
 strand_(cntx.get_executor()),
 read_timer_(cntx),
+write_timer_(cntx),
 ping_timer_(cntx),
 pong_timer_(cntx),
 session_id_(session_id),
@@ -12,7 +31,7 @@ authenticated_(false),
 called_register_(false),
 user_data_()
 {
-
+    has_new_matches_.fill(true);
 }
 
 void Session::set_message_handler(MessageHandler m_handler, DisconnectHandler d_handler)
@@ -25,8 +44,21 @@ void Session::start()
 {
     live_.store(true, std::memory_order_release);
     awaiting_pong_ = false;
-    do_read_header();
-    start_ping();
+
+    // Do TLS handshake.
+    ssl_socket_.async_handshake(asio::ssl::stream_base::server,
+        asio::bind_executor(strand_,
+            [this, self = shared_from_this()](boost::system::error_code ec)
+            {
+                if (ec)
+                {
+                    this->handle_read_error(ec);
+                    return;
+                }
+
+                this->do_read_header();
+                this->start_ping();
+        }));
 }
 
 void Session::deliver(Message msg)
@@ -34,7 +66,21 @@ void Session::deliver(Message msg)
     asio::post(strand_, [self = shared_from_this(), m = std::move(msg)]{
         // if the write queue is currently not empty
         bool write_in_progress = !self->write_queue_.empty();
+
         self->write_queue_.push_back(std::move(m));
+
+        // Prevent malicious clients from intentionally building up a large
+        // queue of messages that they refuse to read any faster than the
+        // timer we have for message writes.
+        //
+        // Any client that does not respect this is either malicious or malformed.
+        if (self->write_queue_.size() > MAX_MESSAGE_BACKLOG)
+        {
+            boost::system::error_code ignored;
+            self->ssl_socket_.lowest_layer().cancel(ignored);
+            return;
+        }
+
         if (!write_in_progress)
         {
             self->do_write();
@@ -89,7 +135,6 @@ bool Session::spend_tokens(Header header)
     uint64_t cost = weight_of_cmd(header);
     if (tokens >= cost)
     {
-        std::cout << "Spending " << cost << " of " << tokens << " tokens.\n";
         tokens -= cost;
         return true;
     }
@@ -137,7 +182,7 @@ void Session::start_ping()
                             };
 
                             // Close the session after sending
-                            asio::async_write(self->socket_, buf,
+                            asio::async_write(self->ssl_socket_, buf,
                                 asio::bind_executor(self->strand_,
                                     [self](boost::system::error_code, size_t){
                                         self->close_session();
@@ -157,11 +202,18 @@ void Session::start_ping()
     }));
 }
 
+// We cannot add a timeout to this, because there is no difference
+// between a slowloris attack that opens connections but does nothing
+// and a client who is not currently requesting anything.
+//
+// Mitigations would need to involve limiting session's per incoming address
+// or computational costs in the heartbeat ping.
 void Session::do_read_header()
 {
     auto self = shared_from_this();
+
     // read from the header using buffer of size of the header
-    asio::async_read(socket_,
+    asio::async_read(ssl_socket_,
         asio::buffer(&incoming_header_, sizeof(Header)),
         asio::bind_executor(strand_,
             [self](boost::system::error_code ec, std::size_t)
@@ -194,7 +246,7 @@ void Session::do_read_header()
                         };
 
                         // Close the session after sending
-                        asio::async_write(self->socket_, buf,
+                        asio::async_write(self->ssl_socket_, buf,
                                 asio::bind_executor(self->strand_,
                                     [self](boost::system::error_code, size_t){
                                         self->close_session();
@@ -221,12 +273,13 @@ void Session::do_read_body()
 
         if (!ec)
         {
-            self->socket_.cancel();
+            boost::system::error_code ignored;
+            self->ssl_socket_.lowest_layer().cancel(ignored);
         }
 
     }));
 
-    asio::async_read(socket_,
+    asio::async_read(ssl_socket_,
         asio::buffer(incoming_body_),
         asio::bind_executor(strand_,
             [self](boost::system::error_code ec, std::size_t)
@@ -248,7 +301,7 @@ void Session::do_read_body()
             }));
 }
 
-// TODO: consider optimizing move semantics here.
+// TODO <optimization>: consider optimizing move semantics here.
 void Session::do_write()
 {
     auto self = shared_from_this();
@@ -265,11 +318,26 @@ void Session::do_write()
         }
     };
 
-    asio::async_write(socket_,
+    // Setup an async timer to ensure malicious clients can't
+    // intentionally read their data too slowly.
+    write_timer_.expires_after(std::chrono::seconds(WRITE_TIMEOUT));
+    write_timer_.async_wait(asio::bind_executor(strand_,
+        [self](boost::system::error_code ec){
+            if (!ec)
+            {
+                boost::system::error_code ignored;
+                self->ssl_socket_.lowest_layer().cancel(ignored);
+            }
+
+        }));
+
+    asio::async_write(ssl_socket_,
                       bufs,
                       asio::bind_executor(strand_,
                         [self](boost::system::error_code ec, std::size_t)
                         {
+                            self->write_timer_.cancel();
+
                             if (!ec)
                             {
                                 self->write_queue_.pop_front();
@@ -310,7 +378,8 @@ void Session::handle_message()
     // no callback set
     else
     {
-        std::cerr << "No message callback was set!\n";
+        Console::instance().log("No message callback was set in session!",
+                                LogLevel::ERROR);
     }
 }
 
@@ -368,11 +437,13 @@ void Session::force_close_session()
 
         // Cancel all timers
         self->read_timer_.cancel();
+        self->write_timer_.cancel();
         self->ping_timer_.cancel();
         self->pong_timer_.cancel();
 
-        self->socket_.shutdown(asio::ip::tcp::socket::shutdown_both, ignored);
-        self->socket_.close(ignored);
+        self->ssl_socket_.lowest_layer().shutdown(asio::ip::tcp::socket::shutdown_both,
+                                                  ignored);
+        self->ssl_socket_.lowest_layer().close(ignored);
 
         if(self->on_disconnect_relay_)
         {

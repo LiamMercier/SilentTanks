@@ -1,3 +1,19 @@
+// Copyright (c) 2025 Liam Mercier
+//
+// This file is part of SilentTanks.
+//
+// SilentTanks is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Affero General Public License Version 3.0
+// as published by the Free Software Foundation.
+//
+// SilentTanks is distributed in the hope that it will be useful, but
+// WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+// or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License v3.0
+// for more details.
+//
+// You should have received a copy of the GNU Affero General Public License v3.0
+// along with SilentTanks. If not, see <https://www.gnu.org/licenses/agpl-3.0.txt>
+
 #include "match-strategy.h"
 
 CasualTwoPlayerStrategy::CasualTwoPlayerStrategy(asio::io_context & cntx,
@@ -81,6 +97,196 @@ void CasualTwoPlayerStrategy::try_form_match()
 
         // spawn a new match instance
         on_match_ready_(std::vector<Session::ptr>{p1, p2}, settings);
+    }
+}
+
+CasualThreePlayerStrategy::CasualThreePlayerStrategy(
+                                        asio::io_context & cntx,
+                                        MakeMatchCallback on_match_ready,
+                                        const std::shared_ptr<MapRepository> & map_repo)
+: strand_(cntx.get_executor()),
+  on_match_ready_(std::move(on_match_ready)),
+  map_repo_(map_repo)
+{
+}
+
+// push the session into the deque
+void CasualThreePlayerStrategy::enqueue(Session::ptr p)
+{
+    asio::post(strand_,
+               [this, p] {
+
+            boost::uuids::uuid user_id = p->get_user_data().user_id;
+
+            // if the lookup does not find this session enqueued already
+            if (lookup_.find(user_id) == lookup_.end())
+            {
+                queue_.push_back(p);
+                lookup_.insert(user_id);
+                try_form_match();
+            }
+
+            });
+}
+
+void CasualThreePlayerStrategy::cancel(Session::ptr p)
+{
+    asio::post(strand_, [this, p]{
+
+        boost::uuids::uuid user_id = p->get_user_data().user_id;
+
+        if (lookup_.erase(user_id))
+        {
+            // remove if lookup found a queued player
+            //
+            // this might be from the middle of the deque
+            queue_.erase(std::remove_if(
+                            queue_.begin(),
+                            queue_.end(),
+                            [&](const Session::ptr & s)
+                            {
+                                return s->get_user_data().user_id == user_id;
+                            }),
+                            queue_.end());
+        }
+
+    });
+}
+
+void CasualThreePlayerStrategy::try_form_match()
+{
+    constexpr uint8_t N_players = players_for_gamemode[
+                    static_cast<uint8_t>(GameMode::ClassicThreePlayer)];
+    while (queue_.size() >= N_players)
+    {
+        std::vector<Session::ptr> players;
+        players.reserve(N_players);
+
+        for (int i = 0; i < N_players; i++)
+        {
+            // pop players
+            Session::ptr p = queue_.front();
+            queue_.pop_front();
+            players.push_back(std::move(p));
+        }
+
+        // erase them from lookup
+        for (const auto & p : players)
+        {
+            if (p)
+            {
+                lookup_.erase(p->get_user_data().user_id);
+            }
+        }
+
+        // Get a random map and setup match settings.
+        GameMap map = map_repo_->get_random_map
+                        (
+                            static_cast<uint8_t>(GameMode::ClassicThreePlayer)
+                        );
+
+        MatchSettings settings(map,
+                               initial_time_ms,
+                               increment_ms,
+                               GameMode::ClassicThreePlayer);
+
+        // spawn a new match instance
+        on_match_ready_(std::move(players), settings);
+    }
+}
+
+CasualFivePlayerStrategy::CasualFivePlayerStrategy(
+                                        asio::io_context & cntx,
+                                        MakeMatchCallback on_match_ready,
+                                        const std::shared_ptr<MapRepository> & map_repo)
+: strand_(cntx.get_executor()),
+  on_match_ready_(std::move(on_match_ready)),
+  map_repo_(map_repo)
+{
+}
+
+// push the session into the deque
+void CasualFivePlayerStrategy::enqueue(Session::ptr p)
+{
+    asio::post(strand_,
+               [this, p] {
+
+            boost::uuids::uuid user_id = p->get_user_data().user_id;
+
+            // if the lookup does not find this session enqueued already
+            if (lookup_.find(user_id) == lookup_.end())
+            {
+                queue_.push_back(p);
+                lookup_.insert(user_id);
+                try_form_match();
+            }
+
+            });
+}
+
+void CasualFivePlayerStrategy::cancel(Session::ptr p)
+{
+    asio::post(strand_, [this, p]{
+
+        boost::uuids::uuid user_id = p->get_user_data().user_id;
+
+        if (lookup_.erase(user_id))
+        {
+            // remove if lookup found a queued player
+            //
+            // this might be from the middle of the deque
+            queue_.erase(std::remove_if(
+                            queue_.begin(),
+                            queue_.end(),
+                            [&](const Session::ptr & s)
+                            {
+                                return s->get_user_data().user_id == user_id;
+                            }),
+                            queue_.end());
+        }
+
+    });
+}
+
+void CasualFivePlayerStrategy::try_form_match()
+{
+    constexpr uint8_t N_players = players_for_gamemode[
+                static_cast<uint8_t>(GameMode::ClassicFivePlayer)];
+    while (queue_.size() >= N_players)
+    {
+        std::vector<Session::ptr> players;
+        players.reserve(N_players);
+
+        for (int i = 0; i < N_players; i++)
+        {
+            // pop players
+            Session::ptr p = queue_.front();
+            queue_.pop_front();
+            players.push_back(std::move(p));
+        }
+
+        // erase them from lookup
+        for (const auto & p : players)
+        {
+            if (p)
+            {
+                lookup_.erase(p->get_user_data().user_id);
+            }
+        }
+
+        // Get a random map and setup match settings.
+        GameMap map = map_repo_->get_random_map
+                        (
+                            static_cast<uint8_t>(GameMode::ClassicFivePlayer)
+                        );
+
+        MatchSettings settings(map,
+                               initial_time_ms,
+                               increment_ms,
+                               GameMode::ClassicFivePlayer);
+
+        // spawn a new match instance
+        on_match_ready_(std::move(players), settings);
     }
 }
 

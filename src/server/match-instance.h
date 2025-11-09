@@ -1,3 +1,19 @@
+// Copyright (c) 2025 Liam Mercier
+//
+// This file is part of SilentTanks.
+//
+// SilentTanks is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Affero General Public License Version 3.0
+// as published by the Free Software Foundation.
+//
+// SilentTanks is distributed in the hope that it will be useful, but
+// WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+// or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License v3.0
+// for more details.
+//
+// You should have received a copy of the GNU Affero General Public License v3.0
+// along with SilentTanks. If not, see <https://www.gnu.org/licenses/agpl-3.0.txt>
+
 #pragma once
 
 #include <vector>
@@ -15,6 +31,7 @@
 #include "constants.h"
 #include "message.h"
 #include "match-result.h"
+#include "game-state.h"
 
 namespace asio = boost::asio;
 
@@ -22,20 +39,17 @@ namespace asio = boost::asio;
 struct PlayerInfo
 {
 public:
-    PlayerInfo(uint8_t id, uint64_t s_id, boost::uuids::uuid u_id);
+    PlayerInfo(uint8_t id,
+               uint64_t s_id,
+               boost::uuids::uuid u_id,
+               std::string user_string);
 
 public:
     uint8_t PlayerID;
     uint64_t session_id;
     boost::uuids::uuid user_id;
     bool alive;
-};
-
-enum class GameState : uint8_t
-{
-    Setup,
-    Play,
-    Concluded
+    std::string username;
 };
 
 struct ApplyResult
@@ -84,6 +98,9 @@ public:
     void start();
 
 private:
+    StaticMatchData compute_static_data();
+
+    void update_view_timer(uint8_t player_ID);
 
     // Code for one turn of the match.
     void start_turn();
@@ -92,7 +109,7 @@ private:
     void start_turn_strand();
 
     // Handles the arrival of a move in the context of a turn.
-    void on_player_move_arrived(uint16_t t_id);
+    void on_player_move_arrived(uint32_t t_id);
 
     // Handles timing out the player and preparing for the next game state.
     void handle_timeout();
@@ -146,7 +163,7 @@ private:
     // The turn ID exists to ensure commands put into the queue
     // for a given turn are not used in later turns due to client or
     // server strand ordering differences.
-    uint16_t turn_ID_;
+    uint32_t turn_ID_;
 
     // Allows the winning async function (timer or move received) to
     // claim the turn and prevent the race condition caused by

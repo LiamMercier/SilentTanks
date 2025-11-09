@@ -1,3 +1,19 @@
+// Copyright (c) 2025 Liam Mercier
+//
+// This file is part of SilentTanks.
+//
+// SilentTanks is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Affero General Public License Version 3.0
+// as published by the Free Software Foundation.
+//
+// SilentTanks is distributed in the hope that it will be useful, but
+// WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+// or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License v3.0
+// for more details.
+//
+// You should have received a copy of the GNU Affero General Public License v3.0
+// along with SilentTanks. If not, see <https://www.gnu.org/licenses/agpl-3.0.txt>
+
 #pragma once
 
 #include <string>
@@ -14,6 +30,19 @@ inline void console_dispatch(Server & server, std::string line)
     if(!(iss >> cmd))
     {
         return;
+    }
+
+    // Strip prefix "-" or "--" around a command.
+    if (cmd.size() >= 2 && cmd[0] == '-')
+    {
+        if (cmd[1] == '-')
+        {
+            cmd.erase(0, 2);
+        }
+        else
+        {
+            cmd.erase(0, 1);
+        }
     }
 
     // To lower.
@@ -92,9 +121,10 @@ inline void console_dispatch(Server & server, std::string line)
     {
         Console::instance().log(
                 "Available commands: \n"
-                "BanUser <username> <duration (minutes)> <reason>\n"
-                "BanIP <ipv4_address> <duration (minutes)>\n"
-                "Shutdown",
+                "           ShowIdentity\n"
+                "           BanUser <username> <duration (minutes)> <reason>\n"
+                "           BanIP <ipv4_address> <duration (minutes)>\n"
+                "           Shutdown",
                 LogLevel::CONSOLE
             );
     }
@@ -106,11 +136,19 @@ inline void console_dispatch(Server & server, std::string line)
             );
         server.shutdown();
     }
+    else if (cmd == "showidentity")
+    {
+        std::string identity_line = server.get_identity_string();
+        Console::instance().log(
+                identity_line,
+                LogLevel::CONSOLE
+            );
+    }
     else
     {
         Console::instance().log("Console command: "
                                 + cmd
-                                + " is unrecognized, try Help",
+                                + " is unrecognized, try help, -help, or --help",
                                 LogLevel::CONSOLE);
     }
 

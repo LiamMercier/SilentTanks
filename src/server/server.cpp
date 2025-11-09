@@ -1,15 +1,34 @@
+// Copyright (c) 2025 Liam Mercier
+//
+// This file is part of SilentTanks.
+//
+// SilentTanks is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Affero General Public License Version 3.0
+// as published by the Free Software Foundation.
+//
+// SilentTanks is distributed in the hope that it will be useful, but
+// WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+// or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License v3.0
+// for more details.
+//
+// You should have received a copy of the GNU Affero General Public License v3.0
+// along with SilentTanks. If not, see <https://www.gnu.org/licenses/agpl-3.0.txt>
+
 #include "server.h"
 #include "console.h"
 
-// TODO: secure socket connection, not just TCP.
 Server::Server(asio::io_context & cntx,
-               tcp::endpoint endpoint)
+               tcp::endpoint endpoint,
+               asio::ssl::context & ssl_cntx,
+               ServerIdentity server_identity)
 :calling_context_(cntx),
 server_strand_(cntx.get_executor()),
+ssl_cntx_(ssl_cntx),
+server_identity_(server_identity),
 acceptor_(cntx, endpoint),
 user_manager_(std::make_shared<UserManager>(cntx)),
 matcher_(cntx,
-         std::string("mapfile.txt"),
+         std::string(default_mapfile_name),
          // Callback function to send messages to sessions
          [this](uint64_t s_id, Message msg)
             {
@@ -82,6 +101,9 @@ void Server::CONSOLE_ban_ip(std::string ip,
 {
     db_.ban_ip(std::move(ip),
                std::move(banned_until));
+
+    // TODO <feature>: evict users who are under this IP and insert into
+    //                 the list of server IP bans.
 }
 
 // Shutdown smoothly.
@@ -151,7 +173,8 @@ void Server::handle_accept(const boost::system::error_code & ec,
         }
 
         // Handle IP bans.
-        auto client_ip = socket.remote_endpoint().address().to_string();
+        boost::system::error_code endpoint_ec;
+        auto client_ip = socket.remote_endpoint(endpoint_ec).address().to_string();
         auto ip_itr = bans_.find(client_ip);
         auto now = std::chrono::system_clock::now();
 
@@ -181,7 +204,8 @@ void Server::handle_accept(const boost::system::error_code & ec,
         auto session = std::make_shared<Session>(
             static_cast<asio::io_context&>(
                 acceptor_.get_executor().context()),
-                s_id);
+                s_id,
+                ssl_cntx_);
 
         // Move socket into session.
         session->socket() = std::move(socket);
@@ -239,9 +263,6 @@ void Server::on_message(const ptr & session, Message msg)
 
 try {
 
-    std::cout << "[Server]: Header Type: " << +uint8_t(msg.header.type_) << "\n";
-    std::cout << "[Server]: Payload Size: " << +uint8_t(msg.header.payload_len) << "\n";
-
     // Attempt to spend tokens. If successful, returns true. Otherwise, false,
     // we reject the request.
     bool affordable_command = session->spend_tokens(msg.header);
@@ -275,7 +296,9 @@ try {
             // Grab the current client IP.
             try
             {
-                client_ip = session->socket().remote_endpoint().address().to_string();
+                boost::system::error_code endpoint_ec;
+                client_ip = session->
+                            socket().remote_endpoint(endpoint_ec).address().to_string();
             }
             catch (const std::exception & e)
             {
@@ -315,6 +338,7 @@ try {
             db_.authenticate(msg, session, client_ip);
             break;
         }
+        // TODO <security>: consider PoW based limits for this or tokens?
         case HeaderType::RegistrationRequest:
         {
             // Prevent registration attempts when already logged in or
@@ -334,7 +358,9 @@ try {
             // Grab the current client IP.
             try
             {
-                client_ip = session->socket().remote_endpoint().address().to_string();
+                boost::system::error_code endpoint_ec;
+                client_ip = session->
+                            socket().remote_endpoint(endpoint_ec).address().to_string();
             }
             catch (const std::exception & e)
             {
@@ -554,9 +580,11 @@ try {
                 session->deliver(bad_queue);
                 break;
             }
+
             // Quickly grab the game mode so we can drop the message data.
+            // We already validated this above.
             GameMode queued_mode = GameMode(msg.payload[0]);
-            std::cout << "Trying to queue for game mode " << +uint8_t(queued_mode) << "\n";
+
             matcher_.enqueue(session, queued_mode);
             break;
         }
@@ -578,9 +606,11 @@ try {
                 session->deliver(bad_queue);
                 break;
             }
+
             // Quickly grab the game mode so we can drop the message data.
+            // We already validated this above.
             GameMode queued_mode = GameMode(msg.payload[0]);
-            std::cout << "Trying to cancel queue for game mode " << +uint8_t(queued_mode) << "\n";
+
             matcher_.cancel(session, queued_mode, true);
             break;
         }
@@ -611,6 +641,59 @@ try {
             }
 
             matcher_.forfeit(session);
+            break;
+        }
+        case HeaderType::FetchMatchHistory:
+        {
+            // Prevent actions before login.
+            if (!session->is_authenticated())
+            {
+                Message not_authorized;
+                not_authorized.create_serialized(HeaderType::Unauthorized);
+                session->deliver(not_authorized);
+                break;
+            }
+
+            GameMode mode = msg.to_gamemode();
+
+            if (mode >= GameMode::NO_MODE)
+            {
+                Message b_req;
+                b_req.create_serialized(HeaderType::BadMessage);
+                session->deliver(b_req);
+
+                session->close_session();
+                return;
+            }
+
+            if (!session->has_matches(mode))
+            {
+                Message no_matches;
+                no_matches.create_serialized(HeaderType::NoNewMatches);
+                session->deliver(no_matches);
+                break;
+            }
+
+            // Otherwise, fetch results and set has_new_matches to false.
+            boost::uuids::uuid user_id = (session->get_user_data()).user_id;
+            session->set_has_matches(false, mode);
+
+            db_.fetch_new_matches(user_id, mode, session);
+            break;
+        }
+        case HeaderType::MatchReplayRequest:
+        {
+            // Prevent actions before login.
+            if (!session->is_authenticated())
+            {
+                Message not_authorized;
+                not_authorized.create_serialized(HeaderType::Unauthorized);
+                session->deliver(not_authorized);
+                break;
+            }
+
+            ReplayRequest req = msg.to_replay_request();
+            db_.fetch_replay(req, session);
             break;
         }
         default:
@@ -645,16 +728,13 @@ void Server::on_auth(UserData data,
                blocks = std::move(blocked_users),
                s = std::move(session)]{
 
-        // First, check if the uuid is nil, if so then auth failed
-        // and we should tell the client to try again.
+        // First, check if the uuid is nil, if so then auth failed.
         if (user_data.user_id == boost::uuids::nil_uuid())
         {
-            // Notify session with BadAuth
-            Message bad_auth_msg;
-            bad_auth_msg.create_serialized(HeaderType::BadAuth);
-            s->deliver(bad_auth_msg);
             return;
         }
+
+        GoodAuthNotification good_auth(user_data.matching_elos);
 
         // Otherwise, we authenticated correctly, lets add this user
         // to the user manager.
@@ -665,7 +745,7 @@ void Server::on_auth(UserData data,
 
         // Notify session of good auth
         Message good_auth_msg;
-        good_auth_msg.create_serialized(HeaderType::GoodAuth);
+        good_auth_msg.create_serialized(good_auth);
         s->deliver(good_auth_msg);
 
     });

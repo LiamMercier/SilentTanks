@@ -1,3 +1,19 @@
+// Copyright (c) 2025 Liam Mercier
+//
+// This file is part of SilentTanks.
+//
+// SilentTanks is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Affero General Public License Version 3.0
+// as published by the Free Software Foundation.
+//
+// SilentTanks is distributed in the hope that it will be useful, but
+// WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+// or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License v3.0
+// for more details.
+//
+// You should have received a copy of the GNU Affero General Public License v3.0
+// along with SilentTanks. If not, see <https://www.gnu.org/licenses/agpl-3.0.txt>
+
 #pragma once
 
 #include <iostream>
@@ -5,25 +21,27 @@
 #include <string>
 #include <cmath>
 #include <vector>
+#include <filesystem>
 
 #include "flat-array.h"
 #include "player.h"
 #include "maps.h"
 #include "player-view.h"
+#include "move-status.h"
 
 // The game instance class contains all
 // relevant state data for a given game.
 class GameInstance
 {
 public:
-    GameInstance() = delete;
+    GameInstance();
 
     // Create a predefined environment from map
     GameInstance(GameMap map);
 
     GameInstance(const MapSettings & map);
 
-    ~GameInstance();
+    ~GameInstance() = default;
 
     // Print the current instance state to the console
     void print_instance_console() const;
@@ -36,7 +54,13 @@ public:
 
     bool fire_tank(uint8_t ID);
 
-    PlayerView compute_view(uint8_t player_ID, uint8_t & live_tanks);
+    MoveStatus replay_fire_tank(uint8_t ID);
+
+    void repair_tank(vec2 pos);
+
+    PlayerView compute_view(uint8_t player_ID, uint8_t & num_live_tanks);
+
+    PlayerView dump_global_view();
 
     void cast_ray(PlayerView & player_view,
                   vec2 start,
@@ -45,9 +69,15 @@ public:
                   float max_range,
                   uint8_t dir) const;
 
-    void place_tank(vec2 pos, uint8_t player_ID);
+    void place_tank(vec2 pos, uint8_t player_ID, uint8_t placement_direction);
+
+    void remove_tank(vec2 pos, uint8_t player_ID);
 
     void load_tank(uint8_t ID);
+
+    void unload_tank(uint8_t ID);
+
+    const std::vector<uint8_t> get_mask();
 
     inline Player & get_player(uint8_t index);
 
@@ -66,7 +96,9 @@ public:
     // Read env file
     //
     // Called when we create an instance from a file name
-    bool read_env_by_name(const std::string& filename, uint16_t total);
+    bool read_env_by_name(const std::string & filename, uint16_t total);
+
+    bool read_env_by_path(const std::filesystem::path & map_path, uint16_t total);
 
 private:
 
@@ -86,7 +118,7 @@ private:
     std::vector<uint8_t> placement_mask_;
 
 public:
-    Tank* tanks_;
+    std::vector<Tank> tanks_;
 };
 
 inline size_t GameInstance::idx(size_t x, size_t y) const

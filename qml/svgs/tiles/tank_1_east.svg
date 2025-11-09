@@ -1,0 +1,489 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="360"
+   height="360"
+   viewBox="0 0 360 360"
+   version="1.1"
+   id="svg1"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs1">
+    <linearGradient
+       id="linear-gradient-1"
+       x1="180.35001"
+       y1="266.22"
+       x2="180.35001"
+       y2="229.19"
+       gradientTransform="translate(-0.46,-0.98)"
+       gradientUnits="userSpaceOnUse">
+      <stop
+         offset="0"
+         stop-color="#225e00"
+         id="stop1-96" />
+      <stop
+         offset="1"
+         stop-color="#4c9619"
+         id="stop2-21" />
+    </linearGradient>
+    <linearGradient
+       id="linear-gradient-2-20"
+       x1="180.35001"
+       y1="93.769997"
+       x2="180.35001"
+       y2="130.8"
+       gradientTransform="translate(-0.46,-0.98)"
+       gradientUnits="userSpaceOnUse">
+      <stop
+         offset="0"
+         stop-color="#225e00"
+         id="stop3-7" />
+      <stop
+         offset="1"
+         stop-color="#4c9619"
+         id="stop4-3" />
+    </linearGradient>
+    <linearGradient
+       id="linear-gradient-3-1"
+       x1="300.51999"
+       y1="180"
+       x2="320.20001"
+       y2="180"
+       gradientTransform="translate(-0.46,-0.98)"
+       gradientUnits="userSpaceOnUse">
+      <stop
+         offset="0"
+         stop-color="#4c9619"
+         id="stop5-19" />
+      <stop
+         offset="1"
+         stop-color="#0f3800"
+         id="stop6-05" />
+    </linearGradient>
+    <linearGradient
+       id="linear-gradient-4-6"
+       x1="60.68"
+       y1="180"
+       x2="300.57999"
+       y2="180"
+       gradientTransform="translate(-0.46,-0.98)"
+       gradientUnits="userSpaceOnUse">
+      <stop
+         offset="0"
+         stop-color="#8ce13c"
+         id="stop7-77" />
+      <stop
+         offset="0"
+         stop-color="#88de39"
+         id="stop8-40" />
+      <stop
+         offset=".07"
+         stop-color="#77d22e"
+         id="stop9-64" />
+      <stop
+         offset=".14"
+         stop-color="#6bca26"
+         id="stop10-7" />
+      <stop
+         offset=".23"
+         stop-color="#64c522"
+         id="stop11-48" />
+      <stop
+         offset=".5"
+         stop-color="#63c421"
+         id="stop12-5" />
+      <stop
+         offset=".77"
+         stop-color="#64c522"
+         id="stop13-8" />
+      <stop
+         offset=".87"
+         stop-color="#6bca26"
+         id="stop14-2" />
+      <stop
+         offset=".94"
+         stop-color="#77d22e"
+         id="stop15-6" />
+      <stop
+         offset=".99"
+         stop-color="#88de39"
+         id="stop16-06" />
+      <stop
+         offset="1"
+         stop-color="#8ce13c"
+         id="stop17-6" />
+    </linearGradient>
+    <linearGradient
+       id="linear-gradient-5-46"
+       x1="40.509998"
+       y1="180"
+       x2="60.720001"
+       y2="180"
+       gradientTransform="translate(-0.46,-0.98)"
+       gradientUnits="userSpaceOnUse">
+      <stop
+         offset="0"
+         stop-color="#225e00"
+         id="stop18-2" />
+      <stop
+         offset="1"
+         stop-color="#63c421"
+         id="stop19-8" />
+    </linearGradient>
+  </defs>
+  <g
+     id="layer1">
+    <g
+       id="Treads">
+      <g
+         id="g44">
+        <g
+           id="g31">
+          <rect
+             class="cls-4"
+             x="42.599998"
+             y="86.690002"
+             width="282.48001"
+             height="37.740002"
+             rx="0.36000001"
+             ry="0.36000001"
+             id="rect19"
+             style="fill:#24363f" />
+          <g
+             id="g30">
+            <rect
+               class="cls-7"
+               x="47"
+               y="85.290001"
+               width="12.67"
+               height="40.52"
+               rx="1.74"
+               ry="1.74"
+               id="rect20"
+               style="fill:#56646c" />
+            <rect
+               class="cls-7"
+               x="73.010002"
+               y="85.290001"
+               width="12.67"
+               height="40.52"
+               rx="1.74"
+               ry="1.74"
+               id="rect21"
+               style="fill:#56646c" />
+            <rect
+               class="cls-7"
+               x="125.02"
+               y="85.290001"
+               width="12.67"
+               height="40.52"
+               rx="1.74"
+               ry="1.74"
+               id="rect22"
+               style="fill:#56646c" />
+            <rect
+               class="cls-7"
+               x="99.010002"
+               y="85.290001"
+               width="12.67"
+               height="40.52"
+               rx="1.74"
+               ry="1.74"
+               id="rect23"
+               style="fill:#56646c" />
+            <rect
+               class="cls-7"
+               x="151.03"
+               y="85.290001"
+               width="12.67"
+               height="40.52"
+               rx="1.74"
+               ry="1.74"
+               id="rect24"
+               style="fill:#56646c" />
+            <rect
+               class="cls-7"
+               x="177.03"
+               y="85.290001"
+               width="12.67"
+               height="40.52"
+               rx="1.74"
+               ry="1.74"
+               id="rect25"
+               style="fill:#56646c" />
+            <rect
+               class="cls-7"
+               x="229.05"
+               y="85.290001"
+               width="12.67"
+               height="40.52"
+               rx="1.74"
+               ry="1.74"
+               id="rect26"
+               style="fill:#56646c" />
+            <rect
+               class="cls-7"
+               x="203.03999"
+               y="85.290001"
+               width="12.67"
+               height="40.52"
+               rx="1.74"
+               ry="1.74"
+               id="rect27"
+               style="fill:#56646c" />
+            <rect
+               class="cls-7"
+               x="255.05"
+               y="85.290001"
+               width="12.67"
+               height="40.52"
+               rx="1.74"
+               ry="1.74"
+               id="rect28"
+               style="fill:#56646c" />
+            <rect
+               class="cls-7"
+               x="281.06"
+               y="85.290001"
+               width="12.67"
+               height="40.52"
+               rx="1.74"
+               ry="1.74"
+               id="rect29"
+               style="fill:#56646c" />
+            <rect
+               class="cls-7"
+               x="307.06"
+               y="85.290001"
+               width="12.67"
+               height="40.52"
+               rx="1.74"
+               ry="1.74"
+               id="rect30"
+               style="fill:#56646c" />
+          </g>
+        </g>
+        <g
+           id="g43">
+          <rect
+             class="cls-4"
+             x="42.599998"
+             y="233.53999"
+             width="282.48001"
+             height="37.740002"
+             rx="0.36000001"
+             ry="0.36000001"
+             id="rect31"
+             style="fill:#24363f" />
+          <g
+             id="g42">
+            <rect
+               class="cls-7"
+               x="47"
+               y="232.14999"
+               width="12.67"
+               height="40.52"
+               rx="1.74"
+               ry="1.74"
+               id="rect32"
+               style="fill:#56646c" />
+            <rect
+               class="cls-7"
+               x="73.010002"
+               y="232.14999"
+               width="12.67"
+               height="40.52"
+               rx="1.74"
+               ry="1.74"
+               id="rect33"
+               style="fill:#56646c" />
+            <rect
+               class="cls-7"
+               x="125.02"
+               y="232.14999"
+               width="12.67"
+               height="40.52"
+               rx="1.74"
+               ry="1.74"
+               id="rect34"
+               style="fill:#56646c" />
+            <rect
+               class="cls-7"
+               x="99.010002"
+               y="232.14999"
+               width="12.67"
+               height="40.52"
+               rx="1.74"
+               ry="1.74"
+               id="rect35"
+               style="fill:#56646c" />
+            <rect
+               class="cls-7"
+               x="151.03"
+               y="232.14999"
+               width="12.67"
+               height="40.52"
+               rx="1.74"
+               ry="1.74"
+               id="rect36"
+               style="fill:#56646c" />
+            <rect
+               class="cls-7"
+               x="177.03"
+               y="232.14999"
+               width="12.67"
+               height="40.52"
+               rx="1.74"
+               ry="1.74"
+               id="rect37"
+               style="fill:#56646c" />
+            <rect
+               class="cls-7"
+               x="229.05"
+               y="232.14999"
+               width="12.67"
+               height="40.52"
+               rx="1.74"
+               ry="1.74"
+               id="rect38"
+               style="fill:#56646c" />
+            <rect
+               class="cls-7"
+               x="203.03999"
+               y="232.14999"
+               width="12.67"
+               height="40.52"
+               rx="1.74"
+               ry="1.74"
+               id="rect39"
+               style="fill:#56646c" />
+            <rect
+               class="cls-7"
+               x="255.05"
+               y="232.14999"
+               width="12.67"
+               height="40.52"
+               rx="1.74"
+               ry="1.74"
+               id="rect40"
+               style="fill:#56646c" />
+            <rect
+               class="cls-7"
+               x="281.06"
+               y="232.14999"
+               width="12.67"
+               height="40.52"
+               rx="1.74"
+               ry="1.74"
+               id="rect41"
+               style="fill:#56646c" />
+            <rect
+               class="cls-7"
+               x="307.06"
+               y="232.14999"
+               width="12.67"
+               height="40.52"
+               rx="1.74"
+               ry="1.74"
+               id="rect42"
+               style="fill:#56646c" />
+          </g>
+        </g>
+      </g>
+    </g>
+    <g
+       id="M4_Sherman"
+       data-name="M4 Sherman">
+      <g
+         id="g53">
+        <g
+           id="g48">
+          <polygon
+             class="cls-9"
+             points="300.09,228.21 319.77,257.71 40.01,265.24 60.62,257.42 "
+             id="polygon44"
+             style="fill:url(#linear-gradient-1)" />
+          <polygon
+             class="cls-1"
+             points="300.09,129.83 319.76,100.33 40.01,92.8 60.62,100.62 "
+             id="polygon45"
+             style="fill:url(#linear-gradient-2-20)" />
+          <polygon
+             class="cls-8"
+             points="300.06,228.77 319.73,257.71 319.73,178.54 319.73,178.1 319.73,100.33 300.06,129.27 300.06,179.5 300.06,179.94 "
+             id="polygon46"
+             style="fill:url(#linear-gradient-3-1)" />
+          <polygon
+             class="cls-10"
+             points="60.22,99.73 60.22,178.8 60.22,179.2 60.22,179.24 60.22,258.31 300.11,228.86 300.11,179.24 300.11,178.84 300.11,178.8 300.11,129.18 "
+             id="polygon47"
+             style="fill:url(#linear-gradient-4-6)" />
+          <polygon
+             class="cls-5"
+             points="60.26,258.39 60.22,178.84 60.26,99.65 40.04,92.78 40.04,179.1 40.04,265.26 "
+             id="polygon48"
+             style="fill:url(#linear-gradient-5-46)" />
+        </g>
+        <g
+           class="cls-6"
+           id="g49"
+           style="opacity:0.49">
+          <circle
+             class="cls-2"
+             cx="83.510002"
+             cy="124.48"
+             r="18.33"
+             id="circle48"
+             style="fill:#032000" />
+          <path
+             class="cls-2"
+             d="m 101.84,233.56 c 0,10.12 -8.21,18.33 -18.33,18.33 -10.12,0 -18.33,-8.21 -18.33,-18.33 0,-10.12 8.21,-18.33 18.33,-18.33 10.12,0 18.33,8.21 18.33,18.33 z"
+             id="path48"
+             style="fill:#032000" />
+        </g>
+        <rect
+           class="cls-3"
+           x="71.290001"
+           y="147.25999"
+           width="4.8499999"
+           height="63.43"
+           id="rect49"
+           style="opacity:0.69;fill:#032000" />
+        <rect
+           class="cls-3"
+           x="79.349998"
+           y="147.25999"
+           width="4.8499999"
+           height="63.43"
+           id="rect50"
+           style="opacity:0.69;fill:#032000" />
+        <rect
+           class="cls-3"
+           x="87.419998"
+           y="147.25999"
+           width="4.8499999"
+           height="63.43"
+           id="rect51"
+           style="opacity:0.69;fill:#032000" />
+        <rect
+           class="cls-3"
+           x="95.480003"
+           y="147.25999"
+           width="4.8499999"
+           height="63.43"
+           id="rect52"
+           style="opacity:0.69;fill:#032000" />
+        <rect
+           class="cls-3"
+           x="103.55"
+           y="147.25999"
+           width="4.8499999"
+           height="63.43"
+           id="rect53"
+           style="opacity:0.69;fill:#032000" />
+      </g>
+    </g>
+  </g>
+</svg>

@@ -1,3 +1,19 @@
+// Copyright (c) 2025 Liam Mercier
+//
+// This file is part of SilentTanks.
+//
+// SilentTanks is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Affero General Public License Version 3.0
+// as published by the Free Software Foundation.
+//
+// SilentTanks is distributed in the hope that it will be useful, but
+// WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+// or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License v3.0
+// for more details.
+//
+// You should have received a copy of the GNU Affero General Public License v3.0
+// along with SilentTanks. If not, see <https://www.gnu.org/licenses/agpl-3.0.txt>
+
 #pragma once
 
 #include <memory>
@@ -36,6 +52,11 @@ public:
     virtual void tick() = 0;
 };
 
+// TODO: <refactoring>
+// It would probably be better to make a CasualStrategy and give it
+// an abstract method for matching players if the number of game modes
+// were to quickly expand in the future.
+
 // Classic 1 vs 1 queue
 class CasualTwoPlayerStrategy : public IMatchStrategy
 {
@@ -44,6 +65,94 @@ public:
     CasualTwoPlayerStrategy(boost::asio::io_context & cntx,
                             MakeMatchCallback on_match_ready,
                             const std::shared_ptr<MapRepository> & map_repo);
+
+    void enqueue(Session::ptr p) override;
+
+    void cancel(Session::ptr p) override;
+
+    // Do nothing, casual uses a deque to automatically match.
+    void tick() override
+    {
+
+    }
+private:
+    void try_form_match();
+
+public:
+    // 20 minute clock
+    static constexpr uint64_t initial_time_ms = 1200000;
+    // 1 second increment
+    static constexpr uint64_t increment_ms = 1000;
+
+private:
+    // strand for this game mode to manage async queue/cancel attempts
+    boost::asio::strand<boost::asio::io_context::executor_type> strand_;
+
+    MakeMatchCallback on_match_ready_;
+
+    // simple FIFO queue for casual matching
+    std::deque<Session::ptr> queue_;
+
+    // lookup to see if player is queued
+    std::unordered_set<boost::uuids::uuid,
+                       boost::hash<boost::uuids::uuid>> lookup_;
+
+    // map repository
+    const std::shared_ptr<MapRepository> & map_repo_;
+};
+
+// Classic 3 player FFA queue
+class CasualThreePlayerStrategy : public IMatchStrategy
+{
+public:
+
+    CasualThreePlayerStrategy(boost::asio::io_context & cntx,
+                              MakeMatchCallback on_match_ready,
+                              const std::shared_ptr<MapRepository> & map_repo);
+
+    void enqueue(Session::ptr p) override;
+
+    void cancel(Session::ptr p) override;
+
+    // Do nothing, casual uses a deque to automatically match.
+    void tick() override
+    {
+
+    }
+private:
+    void try_form_match();
+
+public:
+    // 20 minute clock
+    static constexpr uint64_t initial_time_ms = 1200000;
+    // 1 second increment
+    static constexpr uint64_t increment_ms = 1000;
+
+private:
+    // strand for this game mode to manage async queue/cancel attempts
+    boost::asio::strand<boost::asio::io_context::executor_type> strand_;
+
+    MakeMatchCallback on_match_ready_;
+
+    // simple FIFO queue for casual matching
+    std::deque<Session::ptr> queue_;
+
+    // lookup to see if player is queued
+    std::unordered_set<boost::uuids::uuid,
+                       boost::hash<boost::uuids::uuid>> lookup_;
+
+    // map repository
+    const std::shared_ptr<MapRepository> & map_repo_;
+};
+
+// Classic 3 player FFA queue
+class CasualFivePlayerStrategy : public IMatchStrategy
+{
+public:
+
+    CasualFivePlayerStrategy(boost::asio::io_context & cntx,
+                             MakeMatchCallback on_match_ready,
+                             const std::shared_ptr<MapRepository> & map_repo);
 
     void enqueue(Session::ptr p) override;
 

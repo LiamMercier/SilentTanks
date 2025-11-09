@@ -1,3 +1,19 @@
+// Copyright (c) 2025 Liam Mercier
+//
+// This file is part of SilentTanks.
+//
+// SilentTanks is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Affero General Public License Version 3.0
+// as published by the Free Software Foundation.
+//
+// SilentTanks is distributed in the hope that it will be useful, but
+// WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+// or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License v3.0
+// for more details.
+//
+// You should have received a copy of the GNU Affero General Public License v3.0
+// along with SilentTanks. If not, see <https://www.gnu.org/licenses/agpl-3.0.txt>
+
 #include "console.h"
 
 #include <iostream>
@@ -32,22 +48,6 @@ void restore_terminal()
     tcsetattr(STDIN_FILENO, TCSANOW, &g_original_termios);
 }
 
-void setup_signal_handlers()
-{
-    auto handle_sig = [](int sig){
-        restore_terminal();
-        std::signal(sig, SIG_DFL);
-        std::raise(sig);
-    };
-
-    std::signal(SIGINT, handle_sig);
-    std::signal(SIGTERM, handle_sig);
-    std::signal(SIGSEGV, handle_sig);
-    std::signal(SIGABRT, handle_sig);
-    std::signal(SIGHUP, handle_sig);
-
-}
-
 struct TermGuard {
     TermGuard()
     {
@@ -55,7 +55,6 @@ struct TermGuard {
         termios raw = g_original_termios;
         raw.c_lflag &= ~(ICANON | ECHO);
         tcsetattr(STDIN_FILENO, TCSANOW, &raw);
-        setup_signal_handlers();
     }
     ~TermGuard()
     {
@@ -231,5 +230,5 @@ void Console::do_log(std::string msg, LogLevel level)
     std::clog << log_prefix[static_cast<size_t>(level)] << msg << "\n";
 
     // Redraw the buffer.
-    std::clog << snapshot << std::flush;
+    std::clog << "\033[1;34m[USER]:\033[0m    " << snapshot << std::flush;
 }

@@ -1,3 +1,19 @@
+// Copyright (c) 2025 Liam Mercier
+//
+// This file is part of SilentTanks.
+//
+// SilentTanks is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Affero General Public License Version 3.0
+// as published by the Free Software Foundation.
+//
+// SilentTanks is distributed in the hope that it will be useful, but
+// WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+// or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License v3.0
+// for more details.
+//
+// You should have received a copy of the GNU Affero General Public License v3.0
+// along with SilentTanks. If not, see <https://www.gnu.org/licenses/agpl-3.0.txt>
+
 #pragma once
 #include <cstdint>
 
@@ -6,6 +22,8 @@
 #else
 #include <arpa/inet.h>
 #endif
+
+#include "gamemodes.h"
 
 enum class HeaderType : uint8_t
 {
@@ -17,8 +35,8 @@ enum class HeaderType : uint8_t
     AlreadyAuthorized,
     GoodRegistration,
     BadRegistration,
-    BadAuth,
     GoodAuth,
+    BadAuth,
 
     // Fetch requests when the client connects.
     FetchFriends,
@@ -40,6 +58,7 @@ enum class HeaderType : uint8_t
     // Notifications for friending/blocking.
     NotifyFriendAdded,
     NotifyFriendRemoved,
+    NotifyFriendRequest,
     NotifyBlocked,
     NotifyUnblocked,
 
@@ -57,7 +76,8 @@ enum class HeaderType : uint8_t
     NoMatchFound,
     MatchInProgress,
     SendCommand,
-    PlayerView,
+    StaticMatchData,
+    PlayerView,//
     FailedMove,
     StaleMove,
     Eliminated,
@@ -77,13 +97,24 @@ enum class HeaderType : uint8_t
     // Communication.
     DirectTextMessage,
     MatchTextMessage,
+    FriendOffline,
+
+    // Match data related headers.
+    FetchMatchHistory,
+    MatchHistory,
+    NoNewMatches,
+    MatchReplayRequest,
+    MatchReplay,
+    NoReplay,
 
     MAX_TYPE
 };
 
 static constexpr uint32_t MAX_PAYLOAD_LEN = 3000;
 
-constexpr size_t MAX_USERNAME_LENGTH = 30;
+static constexpr uint32_t MAX_CLIENT_PAYLOAD_LEN = 8000;
+
+constexpr size_t MAX_USERNAME_LENGTH = 24;
 
 struct Header
 {

@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Silent Tanks
+Comment=Silent tanks client
+Exec=SilentTanks-Client %u
+Icon=silent-tanks
+Terminal=false
+StartupNotify=true
+Categories=Game;

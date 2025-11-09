@@ -1,27 +1,116 @@
+// Copyright (c) 2025 Liam Mercier
+//
+// This file is part of SilentTanks.
+//
+// SilentTanks is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Affero General Public License Version 3.0
+// as published by the Free Software Foundation.
+//
+// SilentTanks is distributed in the hope that it will be useful, but
+// WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+// or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License v3.0
+// for more details.
+//
+// You should have received a copy of the GNU Affero General Public License v3.0
+// along with SilentTanks. If not, see <https://www.gnu.org/licenses/agpl-3.0.txt>
+
 #include "client-session.h"
 
 ClientSession::ClientSession(asio::io_context & cntx)
-:socket_(cntx),
+:ssl_cntx_(asio::ssl::context::tls_client),
+ssl_socket_(cntx, ssl_cntx_),
 strand_(cntx.get_executor()),
 resolver_(cntx),
 connect_timer_(cntx)
 {
-
+    ssl_cntx_.set_options(
+        asio::ssl::context::default_workarounds
+        | asio::ssl::context::no_sslv2
+        | asio::ssl::context::no_sslv3
+        | asio::ssl::context::no_tlsv1
+        | asio::ssl::context::no_tlsv1_1
+    );
 }
 
 void ClientSession::set_message_handler(MessageHandler m_handler,
-                                  DisconnectHandler d_handler)
+                                        ConnectionHandler c_handler,
+                                        DisconnectHandler d_handler,
+                                        AlertHandler on_alert_relay)
 {
     on_message_relay_ = std::move(m_handler);
+    on_connection_relay_ = std::move(c_handler);
     on_disconnect_relay_ = std::move(d_handler);
+    on_alert_relay_ = std::move(on_alert_relay);
 }
 
-void ClientSession::start(std::string host, std::string port)
+void ClientSession::start(ServerIdentity identity)
 {
-    std::cout << "Starting client session!\n";
+    std::cout << "Starting client session!\n\n";
+
+    in_fingerprint_ = std::move(identity.display_hash);
+
+    ssl_cntx_.set_default_verify_paths();
+    ssl_socket_.set_verify_mode(asio::ssl::verify_peer);
+
+    // Custom verification callback. First check if the certificate
+    // is signed by a CA, then check against the given fingerprint.
+    ssl_socket_.set_verify_callback(
+    [this](bool preverified, asio::ssl::verify_context & cntx)
+    {
+        X509_STORE_CTX* x509_ctx = cntx.native_handle();
+        int depth = X509_STORE_CTX_get_error_depth(x509_ctx);
+
+        // We only want to use hash fallbacks on the leaf certificate.
+        if (depth != 0)
+        {
+            return preverified;
+        }
+
+        X509* cert = X509_STORE_CTX_get_current_cert(x509_ctx);
+
+        // If no cert, just return now.
+        if (!cert)
+        {
+            return preverified;
+        }
+
+        // If depth 0 and preverified, return now, we had a CA signed cert.
+        if (preverified)
+        {
+            return preverified;
+        }
+
+        // Otherwise, try to match the public key hash of this leaf to the
+        // user submitted hash.
+        unsigned char server_hash[SHA256_DIGEST_LENGTH];
+        if (!fingerprint_public_key(cert, server_hash))
+        {
+            std::cerr << "Failed to compute public key fingerprint.\n";
+            return preverified;
+        }
+
+        std::vector<unsigned char> user_hash = hex_string_to_bytes(in_fingerprint_);
+
+        if (user_hash.size() != SHA256_DIGEST_LENGTH)
+        {
+            std::cerr << "Fingerprint given by user has bad size.";
+            return preverified;
+        }
+
+        for (size_t i = 0; i < SHA256_DIGEST_LENGTH; i++)
+        {
+            if (user_hash[i] != server_hash[i])
+            {
+                return false;
+            }
+        }
+
+        // If we pass all checks, good cert.
+        return true;
+    });
 
     resolver_.async_resolve(
-      host, port,
+      identity.address, std::to_string(identity.port),
       asio::bind_executor(strand_,
         [self = shared_from_this()](auto ec, auto endpoints){
 
@@ -44,12 +133,31 @@ void ClientSession::deliver(Message msg)
 }
 
 void ClientSession::on_resolve(boost::system::error_code ec,
-                        asio::ip::tcp::resolver::results_type endpoints)
+                               asio::ip::tcp::resolver::results_type endpoints)
 {
     if (ec)
     {
-        std::cerr << "Resolve failed " << ec.message() << "\n";
+        std::string res_failed = "Resolve failed: "
+                                 + ec.message();
+
+        std::cerr << res_failed << "\n\n";
+
+        on_alert_relay_(std::move(res_failed));
         return;
+    }
+    else
+    {
+        std::cerr << "Resolved endpoints:\n";
+
+        for (const auto & endpoint : endpoints)
+        {
+            std::cerr << endpoint.endpoint().address().to_string()
+                      << ":"
+                      << endpoint.endpoint().port()
+                      << "\n";
+        }
+
+        std::cerr << "\n";
     }
 
     // Start connect timer so we don't get stuck waiting forever.
@@ -61,9 +169,10 @@ void ClientSession::on_resolve(boost::system::error_code ec,
         }));
 
     // Start async connection to server.
-    asio::async_connect(socket_, endpoints,
+    asio::async_connect(ssl_socket_.lowest_layer(), endpoints,
         asio::bind_executor(strand_,
-            [self = shared_from_this()](auto ec, auto endpoints){
+            [self = shared_from_this()](boost::system::error_code ec,
+                                        asio::ip::tcp::endpoint endpoints){
                 self->on_connect(ec, endpoints);
         }));
 }
@@ -75,15 +184,62 @@ void ClientSession::on_connect(boost::system::error_code ec,
 
     if (ec)
     {
-        std::cerr << "Connection failed: " << ec.message() << "\n";
+        if (ec.value() == asio::error::connection_refused)
+        {
+            std::string refused_con = "Connection was refused. Bad endpoint?";
+
+            std::cerr << refused_con << "\n\n";
+
+            on_alert_relay_(std::move(refused_con));
+        }
         return;
     }
 
-    std::cout << "Successful connection to " << ep << "\n";
+    std::cout << "Successful connection to "
+              << ep
+              << " starting TLS handshake\n\n";
 
-    live_.store(true);
+    ssl_socket_.async_handshake(asio::ssl::stream_base::client,
+        asio::bind_executor(strand_,
+            [self = shared_from_this()](boost::system::error_code ec)
+            {
+                if (!ec)
+                {
+                    std::cerr << "TLS handshake successful\n\n";
 
-    do_read_header();
+                    self->live_.store(true);
+
+                    // Tell the client that we connected.
+                    if (self->on_connection_relay_)
+                    {
+                        self->on_connection_relay_();
+                    }
+                    else
+                    {
+                        std::cerr << "Connection handler not set in session instance!\n\n";
+                    }
+
+                    self->do_read_header();
+                    return;
+                }
+                else
+                {
+                    std::string bad_tls = std::string("TLS failed to verify. The ")
+                                          + std::string("server entry may be missing ")
+                                          + std::string("the fingerprint, server ")
+                                          + std::string("certificate may be expired, ")
+                                          + std::string("or the server could be ")
+                                          + std::string("getting impersonated.");
+
+                    std::cerr << bad_tls << "\n\n";
+
+                    self->on_alert_relay_(std::move(bad_tls));
+
+                    self->force_close_session();
+                    return;
+                }
+
+            }));
 }
 
 void ClientSession::on_connect_timeout(boost::system::error_code ec)
@@ -94,15 +250,20 @@ void ClientSession::on_connect_timeout(boost::system::error_code ec)
         return;
     }
 
-    std::cerr << "Connection timed out, cancelling\n";
-    socket_.cancel();
+    std::string timeout = "Connection timed out, cancelling";
+
+    std::cerr << timeout << "\n\n";
+
+    on_alert_relay_(std::move(timeout));
+
+    ssl_socket_.lowest_layer().cancel();
 }
 
 void ClientSession::do_read_header()
 {
     auto self = shared_from_this();
     // Read from the header using buffer of size of the header.
-    asio::async_read(socket_,
+    asio::async_read(ssl_socket_,
         asio::buffer(&incoming_header_, sizeof(Header)),
         asio::bind_executor(strand_,
             [self](boost::system::error_code ec, std::size_t)
@@ -122,8 +283,7 @@ void ClientSession::do_read_header()
                     // disconnect.
                     else
                     {
-                        // TODO: log this to user file or something.
-                        std::cerr << "Invalid header from server\n";
+                        std::cerr << "Invalid header from server: " << +(static_cast<uint8_t>(self->incoming_header_.type_)) << "\n\n";
 
                         // Close the session after sending
                         self->force_close_session();
@@ -142,7 +302,7 @@ void ClientSession::do_read_body()
     // capped by valid message size
     incoming_body_.resize(self->incoming_header_.payload_len);
 
-    asio::async_read(socket_,
+    asio::async_read(ssl_socket_,
         asio::buffer(incoming_body_),
         asio::bind_executor(strand_,
             [self](boost::system::error_code ec, std::size_t)
@@ -163,7 +323,7 @@ void ClientSession::do_read_body()
             }));
 }
 
-// TODO: consider optimizing move semantics here.
+// TODO <optimization>: consider optimizing move semantics here.
 void ClientSession::do_write()
 {
     auto self = shared_from_this();
@@ -180,7 +340,7 @@ void ClientSession::do_write()
         }
     };
 
-    asio::async_write(socket_,
+    asio::async_write(ssl_socket_,
                       bufs,
                       asio::bind_executor(strand_,
                         [self](boost::system::error_code ec, std::size_t)
@@ -290,6 +450,10 @@ void ClientSession::close_session()
 
     live_.store(false, std::memory_order_release);
 
+    std::string dc_msg = "The session was disconnected.";
+
+    on_alert_relay_(std::move(dc_msg));
+
     force_close_session();
 }
 
@@ -299,8 +463,9 @@ void ClientSession::force_close_session()
     {
         boost::system::error_code ignored;
 
-        self->socket_.shutdown(asio::ip::tcp::socket::shutdown_both, ignored);
-        self->socket_.close(ignored);
+        self->ssl_socket_.lowest_layer().shutdown(asio::ip::tcp::socket::shutdown_both,
+                                                  ignored);
+        self->ssl_socket_.lowest_layer().close(ignored);
 
         if(self->on_disconnect_relay_)
         {

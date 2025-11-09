@@ -1,9 +1,31 @@
+// Copyright (c) 2025 Liam Mercier
+//
+// This file is part of SilentTanks.
+//
+// SilentTanks is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Affero General Public License Version 3.0
+// as published by the Free Software Foundation.
+//
+// SilentTanks is distributed in the hope that it will be useful, but
+// WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+// or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License v3.0
+// for more details.
+//
+// You should have received a copy of the GNU Affero General Public License v3.0
+// along with SilentTanks. If not, see <https://www.gnu.org/licenses/agpl-3.0.txt>
+
 #include "tank-entity.h"
 #include <iostream>
 #include <string>
 
 Tank::Tank()
-:current_direction_(0), barrel_direction_(0),health_(0),aim_focused_(false), loaded_(false), owner_(NO_OWNER)
+:pos_(NO_POS_VEC),
+current_direction_(0),
+barrel_direction_(0),
+health_(0),
+aim_focused_(false),
+loaded_(false),
+owner_(NO_OWNER)
 {
 
 }
@@ -23,17 +45,13 @@ void Tank::deal_damage(uint8_t damage)
     }
 }
 
-// should be removed eventually, but useful for now while
-// we work in the console
-std::string direction_words[8]{"north", "north-east", "east", "south-east", "south", "south-west", "west", "north-west"};
-
-void Tank::print_tank_state(uint8_t ID) const
+void Tank::repair(uint8_t repair_amount)
 {
-    std::cout << "================\n";
-    std::cout << "TANK ID: " << +ID << "\n";
-    std::cout << "TANK OWNER: Player " << +owner_ << "\n";
-    std::cout << "TANK DIRECTION: " << direction_words[current_direction_] << "\n";
-    std::cout << "BARREL DIRECTION: " << direction_words[barrel_direction_] << "\n";
-    std::cout << "HEALTH: " << +health_ << "\n";
-    std::cout << "================\n";
+    if (health_ + repair_amount > health_){
+        health_ = INITIAL_HEALTH;
+    }
+    else
+    {
+        health_ = health_ + repair_amount;
+    }
 }

@@ -1,3 +1,19 @@
+// Copyright (c) 2025 Liam Mercier
+//
+// This file is part of SilentTanks.
+//
+// SilentTanks is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Affero General Public License Version 3.0
+// as published by the Free Software Foundation.
+//
+// SilentTanks is distributed in the hope that it will be useful, but
+// WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+// or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License v3.0
+// for more details.
+//
+// You should have received a copy of the GNU Affero General Public License v3.0
+// along with SilentTanks. If not, see <https://www.gnu.org/licenses/agpl-3.0.txt>
+
 #include "match-maker.h"
 #include "user-manager.h"
 #include "console.h"
@@ -26,6 +42,10 @@ MatchMaker::MatchMaker(asio::io_context & cntx,
 
     // Setup match making strategies.
     matching_queues_[static_cast<size_t>(GameMode::ClassicTwoPlayer)] = std::make_unique<CasualTwoPlayerStrategy>(cntx, match_call_back, all_maps_);
+
+    matching_queues_[static_cast<size_t>(GameMode::ClassicThreePlayer)] = std::make_unique<CasualThreePlayerStrategy>(cntx, match_call_back, all_maps_);
+
+    matching_queues_[static_cast<size_t>(GameMode::ClassicFivePlayer)] = std::make_unique<CasualFivePlayerStrategy>(cntx, match_call_back, all_maps_);
 
     matching_queues_[static_cast<size_t>(GameMode::RankedTwoPlayer)] = std::make_unique<RankedTwoPlayerStrategy>(cntx, match_call_back, all_maps_);
 
@@ -271,8 +291,6 @@ void MatchMaker::make_match_on_strand(std::vector<Session::ptr> players,
         }
 
         // Match cancel logic
-        //
-        // TODO: consider requeue for players who are alive.
         if (live_players.size() < players.size())
         {
             // iterate through the vector
@@ -282,7 +300,6 @@ void MatchMaker::make_match_on_strand(std::vector<Session::ptr> players,
                 queue_dropped.create_serialized(HeaderType::QueueDropped);
                 send_callback_(live_players[j]->id(), queue_dropped);
             }
-
             return;
         }
 
@@ -293,13 +310,15 @@ void MatchMaker::make_match_on_strand(std::vector<Session::ptr> players,
         // Setup players list from our session data.
         for (uint8_t p_id = 0; p_id < players.size(); p_id++)
         {
+            const UserData & data = players[p_id]->get_user_data();
             player_list.emplace_back
             (
                 PlayerInfo
                 (
                     p_id,
                     players[p_id]->id(),
-                    (players[p_id]->get_user_data()).user_id
+                    data.user_id,
+                    data.username
                 )
              );
 
@@ -358,7 +377,11 @@ void MatchMaker::make_match_on_strand(std::vector<Session::ptr> players,
                 {
                     boost::uuids::uuid u_id = result.user_ids[i];
                     uuid_to_match_.erase(u_id);
-                    user_manager_->notify_match_finished(u_id);
+                    user_manager_->notify_match_finished
+                                        (
+                                            u_id,
+                                            static_cast<GameMode>(result.settings.mode)
+                                        );
                 }
 
                 // Remove from live matches
@@ -432,5 +455,6 @@ void MatchMaker::forfeit_impl(const Session::ptr & p)
     // Remove from the map and notify the user manager.
     uuid_to_match_.erase(u_id);
 
-    user_manager_->notify_match_finished(u_id);
+    // No need to update the mode at this time, a match never got recorded.
+    user_manager_->notify_match_finished(u_id, GameMode::NO_MODE);
 }

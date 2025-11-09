@@ -1,3 +1,19 @@
+// Copyright (c) 2025 Liam Mercier
+//
+// This file is part of SilentTanks.
+//
+// SilentTanks is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Affero General Public License Version 3.0
+// as published by the Free Software Foundation.
+//
+// SilentTanks is distributed in the hope that it will be useful, but
+// WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+// or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License v3.0
+// for more details.
+//
+// You should have received a copy of the GNU Affero General Public License v3.0
+// along with SilentTanks. If not, see <https://www.gnu.org/licenses/agpl-3.0.txt>
+
 #pragma once
 
 #include <memory>
@@ -7,9 +23,11 @@
 
 #include <boost/asio.hpp>
 #include <boost/asio/ip/tcp.hpp>
+#include <boost/asio/ssl.hpp>
 
 #include "message.h"
 #include "header.h"
+#include "server-identity.h"
 
 constexpr int CONNECTION_WAIT_TIME = 5;
 
@@ -23,14 +41,18 @@ public:
 
     // callback function to relay messages through
     using MessageHandler = std::function<void(const ptr & session, Message msg)>;
+    using ConnectionHandler = std::function<void()>;
     using DisconnectHandler = std::function<void()>;
+    using AlertHandler = std::function<void(std::string alert)>;
 
     ClientSession(asio::io_context & cntx);
 
     void set_message_handler(MessageHandler handler,
-                             DisconnectHandler d_handler);
+                             ConnectionHandler c_handler,
+                             DisconnectHandler d_handler,
+                             AlertHandler alert_handler);
 
-    void start(std::string host, std::string port);
+    void start(ServerIdentity identity);
 
     // Disable copy.
     ClientSession(const ClientSession &) = delete;
@@ -78,26 +100,35 @@ private:
 public:
 
 private:
-    tcp::socket socket_;
+    asio::ssl::context ssl_cntx_;
+    asio::ssl::stream<tcp::socket> ssl_socket_;
     asio::strand<asio::io_context::executor_type> strand_;
     asio::ip::tcp::resolver resolver_;
     asio::steady_timer connect_timer_;
 
     std::atomic<bool> live_;
 
+    std::string in_fingerprint_;
+
     // Data related members.
     Header incoming_header_;
     std::vector<uint8_t> incoming_body_;
     std::deque<Message> write_queue_;
 
+    std::string dropped_reason_;
+
     // Callbacks.
     MessageHandler on_message_relay_;
+    ConnectionHandler on_connection_relay_;
     DisconnectHandler on_disconnect_relay_;
+
+    // Used to send strings of information to the client when necessary
+    AlertHandler on_alert_relay_;
 };
 
 inline asio::ip::tcp::socket & ClientSession::socket()
 {
-    return socket_;
+    return ssl_socket_.next_layer();
 }
 
 inline bool ClientSession::is_live() const

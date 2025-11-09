@@ -22,14 +22,23 @@ ChatMessageModel::ChatMessageModel(QObject* parent)
 
 }
 
-// TODO <optimization>: create message limit.
 void ChatMessageModel::add_message(std::string message)
 {
     QString msg = QString::fromStdString(message);
 
-    beginInsertRows(QModelIndex(), messages_.size(), messages_.size());
+    // Size limits on messages.
+    if (messages_.size() >= MAX_MESSAGES)
+    {
+        beginRemoveRows(QModelIndex(), 0, 0);
+        messages_.pop_front();
+        endRemoveRows();
+    }
 
-    messages_.append(msg);
+    beginInsertRows(QModelIndex(),
+                    static_cast<int>(messages_.size()),
+                    static_cast<int>(messages_.size()));
+
+    messages_.push_back(msg);
 
     endInsertRows();
 }

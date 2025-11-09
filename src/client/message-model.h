@@ -16,8 +16,12 @@
 
 #pragma once
 
+#include <deque>
+
 #include <QObject>
 #include <QAbstractListModel>
+
+constexpr int MAX_MESSAGES = 250;
 
 class ChatMessageModel : public QAbstractListModel
 {
@@ -43,5 +47,5 @@ public:
     QHash<int, QByteArray> roleNames() const override;
 
 private:
-    QList<QString> messages_;
+    std::deque<QString> messages_;
 };

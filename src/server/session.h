@@ -44,7 +44,7 @@ static constexpr uint64_t TOKENS_REFILL_RATE = 10;
 static constexpr uint64_t MAX_TOKENS = 10 * TOKENS_REFILL_RATE;
 
 // Upper bound on messages waiting to be written.
-static constexpt size_t MAX_MESSAGE_BACKLOG = 50;
+static constexpr size_t MAX_MESSAGE_BACKLOG = 50;
 
 // Command to get the cost in tokens of a command.
 constexpr uint64_t weight_of_cmd(Header h)

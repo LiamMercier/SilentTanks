@@ -141,7 +141,15 @@ try
     std::vector<std::thread> server_threads;
     server_threads.reserve(thread_count);
 
+#if defined(DEV_BUILD)
+
+    Console::init(server_io_context, LogLevel::INFO);
+
+#else
+
     Console::init(server_io_context, LogLevel::WARN);
+
+#endif
 
     asio::ip::tcp::endpoint endpoint(asio::ip::make_address(address), port);
 

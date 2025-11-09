@@ -336,6 +336,8 @@ void Session::do_write()
                       asio::bind_executor(strand_,
                         [self](boost::system::error_code ec, std::size_t)
                         {
+                            self->write_timer_.cancel();
+
                             if (!ec)
                             {
                                 self->write_queue_.pop_front();
@@ -435,6 +437,7 @@ void Session::force_close_session()
 
         // Cancel all timers
         self->read_timer_.cancel();
+        self->write_timer_.cancel();
         self->ping_timer_.cancel();
         self->pong_timer_.cancel();
 

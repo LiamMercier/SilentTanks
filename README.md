@@ -372,7 +372,7 @@ To mitigate slowloris style denial of service, the server sets a timer on readin
 
 Database calls are made through the server's `Database` instance, which is the sole method of talking with the underlying PostgreSQL database. Since database operations may block, this is done using a separate thread pool to keep other server threads available. Database operations are serialized using a `KeyedExecutor` which assigns a strand to each unique user ID (UUID), preventing user data races during concurrent database calls.
 
-User passwords stored as an argon2id hash with a per user salt. Valid login requests must contain exactly `32` bytes of data (see `cryptography-constants.h`) with the expectation that clients will also hash their password before sending it to the server to prevent a malicious (or compromised) server sniffing plaintext passwords. Usernames characters can be alphanumeric, dashes, or underscores.
+User passwords stored as an argon2id hash with a per user salt. Valid login requests must contain exactly `32` bytes of data (see [cryptography-constants.h](src/protocol.cryptography-constants.h)) with the expectation that clients will also hash their password before sending it to the server to prevent a malicious (or compromised) server sniffing plaintext passwords. Usernames characters can be alphanumeric, dashes, or underscores.
 
 On authentication the database records the current login time and IP, grabs the user's friend and block lists, fetches the elo for each game mode, then calls back to the `Server` instance. If the database call failed, the server's `on_auth` will tell the client they are not authenticated, otherwise the data gets passed to the server's `UserManager` instance and the user is sent a `GoodAuth` message.
 
@@ -388,7 +388,7 @@ Each `MatchInstance` acts like a state machine, holding a `GameInstance` and oth
 
 If a match was rated, the elo change will be calculated after recording the match results. Silent Tanks updates user elos using an N-way FFA variant of the standard elo system. Each user has a placement in the match which is used to scale how well they did individually against each opponent, which is averaged and then updated using the standard elo update. When computing the elo update for lobbies larger than 2 players, we scale the base K factor by log<sub>2</sub>(N).
 
-User elos have no upper bound, but do have a lower bound of `500` points to prevent some users from being unable to find a match. Each elo update is bounded to prevent extreme updates, but under normal matchmaking these bounds should never be reached. Every elo update is zero sum unless the operation would set a user below the minimum elo, over time this can cause elo inflation which could be reduced manually by the operator by normalizing the elo tables (some games call this a soft reset). See `elo-updates.cpp` for implementation details.
+User elos have no upper bound, but do have a lower bound of `500` points to prevent some users from being unable to find a match. Each elo update is bounded to prevent extreme updates, but under normal matchmaking these bounds should never be reached. Every elo update is zero sum unless the operation would set a user below the minimum elo, over time this can cause elo inflation which could be reduced manually by the operator by normalizing the elo tables (some games call this a soft reset). See [elo-updates.cpp](src/server/elo-updates.cpp) for implementation details.
 
 Server operators can interact with the server process using the command line interface, a global `Console` instance handles logging important information to the operator and reading user commands. Available commands can be displayed by typing `Help` into the interface.
 
@@ -416,7 +416,7 @@ The client software uses Boost Asio for networking and other aspects of client-s
 
 When the `Client` instance is given data which needs to be displayed to the user (such as a `PlayerView` or text message), this is given to the `GUIClient` which hands the data to the respective QObject for that data type. Requests by the user are likewise forwarded through to the underlying `Client` instance.
 
-Passwords are hashed by the client automatically before sending to reduce the threat of a compromised or otherwise malicious server. There is no per account salt stored in the client, because a user may remove the software package and be locked out of their account. Instead, there is a randomly generated `GLOBAL_CLIENT_SALT` (see `cryptography-constants.h`) which is used by all clients. 
+Passwords are hashed by the client automatically before sending to reduce the threat of a compromised or otherwise malicious server. There is no per account salt stored in the client, because a user may remove the software package and be locked out of their account. Instead, there is a randomly generated `GLOBAL_CLIENT_SALT` (see [cryptography-constants.h](src/protocol.cryptography-constants.h)) which is used by all clients. 
 
 Using a global salt is not as good as a per account salt, but still requires a malicious server collecting passwords to compute a lookup table specific to Silent Tanks clients instead of a precomputed table. Honest servers on the other hand treat this hash as a password and do standard hashing with a salt during account creation.
 
